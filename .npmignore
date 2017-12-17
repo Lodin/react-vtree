@@ -1,0 +1,25 @@
+# See https://help.github.com/ignore-files/ for more about ignoring files.
+
+# IDE
+.idea
+
+# configuration
+/config
+/.editorconfig
+/.gitignore
+/.lintstagedrc
+/.travis.yml
+/tsconfig.json
+/tsconfig.test.json
+/tslint.json
+
+# testing
+/spec
+/coverage
+
+# misc
+.DS_Store
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

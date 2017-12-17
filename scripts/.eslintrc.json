@@ -1,0 +1,26 @@
+{
+  "extends": ["eslint:recommended", "airbnb-base"],
+  "env": {
+    "node": true
+  },
+  "globals": {
+    "jasmine": false,
+    "window": false
+  },
+  "rules": {
+    "comma-dangle": ["error", {
+      "arrays": "always-multiline",
+      "objects": "always-multiline",
+      "imports": "always-multiline",
+      "exports": "always-multiline",
+      "functions": "never"
+    }],
+    "global-require": 0,
+    "import/no-dynamic-require": 0,
+    "import/no-extraneous-dependencies": ["error", {"devDependencies": true}],
+    "max-len": ["error", 140],
+    "no-console": 0,
+    "no-use-before-define": 0,
+    "object-curly-spacing": ["error", "never"]
+  }
+}
