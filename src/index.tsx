@@ -5,7 +5,7 @@ import {
   Alignment,
   Grid,
   GridCellProps,
-  IndexRange,
+  Index, IndexRange,
   OverscanIndexRange,
   ScrollEventData,
 } from 'react-virtualized';
@@ -175,6 +175,7 @@ export interface TreeProps {
 
 export interface TreeState {
   order: string[];
+  useDynamicRowHeight: boolean;
 }
 
 /**
@@ -195,16 +196,18 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
     scrollToAlignment: 'auto',
     scrollToIndex: -1,
     style: {},
+    useDynamicRowHeight: false,
   };
 
   public state: TreeState = {
     order: [],
+    useDynamicRowHeight: false,
   };
 
   private grid: Grid | undefined;
   private registry: {[key: string]: NodeRecord} = {};
 
-  public componentDidMount(): void {
+  public componentWillMount(): void {
     this.recomputeTree(true, true);
   }
 
@@ -277,9 +280,14 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
       value: Node | string;
     }
 
-    const {nodeGetter} = this.props;
+    const {
+      nodeGetter,
+      rowHeight,
+    } = this.props;
 
     const order: string[] = [];
+    let useDynamicRowHeight = false;
+
     const g = nodeGetter(refresh);
 
     let isPreviousOpened = false;
@@ -296,7 +304,11 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
         order.push(value);
         isPreviousOpened = this.registry[value].isOpened;
       } else {
-        const {id, isOpenedByDefault}: Node = value;
+        const {
+          height,
+          id,
+          isOpenedByDefault,
+        }: Node = value;
         const record = this.registry[id];
 
         if (!record) {
@@ -315,21 +327,32 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
 
         order.push(id);
         isPreviousOpened = this.registry[id].isOpened;
+
+        if (height && height !== rowHeight) {
+          useDynamicRowHeight = true;
+        }
       }
     }
 
-    this.setState({order});
+    this.setState({
+      order,
+      useDynamicRowHeight,
+    }, this.forceUpdateGrid);
   }
 
   public render(): JSX.Element {
     const {
       className,
       noRowsRenderer,
+      rowHeight,
       scrollToIndex,
       width,
     } = this.props;
 
-    const {order} = this.state;
+    const {
+      order,
+      useDynamicRowHeight,
+    } = this.state;
 
     const classNames = cn('ReactVirtualized__Tree', className);
 
@@ -345,6 +368,11 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
         onSectionRendered={this.onSectionRendered}
         ref={this.setRef}
         rowCount={order.length}
+        rowHeight={
+          useDynamicRowHeight
+            ? this.getRowHeight
+            : rowHeight
+        }
         scrollToRow={scrollToIndex}
       />
     );
@@ -379,6 +407,15 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
 
     this.recomputeTree(true);
   }
+
+  private getRowHeight = ({index}: Index) => {
+    const {rowHeight} = this.props;
+    const {order} = this.state;
+    const id = order[index];
+    const {node} = this.registry[id];
+
+    return node.height || rowHeight;
+  };
 
   private cellRenderer = ({rowIndex, style, isScrolling, key}: GridCellProps) => {
     const {
