@@ -11,7 +11,6 @@ import {
 } from 'react-virtualized';
 import {OverscanIndicesGetter} from 'react-virtualized/dist/es/Grid';
 import defaultRowRenderer from './defaultRowRenderer';
-import NodeRecord from './NodeRecord';
 import {
   CellPosition,
   Node,
@@ -20,7 +19,7 @@ import {
   RowMouseEventHandler,
   RowRendererParams,
 } from './types';
-import {defaultControlStyle, defaultRowStyle} from './utils';
+import {defaultControlStyle, defaultRowStyle, NodeRecord} from './utils';
 
 export interface TreeProps {
   'aria-label'?: string,
