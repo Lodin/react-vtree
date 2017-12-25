@@ -3,6 +3,8 @@ import React from 'react';
 import {RowRendererParams} from './types';
 
 export default function defaultNodeRenderer({
+  controlClassName,
+  controlStyle,
   childrenCount,
   className,
   isOpened,
@@ -67,9 +69,15 @@ export default function defaultNodeRenderer({
       className={cn('ReactVirtualized__Tree__node', className)}
       key={key}
       style={style}>
-      <div>
+      <div
+        className={controlClassName}
+        style={controlStyle}
+      >
         {!isLeaf && (
-          <button type="button" onClick={onNodeToggle}>
+          <button
+            type="button"
+            onClick={onNodeToggle}
+          >
             {isOpened ? '-' : '+'}
           </button>
         )}

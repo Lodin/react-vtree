@@ -20,6 +20,7 @@ import {
   RowMouseEventHandler,
   RowRendererParams,
 } from './types';
+import {defaultControlStyle, defaultRowStyle} from './utils';
 
 export interface TreeProps {
   'aria-label'?: string,
@@ -34,6 +35,16 @@ export interface TreeProps {
   className?: string;
 
   /**
+   * Optional CSS class to apply to all toggle controls.
+   */
+  controlClassName?: string;
+
+  /**
+   * Optional inline styles for all toggle controls.
+   */
+  controlStyle?: React.CSSProperties;
+
+  /**
    * Used to estimate the total height of a List before all of its rows have actually been measured.
    * The estimated total height is adjusted as rows are rendered.
    */
@@ -41,11 +52,6 @@ export interface TreeProps {
 
   /** Height constraint for list (determines how many actual rows are rendered) */
   height: number;
-
-  /**
-   * Optional CSS class to apply to all nodes.
-   */
-  nodeClassName?: string;
 
   /**
    * Callback responsible for returning nodes in flat format basing on their openness. It should
@@ -120,7 +126,7 @@ export interface TreeProps {
    *   onRowMouseOver?: RowMouseEventHandler,
    *   onRowRightClick?: RowMouseEventHandler,
    *   onNodeToggle: () => void,
-   *   style: $Shape<CSSStyleDeclaration>,
+   *   style: React.CSSStyleDeclaration,
    * }): ReactElement<*>
    */
   rowRenderer?: (params: RowRendererParams) => React.ReactElement<any>;
@@ -140,8 +146,14 @@ export interface TreeProps {
    */
   overscanRowCount?: number;
 
+  /** Optional CSS class to apply to all rows */
+  rowClassName?: string;
+
   /** Fixed row height */
   rowHeight: number;
+
+  /** Optional inline styles for all rows */
+  rowStyle?: React.CSSProperties;
 
   /** See Grid#scrollToAlignment */
   scrollToAlignment?: Alignment,
@@ -357,8 +369,8 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
   }
 
   /**
-   * Sets nodes states (opened/closed) to a states defined in `boolOrObject` parameter.
-   * @param map object that contains nodes' ids as keys and boolean states as values.
+   * Make specified node's openness opposite.
+   * @param map object that contains nodes' ids as keys and boolean openness states as values.
    */
   public toggleNodes(map: {[id: string]: boolean}): void {
     // tslint:disable-next-line:forin no-for-in
@@ -371,7 +383,9 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
 
   private cellRenderer = ({rowIndex, style, isScrolling, key}: GridCellProps) => {
     const {
-      nodeClassName,
+      controlClassName,
+      controlStyle,
+      rowClassName,
       nodeNestingMultiplier,
       onRowClick,
       onRowDoubleClick,
@@ -380,6 +394,7 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
       onRowRightClick,
       rowHeight,
       rowRenderer,
+      rowStyle,
     } = this.props;
 
     const {order} = this.state;
@@ -406,7 +421,7 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
         nestingLevel,
         nodeData,
         height,
-        style: rowStyle,
+        style: specificRowStyle,
       },
       isOpened,
       onNodeToggle,
@@ -414,7 +429,12 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
 
     return rowRenderer!({
       childrenCount,
-      className: nodeClassName,
+      className: rowClassName,
+      controlClassName,
+      controlStyle: {
+        ...defaultControlStyle,
+        ...controlStyle,
+      },
       id,
       index: rowIndex,
       isOpened,
@@ -430,7 +450,9 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
       onRowRightClick,
       style: {
         ...style,
+        ...defaultRowStyle,
         ...rowStyle,
+        ...specificRowStyle,
         height: height || rowHeight,
         marginLeft: nestingLevel * nodeNestingMultiplier!,
         overflow: 'hidden',

@@ -1,4 +1,4 @@
-import React from 'react';
+import {CSSProperties} from 'react';
 import {SectionRenderedParams} from 'react-virtualized';
 
 export interface CellPosition {
@@ -20,7 +20,7 @@ export interface Node {
   isOpenedByDefault: boolean;
   nestingLevel: number;
   nodeData: any;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 }
 
 export type NodeGetter = (refresh: boolean) => IterableIterator<Node | string>;
@@ -33,6 +33,8 @@ export type RowMouseEventHandler = (params: {
 export interface RowRendererParams<T = any> {
   childrenCount: number;
   className?: string;
+  controlClassName?: string;
+  controlStyle?: CSSProperties;
   id: string;
   index: number;
   isOpened: boolean;
@@ -46,5 +48,5 @@ export interface RowRendererParams<T = any> {
   onRowMouseOut?: RowMouseEventHandler;
   onRowMouseOver?: RowMouseEventHandler;
   onRowRightClick?: RowMouseEventHandler;
-  style: React.CSSProperties;
+  style: CSSProperties;
 }
