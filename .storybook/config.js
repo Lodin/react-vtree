@@ -1,21 +1,13 @@
-import { configure, setAddon } from '@storybook/react';
-import { setOptions } from '@storybook/addon-options';
-import JSXAddon from 'storybook-addon-jsx';
+import {configure} from '@storybook/react';
+import {setOptions} from '@storybook/addon-options';
 
 function loadStories() {
-  require('../src/core/theme.css');
-
-  const context = require.context("../src", true, /\.story\.tsx$/);
-  for (const key of context.keys()) {
-    context(key);
-  }
+  require('../src/Tree.story');
 }
 
 setOptions({
   downPanelInRight: true,
-  name: 'UI Kit',
+  name: 'React Virtualized Tree',
 });
-
-setAddon(JSXAddon);
 
 configure(loadStories, module);

@@ -1,6 +1,5 @@
 {
-  "name": "@react-virtualized/tree",
-  "private": true,
+  "name": "react-virtualized-tree",
   "version": "0.1.0",
   "description": "React component for efficiently rendering large tree structures",
   "scripts": {
@@ -8,7 +7,7 @@
     "clean": "rimraf dist coverage",
     "build": "run-p build:cjs build:es",
     "build:cjs": "cross-env BUILD_TYPE=cjs run-p build:cjs:*",
-    "build:cjs:files": "babel -x .ts,.tsx,.js,.jsx src --out-dir dist/cjs --ignore \"**/*.d.ts\" --copy-files",
+    "build:cjs:files": "babel -x .ts,.tsx,.js,.jsx src/index.tsx --out-dir dist/cjs --ignore \"**/*.d.ts\" --copy-files",
     "build:cjs:dts": "dts-only -p tsconfig.json --outDir dist/cjs",
     "build:es": "run-p build:es:*",
     "build:es:files": "babel -x .ts,.tsx,.js,.jsx src --out-dir dist/es --ignore \"**/*.d.ts\" --copy-files",
@@ -49,23 +48,29 @@
     "@babel/core": "^7.0.0-beta.35",
     "@babel/plugin-external-helpers": "^7.0.0-beta.35",
     "@babel/plugin-proposal-class-properties": "^7.0.0-beta.35",
+    "@babel/plugin-proposal-object-rest-spread": "^7.0.0-beta.35",
     "@babel/plugin-transform-runtime": "^7.0.0-beta.35",
     "@babel/preset-env": "^7.0.0-beta.35",
     "@babel/preset-react": "^7.0.0-beta.35",
     "@babel/preset-typescript": "^7.0.0-beta.35",
     "@babel/runtime": "^7.0.0-beta.35",
+    "@babel/types": "^7.0.0-beta.35",
     "@storybook/addon-actions": "^3.2.17",
+    "@storybook/addon-knobs": "^3.2.17",
     "@storybook/addon-options": "^3.2.17",
     "@storybook/react": "^3.2.17",
+    "@types/classnames": "^2.2.3",
     "@types/enzyme": "^3.1.6",
     "@types/jest": "^21.1.8",
     "@types/prop-types": "^15.5.2",
     "@types/react": "^16.0.31",
     "@types/react-dom": "^16.0.3",
     "@types/storybook__addon-actions": "^3.0.1",
+    "@types/storybook__addon-knobs": "^3.2.1",
     "@types/storybook__react": "^3.0.5",
     "autoprefixer": "^7.2.3",
     "babel-loader": "^8.0.0-beta.0",
+    "babel-plugin-reimport": "^0.1.0",
     "codecov": "^3.0.0",
     "cross-env": "^5.1.1",
     "css-loader": "^0.28.7",
@@ -102,6 +107,7 @@
     "raw-loader": "^0.5.1",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
+    "react-virtualized": "^9.13.0",
     "rimraf": "^2.6.2",
     "source-map-loader": "^0.2.3",
     "storybook-addon-jsx": "^5.1.0",
@@ -116,6 +122,11 @@
   },
   "peerDependencies": {
     "react": "^15.0.0-0 || ^16.0.0-0",
-    "react-dom": "^15.0.0-0 || ^16.0.0-0"
+    "react-dom": "^15.0.0-0 || ^16.0.0-0",
+    "react-virtualized": "^9.13.0"
+  },
+  "dependencies": {
+    "@types/react-virtualized": "^9.7.9",
+    "classnames": "^2.2.5"
   }
 }

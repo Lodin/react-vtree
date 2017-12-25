@@ -16,7 +16,7 @@
     "sourceMap": true,
     "sourceRoot": "./src",
     "strict": true,
-    "strictFunctionTypes": true,
+    "strictFunctionTypes": false,
     "target": "es2015",
     "typeRoots": [
       "node_modules/@types"

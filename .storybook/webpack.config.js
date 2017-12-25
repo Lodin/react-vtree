@@ -12,9 +12,11 @@ const genDefaultConfig = require('@storybook/react/dist/server/config/defaults/w
 const {getLocalIdent} = require('./helpers');
 const paths = require('../config/paths');
 const postcssConfig = require('../config/postcss.config');
+const babelConfig = require('../config/babel.config');
 
 module.exports = (baseConfig, env) => {
   const config = genDefaultConfig(baseConfig, env);
+  config.devtool = 'eval';
 
   config.module.rules = [
     {
@@ -49,7 +51,9 @@ module.exports = (baseConfig, env) => {
           include: paths.src,
           loader: require.resolve('babel-loader'),
           options: {
+            babelrc: false,
             cacheDirectory: path.resolve(process.cwd(), '.cache'),
+            ...babelConfig,
           },
         },
         // "postcss" loader applies autoprefixer to our CSS.

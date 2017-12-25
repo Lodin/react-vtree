@@ -1,3 +1,7 @@
 {
-  "extends": "tslint-config-poetez"
+  "extends": "tslint-config-poetez",
+  "rules": {
+    "no-single-line-block-comment": false,
+    "semicolon": false
+  }
 }
