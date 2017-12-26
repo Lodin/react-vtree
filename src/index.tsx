@@ -1,11 +1,12 @@
 import cn from 'classnames';
+import shallowEqual from 'fbjs/lib/shallowEqual';
 import * as React from 'react';
 import {
   accessibilityOverscanIndicesGetter,
   Alignment,
   Grid,
   GridCellProps,
-  IndexRange,
+  Index, IndexRange,
   OverscanIndexRange,
   ScrollEventData,
 } from 'react-virtualized';
@@ -19,7 +20,7 @@ import {
   RowMouseEventHandler,
   RowRendererParams,
 } from './types';
-import {defaultControlStyle, defaultRowStyle, NodeRecord} from './utils';
+import {defaultControlStyle, defaultRowStyle, NodeRecord, UpdateType} from './utils';
 
 export interface TreeProps {
   'aria-label'?: string,
@@ -169,20 +170,23 @@ export interface TreeProps {
   /** Tab index for focus */
   tabIndex?: number;
 
+  update?: UpdateType;
+
   /** Width of list */
   width: number;
 }
 
 export interface TreeState {
   order: string[];
+  useDynamicRowHeight: boolean;
 }
 
 /**
  * This component renders a tree of elements using powerful virtualization technology to render
  * only visible elements to the HTML document.
  */
-export default class Tree extends React.PureComponent<TreeProps, TreeState> {
-  public static defaultProps = {
+export default class Tree extends React.Component<TreeProps, TreeState> {
+  public static defaultProps: Partial<TreeProps> = {
     autoHeight: false,
     estimatedRowSize: 30,
     noRowsRenderer: () => null,
@@ -195,17 +199,25 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
     scrollToAlignment: 'auto',
     scrollToIndex: -1,
     style: {},
+    update: UpdateType.None,
   };
 
   public state: TreeState = {
     order: [],
+    useDynamicRowHeight: false,
   };
 
   private grid: Grid | undefined;
   private registry: {[key: string]: NodeRecord} = {};
 
-  public componentDidMount(): void {
-    this.recomputeTree(true, true);
+  public componentWillMount(): void {
+    this.recomputeTree(UpdateType.NodesAndOpenness);
+  }
+
+  public componentWillReceiveProps({update}: TreeProps): void {
+    if (update !== UpdateType.None) {
+      this.recomputeTree(update!);
+    }
   }
 
   public forceUpdateGrid(): void {
@@ -271,15 +283,23 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
    * Generator provides ability to inform user's algorithm about current node state: is it opened or closed.
    * Basing on this information generator can decide whether it is necessary to render children.
    */
-  public recomputeTree(refresh: boolean = false, ignoreInnerState: boolean = false): void {
+  public recomputeTree(update: UpdateType): void {
     interface IteratorValue {
       done: boolean;
       value: Node | string;
     }
 
-    const {nodeGetter} = this.props;
+    const {
+      nodeGetter,
+      rowHeight,
+    } = this.props;
 
     const order: string[] = [];
+    let useDynamicRowHeight = false;
+
+    const refresh: boolean = update === UpdateType.Nodes || update === UpdateType.NodesAndOpenness;
+    const ignoreInnerState: boolean = update === UpdateType.NodesAndOpenness;
+
     const g = nodeGetter(refresh);
 
     let isPreviousOpened = false;
@@ -296,14 +316,18 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
         order.push(value);
         isPreviousOpened = this.registry[value].isOpened;
       } else {
-        const {id, isOpenedByDefault}: Node = value;
+        const {
+          height,
+          id,
+          isOpenedByDefault,
+        }: Node = value;
         const record = this.registry[id];
 
         if (!record) {
           this.registry[id] = new NodeRecord(
             value,
             isOpenedByDefault,
-            this.handleNodeTogglingFinish,
+            this.finishNodeToggling,
           );
         } else {
           record.node = value;
@@ -315,27 +339,39 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
 
         order.push(id);
         isPreviousOpened = this.registry[id].isOpened;
+
+        if (height && height !== rowHeight) {
+          useDynamicRowHeight = true;
+        }
       }
     }
 
-    this.setState({order});
+    this.setState({
+      order,
+      useDynamicRowHeight,
+    }, useDynamicRowHeight ? this.recomputeGridSize : undefined);
   }
 
   public render(): JSX.Element {
     const {
       className,
       noRowsRenderer,
+      rowHeight,
+      update,
       scrollToIndex,
       width,
+      ...other // tslint:disable-line:trailing-comma
     } = this.props;
 
-    const {order} = this.state;
+    const {
+      order,
+      useDynamicRowHeight,
+    } = this.state;
 
     const classNames = cn('ReactVirtualized__Tree', className);
 
     return (
       <Grid
-        {...this.props}
         autoContainerWidth
         cellRenderer={this.cellRenderer}
         className={classNames}
@@ -345,7 +381,14 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
         onSectionRendered={this.onSectionRendered}
         ref={this.setRef}
         rowCount={order.length}
+        rowHeight={
+          useDynamicRowHeight
+            ? this.getRowHeight
+            : rowHeight
+        }
         scrollToRow={scrollToIndex}
+        width={width}
+        {...other}
       />
     );
   }
@@ -367,6 +410,14 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
     }
   }
 
+  public shouldComponentUpdate({update, ...nextOther}: TreeProps, nextState: TreeState): boolean {
+    const {update: _, ...other} = this.props;
+
+    return !shallowEqual(other, nextOther)
+      || !shallowEqual(this.state, nextState)
+      || update !== UpdateType.None;
+  }
+
   /**
    * Make specified node's openness opposite.
    * @param map object that contains nodes' ids as keys and boolean openness states as values.
@@ -377,8 +428,17 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
       this.registry[id].isOpened = map[id];
     }
 
-    this.recomputeTree(true);
+    this.recomputeTree(UpdateType.Nodes);
   }
+
+  private getRowHeight = ({index}: Index) => {
+    const {rowHeight} = this.props;
+    const {order} = this.state;
+    const id = order[index];
+    const {node} = this.registry[id];
+
+    return node.height || rowHeight;
+  };
 
   private cellRenderer = ({rowIndex, style, isScrolling, key}: GridCellProps) => {
     const {
@@ -459,8 +519,8 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
     });
   };
 
-  private handleNodeTogglingFinish = () => {
-    this.recomputeTree(true);
+  private finishNodeToggling = () => {
+    this.recomputeTree(UpdateType.Nodes);
   };
 
   private onSectionRendered = ({

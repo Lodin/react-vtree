@@ -4,11 +4,7 @@ import * as React from 'react';
 import {AutoSizer} from 'react-virtualized';
 import Tree from '.';
 import {Node} from './types';
-
-function getRandomInt(min: number, max: number): number {
-  // tslint:disable-next-line:insecure-random
-  return Math.floor(Math.random() * (max - min)) + min;
-}
+import {UpdateType} from './utils';
 
 interface DataNode {
   children: DataNode[];
@@ -16,24 +12,54 @@ interface DataNode {
   name: string;
 }
 
-class TreePresenter extends React.PureComponent {
+interface TreePresenterProps {
+  enableDynamicHeight: boolean;
+  rootChildrenHeight: number;
+  rowHeight: number;
+}
+
+interface TreePresenterState {
+  update: UpdateType;
+}
+
+class TreePresenter extends React.PureComponent<TreePresenterProps, TreePresenterState> {
+  public state: TreePresenterState = {
+    update: UpdateType.None,
+  };
+
   private id: number = 0;
   private root: DataNode = this.createNode();
 
-  constructor(props: {}, context: any) {
+  constructor(props: TreePresenterProps, context: any) {
     super(props, context);
 
     this.nodeGetter = this.nodeGetter.bind(this);
   }
 
+  public componentWillReceiveProps({
+    enableDynamicHeight: nextEnableDynamicHeight,
+    rootChildrenHeight: nextRootChildrenHeight,
+  }: TreePresenterProps): void {
+    const {enableDynamicHeight, rootChildrenHeight} = this.props;
+
+    this.setState({
+      update: enableDynamicHeight !== nextEnableDynamicHeight
+        || rootChildrenHeight !== nextRootChildrenHeight ? UpdateType.Nodes : UpdateType.None,
+    });
+  }
+
   public render(): JSX.Element {
+    const {rowHeight} = this.props;
+    const {update} = this.state;
+
     return (
       <AutoSizer disableHeight>
         {({width}) => (
           <Tree
             height={500}
             nodeGetter={this.nodeGetter}
-            rowHeight={number('rowHeight', 30)}
+            rowHeight={rowHeight}
+            update={update}
             width={width}
           />
         )}
@@ -68,6 +94,8 @@ class TreePresenter extends React.PureComponent {
       node: DataNode;
     }
 
+    const {enableDynamicHeight, rootChildrenHeight} = this.props;
+
     const stack = [];
 
     stack.push({
@@ -77,15 +105,16 @@ class TreePresenter extends React.PureComponent {
 
     while (stack.length !== 0) {
       const {node, nestingLevel}: StackElement = stack.pop()!;
+      const id = node.id.toString();
 
       const isOpened = yield refresh ? {
         childrenCount: node.children.length,
-        height: boolean('dynamicRowsHeights', false) ? getRandomInt(30, 60) : undefined,
-        id: node.id.toString(),
-        isOpenedByDefault: false,
+        height: enableDynamicHeight && nestingLevel === 1 ? rootChildrenHeight : undefined,
+        id,
+        isOpenedByDefault: true,
         nestingLevel,
         nodeData: node.name,
-      } : node.id.toString();
+      } : id;
 
       if (node.children.length !== 0 && isOpened) {
         // tslint:disable-next-line:no-increment-decrement
@@ -103,5 +132,9 @@ class TreePresenter extends React.PureComponent {
 storiesOf('Tree', module)
   .addDecorator(withKnobs)
   .add('Default', () => (
-    <TreePresenter/>
+    <TreePresenter
+      enableDynamicHeight={boolean('Enable dynamic height', false)}
+      rootChildrenHeight={number('Root direct children height', 30)}
+      rowHeight={number('Row height', 30)}
+    />
   ));

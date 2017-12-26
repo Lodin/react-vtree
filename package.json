@@ -127,6 +127,7 @@
   },
   "dependencies": {
     "@types/react-virtualized": "^9.7.9",
-    "classnames": "^2.2.5"
+    "classnames": "^2.2.5",
+    "fbjs": "^0.8.16"
   }
 }
