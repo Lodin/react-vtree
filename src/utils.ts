@@ -1,6 +1,13 @@
 import {CSSProperties} from 'react';
 import {Node} from './types';
 
+export enum UpdateType {
+  None,
+  Order,
+  Nodes,
+  NodesAndOpenness,
+}
+
 export const defaultControlStyle: CSSProperties = {
   width: 35,
 };

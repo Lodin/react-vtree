@@ -1,4 +1,5 @@
 import cn from 'classnames';
+import shallowEqual from 'fbjs/lib/shallowEqual';
 import * as React from 'react';
 import {
   accessibilityOverscanIndicesGetter,
@@ -19,7 +20,7 @@ import {
   RowMouseEventHandler,
   RowRendererParams,
 } from './types';
-import {defaultControlStyle, defaultRowStyle, NodeRecord} from './utils';
+import {defaultControlStyle, defaultRowStyle, NodeRecord, UpdateType} from './utils';
 
 export interface TreeProps {
   'aria-label'?: string,
@@ -169,6 +170,8 @@ export interface TreeProps {
   /** Tab index for focus */
   tabIndex?: number;
 
+  update?: UpdateType;
+
   /** Width of list */
   width: number;
 }
@@ -182,8 +185,8 @@ export interface TreeState {
  * This component renders a tree of elements using powerful virtualization technology to render
  * only visible elements to the HTML document.
  */
-export default class Tree extends React.PureComponent<TreeProps, TreeState> {
-  public static defaultProps = {
+export default class Tree extends React.Component<TreeProps, TreeState> {
+  public static defaultProps: Partial<TreeProps> = {
     autoHeight: false,
     estimatedRowSize: 30,
     noRowsRenderer: () => null,
@@ -196,7 +199,7 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
     scrollToAlignment: 'auto',
     scrollToIndex: -1,
     style: {},
-    useDynamicRowHeight: false,
+    update: UpdateType.None,
   };
 
   public state: TreeState = {
@@ -208,7 +211,13 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
   private registry: {[key: string]: NodeRecord} = {};
 
   public componentWillMount(): void {
-    this.recomputeTree(true, true);
+    this.recomputeTree(UpdateType.NodesAndOpenness);
+  }
+
+  public componentWillReceiveProps({update}: TreeProps): void {
+    if (update !== UpdateType.None) {
+      this.recomputeTree(update!);
+    }
   }
 
   public forceUpdateGrid(): void {
@@ -274,7 +283,7 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
    * Generator provides ability to inform user's algorithm about current node state: is it opened or closed.
    * Basing on this information generator can decide whether it is necessary to render children.
    */
-  public recomputeTree(refresh: boolean = false, ignoreInnerState: boolean = false): void {
+  public recomputeTree(update: UpdateType): void {
     interface IteratorValue {
       done: boolean;
       value: Node | string;
@@ -287,6 +296,9 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
 
     const order: string[] = [];
     let useDynamicRowHeight = false;
+
+    const refresh: boolean = update === UpdateType.Nodes || update === UpdateType.NodesAndOpenness;
+    const ignoreInnerState: boolean = update === UpdateType.NodesAndOpenness;
 
     const g = nodeGetter(refresh);
 
@@ -315,7 +327,7 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
           this.registry[id] = new NodeRecord(
             value,
             isOpenedByDefault,
-            this.handleNodeTogglingFinish,
+            this.finishNodeToggling,
           );
         } else {
           record.node = value;
@@ -337,7 +349,7 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
     this.setState({
       order,
       useDynamicRowHeight,
-    }, this.forceUpdateGrid);
+    }, useDynamicRowHeight ? this.recomputeGridSize : undefined);
   }
 
   public render(): JSX.Element {
@@ -345,8 +357,10 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
       className,
       noRowsRenderer,
       rowHeight,
+      update,
       scrollToIndex,
       width,
+      ...other // tslint:disable-line:trailing-comma
     } = this.props;
 
     const {
@@ -358,7 +372,6 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
 
     return (
       <Grid
-        {...this.props}
         autoContainerWidth
         cellRenderer={this.cellRenderer}
         className={classNames}
@@ -374,6 +387,8 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
             : rowHeight
         }
         scrollToRow={scrollToIndex}
+        width={width}
+        {...other}
       />
     );
   }
@@ -395,6 +410,14 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
     }
   }
 
+  public shouldComponentUpdate({update, ...nextOther}: TreeProps, nextState: TreeState): boolean {
+    const {update: _, ...other} = this.props;
+
+    return !shallowEqual(other, nextOther)
+      || !shallowEqual(this.state, nextState)
+      || update !== UpdateType.None;
+  }
+
   /**
    * Make specified node's openness opposite.
    * @param map object that contains nodes' ids as keys and boolean openness states as values.
@@ -405,7 +428,7 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
       this.registry[id].isOpened = map[id];
     }
 
-    this.recomputeTree(true);
+    this.recomputeTree(UpdateType.Nodes);
   }
 
   private getRowHeight = ({index}: Index) => {
@@ -449,6 +472,7 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
     }
 
     const id = order[rowIndex];
+
     const record = this.registry[id];
 
     const {
@@ -496,8 +520,8 @@ export default class Tree extends React.PureComponent<TreeProps, TreeState> {
     });
   };
 
-  private handleNodeTogglingFinish = () => {
-    this.recomputeTree(true);
+  private finishNodeToggling = () => {
+    this.recomputeTree(UpdateType.Nodes);
   };
 
   private onSectionRendered = ({
