@@ -21,6 +21,7 @@
     "max-len": ["error", 140],
     "no-console": 0,
     "no-use-before-define": 0,
+    "no-restricted-syntax": 0,
     "object-curly-spacing": ["error", "never"]
   }
 }

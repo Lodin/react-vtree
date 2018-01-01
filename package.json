@@ -4,6 +4,7 @@
   "description": "React component for efficiently rendering large tree structures",
   "scripts": {
     "build-storybook": "build-storybook",
+    "check": "run-p lint typecheck",
     "clean": "rimraf dist coverage",
     "build": "run-p build:cjs build:es",
     "build:cjs": "cross-env BUILD_TYPE=cjs run-p build:cjs:*",
@@ -12,16 +13,18 @@
     "build:es": "run-p build:es:*",
     "build:es:files": "babel -x .ts,.tsx,.js,.jsx src --out-dir dist/es --ignore \"**/*.d.ts\" --copy-files",
     "build:es:dts": "dts-only -p tsconfig.json --outDir dist/es",
-    "full-prepare": "run-s clean lint test:single build",
+    "full-prepare": "run-s clean check test:single build",
     "lint": "run-p lint:*",
-    "lint:src": "tslint \"src/**/*.ts\" -c tslint.json -p tsconfig.json -t verbose --fix",
-    "lint:config": "eslint \"config/**/*.js\" --fix",
-    "lint:scripts": "eslint \"scripts/**/*.js\" --fix",
+    "lint:src": "tslint \"src/**/*.ts\" -c tslint.json -p tsconfig.json -t verbose",
+    "lint:config": "eslint \"config/**/*.js\"",
+    "lint:scripts": "eslint \"scripts/**/*.js\"",
+    "lint:storybook": "eslint \".storybook/**/*.js\"",
     "precommit": "lint-staged",
     "start": "run-s storybook",
     "storybook": "start-storybook -p 6006",
     "test": "node scripts/test.js",
-    "test:cover": "run-s \"test -- --coverage\""
+    "test:cover": "run-s \"test -- --coverage\"",
+    "typecheck": "tsc --noEmit -p ./tsconfig.json"
   },
   "repository": {
     "type": "git",
