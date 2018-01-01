@@ -1,5 +1,7 @@
-import {configure} from '@storybook/react';
-import {setOptions} from '@storybook/addon-options';
+/* eslint-disable import/no-unresolved */
+
+const {configure} = require('@storybook/react');
+const {setOptions} = require('@storybook/addon-options');
 
 function loadStories() {
   require('../src/Tree.story');

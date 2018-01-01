@@ -1,4 +1,4 @@
-'use strict';
+
 // you can use this file to add your custom webpack plugins, loaders and anything you like.
 // This is just the basic way to add additional webpack configurations.
 // For more information refer the docs: https://storybook.js.org/configurations/custom-webpack-config
@@ -32,7 +32,7 @@ module.exports = (baseConfig, env) => {
       oneOf: [
         {
           test: /\.md$/,
-          loader: 'raw-loader'
+          loader: 'raw-loader',
         },
         // "url" loader works like "file" loader except that it embeds assets
         // smaller than specified limit in bytes as data URLs to avoid requests.
