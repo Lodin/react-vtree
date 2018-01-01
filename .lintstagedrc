@@ -1,5 +1,8 @@
 {
-  "src/**/*.ts": ["npm-run-all lint:src -- --fix", "git add"],
-  "spec/**/*.ts": ["npm-run-all lint:spec -- --fix", "git add"],
-  "config/**/*.js": ["eslint --fix", "git add"]
+  "linters": {
+    "config/**/*.js": ["npm run lint:config -- --fix", "git add"],
+    "scripts/**/*.js": ["npm run lint:scripts -- --fix", "git add"],
+    ".storybook/**/*.js": ["npm run lint:storybook -- --fix", "git add"],
+    "src/**/*.+(ts|tsx)": ["npm run lint:src -- --fix", "node ./scripts/typecheck.js", "git add"]
+  }
 }
