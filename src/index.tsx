@@ -297,8 +297,8 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
     const order: string[] = [];
     let useDynamicRowHeight = false;
 
-    const refresh: boolean = update === UpdateType.Nodes || update === UpdateType.NodesAndOpenness;
-    const ignoreInnerState: boolean = update === UpdateType.NodesAndOpenness;
+    const refresh = update === UpdateType.Nodes || update === UpdateType.NodesAndOpenness;
+    const ignoreInnerState = update === UpdateType.NodesAndOpenness;
 
     const g = nodeGetter(refresh);
 
