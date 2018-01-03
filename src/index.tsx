@@ -210,13 +210,13 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
   private grid: Grid | undefined;
   private registry: {[key: string]: NodeRecord} = {};
 
-  public componentWillMount(): void {
-    this.recomputeTree(UpdateType.NodesAndOpenness);
+  public async componentWillMount(): Promise<void> {
+    await this.recomputeTree(UpdateType.NodesAndOpenness);
   }
 
-  public componentWillReceiveProps({update}: TreeProps): void {
+  public async componentWillReceiveProps({update}: TreeProps): Promise<void> {
     if (update !== UpdateType.None) {
-      this.recomputeTree(update!);
+      await this.recomputeTree(update!);
     }
   }
 
@@ -283,7 +283,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
    * Generator provides ability to inform user's algorithm about current node state: is it opened or closed.
    * Basing on this information generator can decide whether it is necessary to render children.
    */
-  public recomputeTree(update: UpdateType): void {
+  public async recomputeTree(update: UpdateType): Promise<{}> {
     interface IteratorValue {
       done: boolean;
       value: Node | string;
@@ -346,10 +346,18 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
       }
     }
 
-    this.setState({
-      order,
-      useDynamicRowHeight,
-    }, useDynamicRowHeight ? this.recomputeGridSize : undefined);
+    return new Promise((resolve) => {
+      this.setState({
+        order,
+        useDynamicRowHeight,
+      }, () => {
+        if (useDynamicRowHeight) {
+          this.recomputeGridSize();
+        }
+
+        resolve();
+      });
+    });
   }
 
   public render(): JSX.Element {
@@ -358,8 +366,8 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
       noRowsRenderer,
       onScroll,
       rowHeight,
-      update,
       scrollToIndex,
+      update,
       width,
       ...other // tslint:disable-line:trailing-comma
     } = this.props;
@@ -424,13 +432,13 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
    * Make specified node's openness opposite.
    * @param map object that contains nodes' ids as keys and boolean openness states as values.
    */
-  public toggleNodes(map: {[id: string]: boolean}): void {
+  public async toggleNodes(map: {[id: string]: boolean}): Promise<{}> {
     // tslint:disable-next-line:forin no-for-in
     for (const id in map) {
       this.registry[id].isOpened = map[id];
     }
 
-    this.recomputeTree(UpdateType.Nodes);
+    return this.recomputeTree(UpdateType.Nodes);
   }
 
   private getRowHeight = ({index}: Index) => {
@@ -521,8 +529,8 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
     });
   };
 
-  private finishNodeToggling = () => {
-    this.recomputeTree(UpdateType.Nodes);
+  private finishNodeToggling = async () => {
+    await this.recomputeTree(UpdateType.Nodes);
   };
 
   private onScroll = ({clientHeight, scrollHeight, scrollTop}: ScrollEventData): void => {
