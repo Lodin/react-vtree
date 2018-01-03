@@ -53,6 +53,9 @@ export interface TreeProps {
   /** Height constraint for list (determines how many actual rows are rendered) */
   height: number;
 
+  /** Custom HTML id */
+  id?: string;
+
   /**
    * Callback responsible for returning nodes in flat format basing on their openness. It should
    * be a generator function that yields node information, receives info about node's openness
