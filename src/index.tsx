@@ -356,6 +356,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
     const {
       className,
       noRowsRenderer,
+      onScroll,
       rowHeight,
       update,
       scrollToIndex,
@@ -378,6 +379,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
         columnWidth={width}
         columnCount={1}
         noContentRenderer={noRowsRenderer}
+        onScroll={this.onScroll}
         onSectionRendered={this.onSectionRendered}
         ref={this.setRef}
         rowCount={order.length}
@@ -521,6 +523,12 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
 
   private finishNodeToggling = () => {
     this.recomputeTree(UpdateType.Nodes);
+  };
+
+  private onScroll = ({clientHeight, scrollHeight, scrollTop}: ScrollEventData): void => {
+    const {onScroll} = this.props;
+
+    onScroll!({clientHeight, scrollHeight, scrollTop});
   };
 
   private onSectionRendered = ({
