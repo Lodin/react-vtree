@@ -1,7 +1,9 @@
 {
   "extends": "tslint-config-poetez",
   "rules": {
+    "mocha-no-side-effect-code": false,
     "no-single-line-block-comment": false,
+    "no-suspicious-comment": false,
     "semicolon": false
   }
 }
