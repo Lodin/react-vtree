@@ -291,7 +291,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
   public async recomputeTree(update: UpdateType): Promise<{}> {
     interface IteratorValue {
       done: boolean;
-      value: Node | string;
+      value: Node | string | null;
     }
 
     const {
@@ -313,7 +313,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
     while (true) {
       const {value, done}: IteratorValue = g.next(isPreviousOpened);
 
-      if (done) {
+      if (done || !value) {
         break;
       }
 

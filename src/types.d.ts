@@ -23,7 +23,7 @@ export interface Node {
   style?: CSSProperties;
 }
 
-export type NodeGetter = (refresh: boolean) => IterableIterator<Node | string>;
+export type NodeGetter = (refresh: boolean) => IterableIterator<Node | string | null>;
 
 export type RowMouseEventHandler = (params: {
   event: Event;
