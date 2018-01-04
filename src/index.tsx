@@ -446,7 +446,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
     return this.recomputeTree(UpdateType.Nodes);
   }
 
-  private getRowHeight = ({index}: Index) => {
+  private getRowHeight = ({index}: Index): number => {
     const {rowHeight} = this.props;
     const {order} = this.state;
     const id = order[index];
