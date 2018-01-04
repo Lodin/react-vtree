@@ -10,7 +10,7 @@
 /.lintstagedrc
 /.travis.yml
 /tsconfig.json
-/tsconfig.test.json
+/tsconfig.prod.json
 /tslint.json
 
 # testing

@@ -9,5 +9,5 @@ module.exports = {
   spec: resolve('./spec'),
   src: resolve('./src'),
   stories: resolve('./stories'),
-  tsconfig: resolve('./tsconfig.json'),
+  tsconfig: resolve('./tsconfig.prod.json'),
 };

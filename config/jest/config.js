@@ -1,6 +1,8 @@
 const path = require('path');
 
-const resolve = way => path.resolve(process.cwd(), way);
+const cwd = process.cwd();
+
+const resolve = way => path.resolve(cwd, way);
 const config = way => resolve(`config/jest/${way}`);
 
 module.exports = {
@@ -10,7 +12,7 @@ module.exports = {
   ],
   globals: {
     'ts-jest': {
-      tsConfigFile: resolve('tsconfig.test.json'),
+      tsConfigFile: resolve('tsconfig.json'),
     },
   },
   mapCoverage: true,
@@ -29,14 +31,13 @@ module.exports = {
     'json',
     'node',
   ],
-  rootDir: process.cwd(),
+  rootDir: cwd,
   setupFiles: [
     config('polyfills.js'),
   ],
   setupTestFrameworkScriptFile: config('enzyme.js'),
   testMatch: [
-    resolve('src/**/__tests__/**/*.ts?(x)'),
-    resolve('src/**/?(*.)(spec|test).ts?(x)'),
+    resolve('__tests__/**/*.spec.+(ts|tsx)'),
   ],
   testEnvironment: 'jsdom',
   testURL: 'http://localhost',
