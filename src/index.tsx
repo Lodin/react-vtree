@@ -22,6 +22,8 @@ import {
 } from './types';
 import {defaultControlStyle, defaultRowStyle, NodeRecord, UpdateType} from './utils';
 
+export {defaultRowRenderer};
+
 export interface TreeProps {
   'aria-label'?: string,
 
