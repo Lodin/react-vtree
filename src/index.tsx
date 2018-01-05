@@ -358,6 +358,8 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
       }, () => {
         if (useDynamicRowHeight) {
           this.recomputeGridSize();
+        } else {
+          this.forceUpdateGrid();
         }
 
         resolve();
