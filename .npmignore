@@ -3,22 +3,31 @@
 # IDE
 .idea
 
+# sources
+/__stories__
+/src
+
 # configuration
 /config
+/.babelrc
 /.editorconfig
 /.gitignore
 /.lintstagedrc
+/.storybook
 /.travis.yml
+/package-lock.json
+/scripts
 /tsconfig.json
 /tsconfig.prod.json
 /tslint.json
 
 # testing
-/spec
+/__tests__
 /coverage
 
 # misc
 .DS_Store
+.cache
 .env
 npm-debug.log*
 yarn-debug.log*
