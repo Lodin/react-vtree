@@ -225,9 +225,9 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
     }
   }
 
-  public forceUpdateGrid(): void {
+  public forceUpdateGrid(callback?: () => any): void {
     if (this.grid) {
-      this.grid.forceUpdate();
+      this.grid.forceUpdate(callback);
     }
   }
 
@@ -358,11 +358,10 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
       }, () => {
         if (useDynamicRowHeight) {
           this.recomputeGridSize();
+          resolve();
         } else {
-          this.forceUpdateGrid();
+          this.forceUpdateGrid(resolve);
         }
-
-        resolve();
       });
     });
   }
