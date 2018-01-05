@@ -22,6 +22,10 @@ export interface TreeRendererOptions {
   rowRenderer?: (params: RowRendererParams) => React.ReactElement<any>;
 }
 
+export type TreeRenderer = (props?: Partial<TreeProps>) => ReactWrapper<TreeProps, any>;
+
+export type NodeGetterMock = jest.Mock<IterableIterator<Node | string | null>>;
+
 // Override default behavior of overscanning by at least 1 (for accessibility)
 // Because it makes simpler tests below
 export const overscanIndicesGetter: OverscanIndicesGetter = ({startIndex, stopIndex}) => ({
@@ -59,9 +63,9 @@ export function createNodeCreator(maxDepth: number = 3): (depth?: number) => Spe
 export function createNodeGetter({
   isOpenedByDefault = true,
   root = createNodeCreator()(),
-}: NodeGetterOptions = {}): (refresh: boolean) => IterableIterator<Node> {
+}: NodeGetterOptions = {}): NodeGetter {
   // tslint:disable-next-line:no-function-expression
-  return function* nodeGetter(refresh: boolean): IterableIterator<Node> {
+  return function* nodeGetter(refresh: boolean): IterableIterator<Node | string | null> {
     interface StackElement {
       node: SpecNode;
       nestingLevel: number;
@@ -77,13 +81,15 @@ export function createNodeGetter({
     while (stack.length !== 0) {
       const {node, nestingLevel}: StackElement = stack.pop()!;
 
-      const isOpened = refresh ? yield {
-        childrenCount: node.children.length,
-        id: node.id,
-        isOpenedByDefault,
-        nestingLevel,
-        nodeData: node.name,
-      } : node.id;
+      const isOpened = yield (
+        refresh ? {
+          childrenCount: node.children.length,
+          id: node.id,
+          isOpenedByDefault,
+          nestingLevel,
+          nodeData: node.name,
+        } : node.id
+      );
 
       if (node.children.length !== 0 && isOpened) {
         // tslint:disable-next-line:no-increment-decrement

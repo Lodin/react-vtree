@@ -7,9 +7,10 @@ import Tree, {defaultRowRenderer, TreeProps} from '../src';
 import {RowRendererParams} from '../src/types';
 import {UpdateType} from '../src/utils';
 import {
+  createNodeCreator,
   createNodeGetter,
-  createTreeRenderer,
-  overscanIndicesGetter,
+  createTreeRenderer, NodeGetterMock,
+  overscanIndicesGetter, SpecNode, TreeRenderer,
 } from './helpers';
 
 const NODE_COUNT = 156;
@@ -554,6 +555,87 @@ describe('Tree', () => {
         update: UpdateType.None,
       });
       expect(rendered).toIncludeText('1b');
+    });
+  });
+
+  describe('recomputeTree', () => {
+    let root: SpecNode;
+    let nodeGetter: NodeGetterMock;
+    let renderCustomTree: TreeRenderer;
+
+    beforeEach(() => {
+      root = createNodeCreator(2)();
+
+      nodeGetter = jest.fn(createNodeGetter({
+        root,
+      }));
+
+      renderCustomTree = createTreeRenderer({
+        nodeGetter,
+      });
+    });
+
+    it('should change only tree elements order if :update is UpdateType.Order', async () => {
+      const rendered = renderCustomTree();
+      const instance = rendered.instance() as Tree;
+
+      root.children.sort((a, b) => {
+        const aId = parseInt(a.id, 10);
+        const bId = parseInt(b.id, 10);
+
+        if (aId < bId) {
+          return 1;
+        } else if (aId > bId) {
+          return -1;
+        }
+
+        return 0;
+      });
+
+      root.children = root.children.map(n => ({
+        ...n,
+        name: `ChangedName ${n.id}`,
+      }));
+
+      await instance.recomputeTree(UpdateType.Order);
+
+      expect(rendered.find('.treeNode').at(1)).toIncludeText('25');
+      expect(rendered.find('.treeNode').at(1)).not.toIncludeText('ChangedName');
+    });
+
+    it('should change nodes data if :update is UpdateType.Nodes', async () => {
+      const rendered = renderCustomTree();
+      const instance = rendered.instance() as Tree;
+
+      root.children = root.children.map(n => ({
+        ...n,
+        name: `ChangedName ${n.id}`,
+      }));
+
+      await instance.recomputeTree(UpdateType.Nodes);
+
+      expect(rendered.find('.treeNode').at(1)).toIncludeText('ChangedName');
+    });
+
+    it('should ignore inner component openness state if :update is UpdateType.NodesAndOpenness', async () => {
+      const rendered = renderCustomTree();
+
+      const closedNodeGetter = createNodeGetter({
+        isOpenedByDefault: false,
+      });
+
+      rendered.setProps({
+        nodeGetter: closedNodeGetter,
+      });
+
+      expect(rendered.find('.treeNode').length).toBe(10);
+
+      const instance = rendered.instance() as Tree;
+
+      await instance.recomputeTree(UpdateType.NodesAndOpenness);
+      rendered.update();
+
+      expect(rendered.find('.treeNode').length).toBe(1);
     });
   });
 });
