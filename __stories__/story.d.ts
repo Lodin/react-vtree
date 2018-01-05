@@ -2,7 +2,7 @@
 
 declare module '*.md' {
   const readme: string;
-  export default readme;
+  export = readme;
 }
 
 // declare module '@storybook/react';

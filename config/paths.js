@@ -8,6 +8,6 @@ module.exports = {
   modules: resolve('./node_modules'),
   spec: resolve('./spec'),
   src: resolve('./src'),
-  stories: resolve('./stories'),
+  stories: resolve('./__stories__'),
   tsconfig: resolve('./tsconfig.prod.json'),
 };

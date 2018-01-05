@@ -2,9 +2,9 @@ import {boolean, number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import * as React from 'react';
 import {AutoSizer} from 'react-virtualized';
-import Tree from '.';
-import {Node} from './types';
-import {UpdateType} from './utils';
+import Tree from '../src';
+import {Node} from '../src/types';
+import {UpdateType} from '../src/utils';
 
 interface DataNode {
   children: DataNode[];

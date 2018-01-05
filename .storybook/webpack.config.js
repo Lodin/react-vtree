@@ -48,7 +48,7 @@ module.exports = (baseConfig, env) => {
         // Compile .tsx?
         {
           test: /\.(ts|tsx)$/,
-          include: paths.src,
+          include: [paths.src, paths.stories],
           loader: require.resolve('babel-loader'),
           options: {
             babelrc: false,

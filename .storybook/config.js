@@ -1,10 +1,9 @@
-/* eslint-disable import/no-unresolved */
-
 const {configure} = require('@storybook/react');
 const {setOptions} = require('@storybook/addon-options');
 
 function loadStories() {
-  require('../src/Tree.story');
+  // eslint-disable-next-line import/no-unresolved
+  require('../__stories__/Tree');
 }
 
 setOptions({
