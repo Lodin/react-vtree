@@ -28,47 +28,75 @@ export interface TreeProps {
   'aria-label'?: string,
 
   /**
-   * Removes fixed height from the scrollingContainer so that the total height
-   * of rows can stretch the window. Intended for use with WindowScroller
+   * Removes fixed height from the "scrollingContainer" so that the total height
+   * of rows can stretch the window. Intended for use with "WindowScroller" HOC.
    */
   autoHeight?: boolean;
 
   /** Optional CSS class name */
   className?: string;
 
-  /**
-   * Optional CSS class to apply to all toggle controls.
-   */
+  /** Optional CSS class for all toggle controls */
   controlClassName?: string;
 
-  /**
-   * Optional inline styles for all toggle controls.
-   */
+  /** Optional inline styles for all toggle controls */
   controlStyle?: React.CSSProperties;
 
   /**
-   * Used to estimate the total height of a List before all of its rows have actually been measured.
+   * Used to estimate the total height of a Tree before all of its rows have actually been measured.
    * The estimated total height is adjusted as rows are rendered.
    */
   estimatedRowSize?: number;
 
-  /** Height constraint for list (determines how many actual rows are rendered) */
+  /**
+   * Sets height of a container Tree is rendered inside of. It also determines how many actual rows
+   * are rendered.
+   */
   height: number;
 
   /** Custom HTML id */
   id?: string;
 
   /**
-   * Callback responsible for returning nodes in flat format basing on their openness. It should
-   * be a generator function that yields node information, receives info about node's openness
-   * and basing on it returns children of current node or next sibling at the next iteration.
-   * (): Generator<{
-   *   childrenCount: number,
-   *   id: string,
-   *   isOpenedByDefault: boolean,
-   *   nestingLevel: number,
-   *   nodeData: any,
-   * }>
+   * Generator flattens tree data to display it in a list form basing on information of nodes' openness.
+   * It should yield node metadata or node id depending on boolean "refresh" parameter it receives.
+   *
+   * @example
+   * ```typescript
+   * function * nodeGetter(refresh: boolean): IterableIterator<Node | string | null> {
+   *   const stack = [];
+   *
+   *   stack.push({
+   *     nestingLevel: 0,
+   *     node: root, // tree data structure
+   *   });
+   *
+   *   while (stack.length !== 0) {
+   *     const {node, nestingLevel} = stack.pop()!;
+   *     const id = node.id.toString();
+   *
+   *     const isOpened = yield (
+   *       refresh ? {
+   *         childrenCount: node.children.length,
+   *         height: 20, // only if you want to use dynamic heights; otherwise use "rowHeight"
+   *         id,
+   *         isOpenedByDefault: true,
+   *         nestingLevel,
+   *         nodeData: node.name,
+   *       } : id
+   *     );
+   *
+   *     if (node.children.length !== 0 && isOpened) {
+   *       for (let i = node.children.length - 1; i >= 0; i--) {
+   *         stack.push({
+   *           nestingLevel: nestingLevel + 1,
+   *           node: node.children[i],
+   *         });
+   *       }
+   *     }
+   *   }
+   * }
+   * ```
    */
   nodeGetter: NodeGetter;
 
@@ -81,59 +109,25 @@ export interface TreeProps {
   /** Optional renderer to be used in place of rows when tree is empty */
   noRowsRenderer?: () => React.ReactNode | null;
 
-  /**
-   * Callback invoked when a user clicks on a node.
-   * ({event: Event, nodeData: any}): void
-   */
+  /** Callback invoked when a user clicks on a node */
   onRowClick?: RowMouseEventHandler;
 
-  /**
-   * Callback invoked when a user double-clicks on a node.
-   * ({event: Event, nodeData: any}): void
-   */
+  /** Callback invoked when a user double-clicks on a node */
   onRowDoubleClick?: RowMouseEventHandler;
 
-  /**
-   * Callback invoked when the mouse leaves a node.
-   * ({event: Event, nodeData: any}): void
-   */
+  /** Callback invoked when the mouse leaves a node */
   onRowMouseOut?: RowMouseEventHandler;
 
-  /**
-   * Callback invoked when a user moves the mouse over a node.
-   * ({event: Event, nodeData: any}): void
-   */
+  /** Callback invoked when a user moves the mouse over a node */
   onRowMouseOver?: RowMouseEventHandler;
 
-  /**
-   * Callback invoked when a user right-clicks on a node.
-   * ({event: Event, nodeData: any}): void
-   */
+  /** Callback invoked when a user right-clicks on a node */
   onRowRightClick?: RowMouseEventHandler;
 
-  /** Callback invoked with information about the slice of rows that were just rendered. */
+  /** Callback invoked with information about the slice of rows that were just rendered */
   onRowsRendered?: (info: IndexRange & OverscanIndexRange) => void;
 
-  /**
-   * Responsible for rendering a data received from NodeGetter:
-   * Should implement the following interface: ({
-   *   className?: string,
-   *   deepLevel: number,
-   *   index: number,
-   *   isLeaf: boolean,
-   *   isOpened: boolean,
-   *   isScrolling: boolean,
-   *   key: string,
-   *   nodeData: any,
-   *   onRowClick?: RowMouseEventHandler,
-   *   onRowDoubleClick?: RowMouseEventHandler,
-   *   onRowMouseOut?: RowMouseEventHandler,
-   *   onRowMouseOver?: RowMouseEventHandler,
-   *   onRowRightClick?: RowMouseEventHandler,
-   *   onNodeToggle: () => void,
-   *   style: React.CSSStyleDeclaration,
-   * }): ReactElement<*>
-   */
+  /** Renders data received from NodeGetter */
   rowRenderer?: (params: RowRendererParams) => React.ReactElement<any>;
 
   /**
@@ -175,9 +169,15 @@ export interface TreeProps {
   /** Tab index for focus */
   tabIndex?: number;
 
+  /**
+   * If is set and is different than UpdateType.None forces component to recompute and call nodeGetter. This property
+   * is not pure: component will re-render any time it receives this property and it is not UpdateType.None.
+   *
+   * Useful if you changed something in the tree structure and want to re-render component using new data.
+   */
   update?: UpdateType;
 
-  /** Width of list */
+  /** Width of Tree container */
   width: number;
 }
 
@@ -283,12 +283,28 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
     }
   }
 
-  /*
-   * Converts complex tree to a flat array to display it with Grid using a `_nodeGetter` generator function.
-   * Generator provides ability to inform user's algorithm about current node state: is it opened or closed.
-   * Basing on this information generator can decide whether it is necessary to render children.
+  /**
+   * Recomputes Tree component basing on update type.
+   *
+   * Method calls "nodeGetter" internally and flattens tree structure to an array. Depending on "update" value, it runs
+   * one of the following algorithms:
+   * 1) UpdateType.NodesAndOpenness. Requires full node metadata. Updates order, number and rendering data of all
+   * nodes. Overrides current openness state with "openedByDefault" value.
+   * 2) UpdateType.Nodes. Requires full node metadata. Updates order, number and rendering data of all nodes. Preserves
+   * openness state of all nodes.
+   * 3) UpdateType.Order. Requires only node id. Updates nodes order (useful for sorting etc.). Preserves openness
+   * state of all nodes.
+   * 4) UpdateType.None. Updates nothing.
+   *
+   * @param update
+   *
+   * @returns promise resolves when re-rendering is ended
    */
-  public async recomputeTree(update: UpdateType): Promise<{}> {
+  public async recomputeTree(update: UpdateType): Promise<void> {
+    if (update === UpdateType.None) {
+      return void 0;
+    }
+
     interface IteratorValue {
       done: boolean;
       value: Node | string | null;
@@ -351,7 +367,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
       }
     }
 
-    return new Promise((resolve) => {
+    return new Promise<void>((resolve) => {
       this.setState({
         order,
         useDynamicRowHeight,
@@ -435,16 +451,16 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
   }
 
   /**
-   * Make specified node's openness opposite.
-   * @param map object that contains nodes' ids as keys and boolean openness states as values.
+   * Overrides openness state of nodes width ids specified as map keys to map values respectively.
+   * @param map
    */
-  public async toggleNodes(map: {[id: string]: boolean}): Promise<{}> {
+  public async toggleNodes(map: {[id: string]: boolean}): Promise<void> {
     // tslint:disable-next-line:forin no-for-in
     for (const id in map) {
       this.registry[id].isOpened = map[id];
     }
 
-    return this.recomputeTree(UpdateType.Nodes);
+    await this.recomputeTree(UpdateType.Nodes);
   }
 
   private getRowHeight = ({index}: Index): number => {
@@ -542,7 +558,11 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
   private onScroll = ({clientHeight, scrollHeight, scrollTop}: ScrollEventData): void => {
     const {onScroll} = this.props;
 
-    onScroll!({clientHeight, scrollHeight, scrollTop});
+    onScroll!({
+      clientHeight,
+      scrollHeight,
+      scrollTop,
+    });
   };
 
   private onSectionRendered = ({
