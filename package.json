@@ -31,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Lodin/react-virtualized-tree.git"
+    "url": "git+https://github.com/Lodin/react-vtree.git"
   },
   "keywords": [
     "infinite",
@@ -46,9 +46,9 @@
   "author": "Vlad Rindevich <rindevich.vs@gmail.com> (https://github.com/Lodin)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Lodin/react-virtualized-tree/issues"
+    "url": "https://github.com/Lodin/react-vtree/issues"
   },
-  "homepage": "https://github.com/Lodin/react-virtualized-tree#readme",
+  "homepage": "https://github.com/Lodin/react-vtree#readme",
   "devDependencies": {
     "@babel/cli": "^7.0.0-beta.35",
     "@babel/core": "^7.0.0-beta.35",
