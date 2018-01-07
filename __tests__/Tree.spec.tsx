@@ -632,7 +632,7 @@ describe('Tree', () => {
       const instance = rendered.instance() as Tree;
 
       await instance.recomputeTree(Update.NodesAndOpenness);
-      rendered.update();
+      rendered.update(); // TODO: remove when https://github.com/airbnb/enzyme/issues/1229 is resolved
 
       expect(rendered.find('.treeNode').length).toBe(1);
     });
