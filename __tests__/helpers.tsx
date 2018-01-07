@@ -130,29 +130,3 @@ export function createTreeRenderer({
     />,
   );
 }
-
-export class MockMethod<T> {
-  private originalMethod: Function;
-  private mockedMethod: jest.Mock<T>;
-
-  public constructor(
-    private cls: any,
-    private method: string,
-  ) {
-    this.originalMethod = this.cls[this.method];
-    this.setUp();
-  }
-
-  public get info(): jest.MockContext<T> {
-    return this.mockedMethod.mock;
-  }
-
-  public setUp(): void {
-    this.mockedMethod = jest.fn(this.cls[this.method]);
-    this.cls[this.method] = this.mockedMethod;
-  }
-
-  public clear(): void {
-    this.cls[this.method] = this.originalMethod;
-  }
-}
