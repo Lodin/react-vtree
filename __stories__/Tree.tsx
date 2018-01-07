@@ -4,7 +4,7 @@ import * as React from 'react';
 import {AutoSizer} from 'react-virtualized';
 import Tree from '../src';
 import {Node} from '../src/types';
-import {UpdateType} from '../src/utils';
+import {Update} from '../src/utils';
 
 interface DataNode {
   children: DataNode[];
@@ -19,12 +19,12 @@ interface TreePresenterProps {
 }
 
 interface TreePresenterState {
-  update: UpdateType;
+  update: Update;
 }
 
 class TreePresenter extends React.PureComponent<TreePresenterProps, TreePresenterState> {
   public state: TreePresenterState = {
-    update: UpdateType.None,
+    update: Update.None,
   };
 
   private id: number = 0;
@@ -44,7 +44,7 @@ class TreePresenter extends React.PureComponent<TreePresenterProps, TreePresente
 
     this.setState({
       update: enableDynamicHeight !== nextEnableDynamicHeight
-        || rootChildrenHeight !== nextRootChildrenHeight ? UpdateType.Nodes : UpdateType.None,
+        || rootChildrenHeight !== nextRootChildrenHeight ? Update.Nodes : Update.None,
     });
   }
 

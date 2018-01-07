@@ -20,7 +20,7 @@ import {
   RowMouseEventHandler,
   RowRendererParams,
 } from './types';
-import {defaultControlStyle, defaultRowStyle, NodeRecord, UpdateType} from './utils';
+import {defaultControlStyle, defaultRowStyle, NodeRecord, Update} from './utils';
 
 export {defaultRowRenderer};
 
@@ -101,8 +101,8 @@ export interface TreeProps {
   nodeGetter: NodeGetter;
 
   /**
-   * Multiplier for a margin that depends on node's nesting level. E.g. if multiplier is 10 and
-   * nesting level for node is 2 then margin will be 20px, and for node with nesting level 3 it will be 30px.
+   * Multiplier for a margin that depends on node's nesting level. E.g. if multiplier is 10 margin for node with
+   * nesting level 2 will be 20px and for node with nesting level 3 - 30px.
    */
   nodeNestingMultiplier?: number;
 
@@ -170,12 +170,12 @@ export interface TreeProps {
   tabIndex?: number;
 
   /**
-   * If is set and is different than UpdateType.None forces component to recompute and call nodeGetter. This property
-   * is not pure: component will re-render any time it receives this property and it is not UpdateType.None.
+   * If is set and is different than Update.None forces component to recompute and call nodeGetter. This property
+   * is not pure: component will re-render any time it receives this property and it is not Update.None.
    *
    * Useful if you changed something in the tree structure and want to re-render component using new data.
    */
-  update?: UpdateType;
+  update?: Update;
 
   /** Width of Tree container */
   width: number;
@@ -204,7 +204,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
     scrollToAlignment: 'auto',
     scrollToIndex: -1,
     style: {},
-    update: UpdateType.None,
+    update: Update.None,
   };
 
   public state: TreeState = {
@@ -216,11 +216,11 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
   private registry: {[key: string]: NodeRecord} = {};
 
   public async componentWillMount(): Promise<void> {
-    await this.recomputeTree(UpdateType.NodesAndOpenness);
+    await this.recomputeTree(Update.NodesAndOpenness);
   }
 
   public async componentWillReceiveProps({update}: TreeProps): Promise<void> {
-    if (update !== UpdateType.None) {
+    if (update !== Update.None) {
       await this.recomputeTree(update!);
     }
   }
@@ -288,20 +288,20 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
    *
    * Method calls "nodeGetter" internally and flattens tree structure to an array. Depending on "update" value, it runs
    * one of the following algorithms:
-   * 1) UpdateType.NodesAndOpenness. Requires full node metadata. Updates order, number and rendering data of all
+   * 1) Update.NodesAndOpenness. Requires full node metadata. Updates order, number and rendering data of all
    * nodes. Overrides current openness state with "openedByDefault" value.
-   * 2) UpdateType.Nodes. Requires full node metadata. Updates order, number and rendering data of all nodes. Preserves
+   * 2) Update.Nodes. Requires full node metadata. Updates order, number and rendering data of all nodes. Preserves
    * openness state of all nodes.
-   * 3) UpdateType.Order. Requires only node id. Updates nodes order (useful for sorting etc.). Preserves openness
+   * 3) Update.Order. Requires only node id. Updates nodes order (useful for sorting etc.). Preserves openness
    * state of all nodes.
-   * 4) UpdateType.None. Updates nothing.
+   * 4) Update.None. Updates nothing.
    *
    * @param update
    *
    * @returns promise resolves when re-rendering is ended
    */
-  public async recomputeTree(update: UpdateType): Promise<void> {
-    if (update === UpdateType.None) {
+  public async recomputeTree(update: Update): Promise<void> {
+    if (update === Update.None) {
       return void 0;
     }
 
@@ -318,8 +318,8 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
     const order: string[] = [];
     let useDynamicRowHeight = false;
 
-    const refresh = update === UpdateType.Nodes || update === UpdateType.NodesAndOpenness;
-    const ignoreInnerState = update === UpdateType.NodesAndOpenness;
+    const refresh = update === Update.Nodes || update === Update.NodesAndOpenness;
+    const ignoreInnerState = update === Update.NodesAndOpenness;
 
     const g = nodeGetter(refresh);
 
@@ -447,7 +447,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
 
     return !shallowEqual(other, nextOther)
       || !shallowEqual(this.state, nextState)
-      || update !== UpdateType.None;
+      || update !== Update.None;
   }
 
   /**
@@ -460,7 +460,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
       this.registry[id].isOpened = map[id];
     }
 
-    await this.recomputeTree(UpdateType.Nodes);
+    await this.recomputeTree(Update.Nodes);
   }
 
   private getRowHeight = ({index}: Index): number => {
@@ -552,7 +552,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
   };
 
   private finishNodeToggling = async () => {
-    await this.recomputeTree(UpdateType.Nodes);
+    await this.recomputeTree(Update.Nodes);
   };
 
   private onScroll = ({clientHeight, scrollHeight, scrollTop}: ScrollEventData): void => {

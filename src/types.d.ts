@@ -16,7 +16,7 @@ export interface Node<T = any> {
 
   /**
    * Current node openness state. Will set node openness state on first rendering or if :update is set to
-   * UpdateType.NodeAndOpenness.
+   * Update.NodeAndOpenness.
    */
   isOpenedByDefault: boolean;
 

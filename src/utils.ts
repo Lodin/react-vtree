@@ -1,7 +1,7 @@
 import {CSSProperties} from 'react';
 import {Node} from './types';
 
-export enum UpdateType {
+export enum Update {
   None,
   Order,
   Nodes,

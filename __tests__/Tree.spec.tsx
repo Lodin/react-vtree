@@ -5,7 +5,7 @@ import * as React from 'react';
 import {IndexRange, OverscanIndexRange, ScrollEventData} from 'react-virtualized';
 import Tree, {defaultRowRenderer, TreeProps} from '../src';
 import {RowRendererParams} from '../src/types';
-import {UpdateType} from '../src/utils';
+import {Update} from '../src/utils';
 import {
   createNodeCreator,
   createNodeGetter,
@@ -516,10 +516,10 @@ describe('Tree', () => {
       marker = 'a';
     });
 
-    it('should re-render component every time if :update prop is set to UpdateType.Nodes', () => {
+    it('should re-render component every time if :update prop is set to Update.Nodes', () => {
       const props = {
         rowRenderer,
-        update: UpdateType.Nodes,
+        update: Update.Nodes,
       };
       const rendered = renderTree(props);
       expect(rendered).toIncludeText('1a');
@@ -535,7 +535,7 @@ describe('Tree', () => {
       expect(rendered).toIncludeText('1c');
     });
 
-    it('should stop re-rendering if :update prop is set to UpdateType.None and other props are the same', () => {
+    it('should stop re-rendering if :update prop is set to Update.None and other props are the same', () => {
       const props = {rowRenderer};
       const rendered = renderTree(props);
       expect(rendered).toIncludeText('1a');
@@ -544,7 +544,7 @@ describe('Tree', () => {
 
       rendered.setProps({
         ...props,
-        update: UpdateType.Nodes,
+        update: Update.Nodes,
       });
       expect(rendered).toIncludeText('1b');
 
@@ -552,7 +552,7 @@ describe('Tree', () => {
 
       rendered.setProps({
         ...props,
-        update: UpdateType.None,
+        update: Update.None,
       });
       expect(rendered).toIncludeText('1b');
     });
@@ -575,7 +575,7 @@ describe('Tree', () => {
       });
     });
 
-    it('should change only tree elements order if :update is UpdateType.Order', async () => {
+    it('should change only tree elements order if :update is Update.Order', async () => {
       const rendered = renderCustomTree();
       const instance = rendered.instance() as Tree;
 
@@ -597,13 +597,13 @@ describe('Tree', () => {
         name: `ChangedName ${n.id}`,
       }));
 
-      await instance.recomputeTree(UpdateType.Order);
+      await instance.recomputeTree(Update.Order);
 
       expect(rendered.find('.treeNode').at(1)).toIncludeText('25');
       expect(rendered.find('.treeNode').at(1)).not.toIncludeText('ChangedName');
     });
 
-    it('should change nodes data if :update is UpdateType.Nodes', async () => {
+    it('should change nodes data if :update is Update.Nodes', async () => {
       const rendered = renderCustomTree();
       const instance = rendered.instance() as Tree;
 
@@ -612,12 +612,12 @@ describe('Tree', () => {
         name: `ChangedName ${n.id}`,
       }));
 
-      await instance.recomputeTree(UpdateType.Nodes);
+      await instance.recomputeTree(Update.Nodes);
 
       expect(rendered.find('.treeNode').at(1)).toIncludeText('ChangedName');
     });
 
-    it('should ignore inner component openness state if :update is UpdateType.NodesAndOpenness', async () => {
+    it('should ignore inner component openness state if :update is Update.NodesAndOpenness', async () => {
       const rendered = renderCustomTree();
 
       const closedNodeGetter = createNodeGetter({
@@ -632,7 +632,7 @@ describe('Tree', () => {
 
       const instance = rendered.instance() as Tree;
 
-      await instance.recomputeTree(UpdateType.NodesAndOpenness);
+      await instance.recomputeTree(Update.NodesAndOpenness);
       rendered.update();
 
       expect(rendered.find('.treeNode').length).toBe(1);
