@@ -1,4 +1,8 @@
 # react-vtree
+[![Latest Stable Version](https://img.shields.io/npm/v/react-vtree.svg)](https://www.npmjs.com/package/react-vtree)
+[![License](https://img.shields.io/npm/l/react-vtree.svg)](./LICENSE)
+[![Build Status](https://img.shields.io/travis/Lodin/react-vtree/master.svg)](https://travis-ci.org/Lodin/react-vtree)
+[![Test Coverage](https://img.shields.io/codecov/c/github/Lodin/react-vtree/master.svg)](https://codecov.io/gh/Lodin/react-vtree)
 
 This component is designed as a basic solution for rendering huge tree structures without affecting performance. Under
 the hood it uses [react-virtualized](https://github.com/bvaughn/react-virtualized) library and also can be considered
