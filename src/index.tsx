@@ -127,9 +127,6 @@ export interface TreeProps {
   /** Callback invoked with information about the slice of rows that were just rendered */
   onRowsRendered?: (info: IndexRange & OverscanIndexRange) => void;
 
-  /** Renders data received from NodeGetter */
-  rowRenderer?: (params: RowRendererParams) => React.ReactElement<any>;
-
   /**
    * Callback invoked whenever the scroll offset changes within the inner scrollable region.
    * This callback can be used to sync scrolling between lists, tables, or grids.
@@ -151,6 +148,9 @@ export interface TreeProps {
   /** Fixed row height */
   rowHeight: number;
 
+  /** Renders data received from NodeGetter */
+  rowRenderer?: (params: RowRendererParams) => React.ReactElement<any>;
+
   /** Optional inline styles for all rows */
   rowStyle?: React.CSSProperties;
 
@@ -160,7 +160,7 @@ export interface TreeProps {
   /** Row index to ensure visible (by forcefully scrolling if necessary) */
   scrollToIndex?: number;
 
-  /** Vertical offset. */
+  /** Vertical offset */
   scrollTop?: number;
 
   /** Optional inline style */
@@ -269,16 +269,6 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
       this.grid.recomputeGridSize({
         columnIndex,
         rowIndex,
-      });
-    }
-  }
-
-  /** See Grid#recomputeGridSize */
-  public recomputeRowHeights(index: number = 0): void {
-    if (this.grid) {
-      this.grid.recomputeGridSize({
-        columnIndex: 0,
-        rowIndex: index,
       });
     }
   }

@@ -429,7 +429,6 @@ describe('Tree', () => {
   });
 
   // TODO: Add tests for "measureAllRows"
-  // TODO: Add tests for "recomputeRowHeights"
 
   describe('forceUpdateGrid', () => {
     it('should refresh inner Grid content when called', () => {
