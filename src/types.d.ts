@@ -15,7 +15,7 @@ export interface Node<T = any> {
   height?: number;
 
   /**
-   * Current node openness state. Will set node openness state on first rendering or if :update is set to
+   * Current node openness state. Will set node openness state on first rendering or if "update" is set to
    * Update.NodeAndOpenness.
    */
   isOpenedByDefault: boolean;
@@ -52,12 +52,12 @@ export interface RowRendererParams<T = any> {
 
   /**
    * Inline styles for toggle control. Contains two styles:
-   * 1) a "controlStyle" property set in Tree component and.
-   * 2) default styles necessary for displaying control
+   * 1) a "controlStyle" property set in Tree component,
+   * 2) default styles necessary for displaying control.
    */
   controlStyle: CSSProperties;
 
-  /** Optional HTML id. It will be an "id" property set in Tree component */
+  /** Optional HTML id (an "id" property set in Tree component) */
   id: string;
 
   /** Current row index in the list of all rows */

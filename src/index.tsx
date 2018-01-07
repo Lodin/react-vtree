@@ -232,7 +232,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
   }
 
   /** See Grid#getOffsetForCell */
-  public getOffsetForRow({alignment, index}: {alignment: Alignment, index: number}): number {
+  public getOffsetForRow({alignment, index}: {alignment?: Alignment, index?: number}): number {
     if (this.grid) {
       const {scrollTop} = this.grid.getOffsetForCell({
         alignment,
@@ -276,7 +276,7 @@ export default class Tree extends React.Component<TreeProps, TreeState> {
   /**
    * Recomputes Tree component basing on update type.
    *
-   * Method calls "nodeGetter" internally and flattens tree structure to an array. Depending on "update" value, it runs
+   * Method calls "nodeGetter" internally and flattens tree structure to an array. Depending on "update" value it runs
    * one of the following algorithms:
    * 1) Update.NodesAndOpenness. Requires full node metadata. Updates order, number and rendering data of all
    * nodes. Overrides current openness state with "openedByDefault" value.
