@@ -1,5 +1,5 @@
 {
-  "name": "react-virtualized-tree",
+  "name": "react-vtree",
   "version": "0.1.0",
   "description": "React component for efficiently rendering large tree structures",
   "main": "./dist/cjs/index.js",
