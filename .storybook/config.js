@@ -9,6 +9,7 @@ function loadStories() {
 setOptions({
   downPanelInRight: true,
   name: 'React Virtualized Tree',
+  selectedAddonPanel: 'knobs',
 });
 
 configure(loadStories, module);
