@@ -22,6 +22,7 @@ module.exports = {
     require('@babel/preset-typescript'),
   ],
   plugins: [
+    require('babel-plugin-remove-dts-export'),
     [require('@babel/plugin-transform-runtime'), {
       polyfill: false,
     }],

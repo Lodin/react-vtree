@@ -22,7 +22,15 @@ import {
 } from './types';
 import {defaultControlStyle, defaultRowStyle, NodeRecord, Update} from './utils';
 
-export {defaultRowRenderer};
+export {
+  CellPosition,
+  defaultRowRenderer,
+  Node,
+  NodeGetter,
+  RenderedSection,
+  RowMouseEventHandler,
+  RowRendererParams,
+};
 
 export interface TreeProps {
   'aria-label'?: string,
