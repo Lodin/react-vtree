@@ -3,7 +3,7 @@
 import {mount, ReactWrapper} from 'enzyme';
 import * as React from 'react';
 import {OverscanIndicesGetter} from 'react-virtualized/dist/es/Grid';
-import {default as Tree, TreeProps} from '../src';
+import Tree, {TreeProps} from '../src/Tree';
 import {Node, NodeGetter, RowRendererParams} from '../src/types';
 
 export interface SpecNode {

@@ -3,14 +3,18 @@ import 'jest-enzyme';
 import {ReactWrapper} from 'enzyme';
 import * as React from 'react';
 import {IndexRange, OverscanIndexRange, ScrollEventData} from 'react-virtualized';
-import Tree, {defaultRowRenderer, TreeProps} from '../src';
+import defaultRowRenderer from '../src/defaultRowRenderer';
+import Tree, {TreeProps} from '../src/Tree';
 import {RowRendererParams} from '../src/types';
 import {Update} from '../src/utils';
 import {
   createNodeCreator,
   createNodeGetter,
-  createTreeRenderer, NodeGetterMock,
-  overscanIndicesGetter, SpecNode, TreeRenderer,
+  createTreeRenderer,
+  NodeGetterMock,
+  overscanIndicesGetter,
+  SpecNode,
+  TreeRenderer,
 } from './helpers';
 
 const NODE_COUNT = 156;
