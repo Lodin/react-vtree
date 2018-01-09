@@ -2,7 +2,7 @@ import cn from 'classnames';
 import * as React from 'react';
 import {RowRendererParams} from './types';
 
-export default function defaultNodeRenderer({
+export default function defaultRowRenderer({
   controlClassName,
   controlStyle,
   childrenCount,
