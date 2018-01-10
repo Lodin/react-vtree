@@ -5,15 +5,13 @@ module.exports = {
   presets: [
     [require('@babel/preset-env'), {
       targets: {
-        browsers: BUILD_TYPE === 'cjs' ? [
+        browsers: [
           'last 2 versions',
           'IE 11',
-        ] : [
-          'last 2 Chrome versions',
         ],
       },
       loose: true,
-      modules: false,
+      modules: isCjs ? 'commonjs' : false,
       shippedProposals: true,
       useBuiltIns: 'entry',
       include: ['proposal-object-rest-spread'],
