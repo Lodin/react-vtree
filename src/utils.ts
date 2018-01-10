@@ -18,11 +18,15 @@ export const defaultRowStyle: CSSProperties = {
 };
 
 export class NodeRecord {
-  public constructor(
-    public node: Node,
-    public isOpened: boolean,
-    private finish: () => void,
-  ) {}
+  public node: Node;
+  public isOpened: boolean;
+  private finish: () => void;
+
+  public constructor(node: Node, isOpened: boolean, finish: () => void) {
+    this.node = node;
+    this.isOpened = isOpened;
+    this.finish = finish;
+  }
 
   public onNodeToggle = (): void => {
     this.isOpened = !this.isOpened;
