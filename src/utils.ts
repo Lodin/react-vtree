@@ -9,7 +9,7 @@ export enum Update {
 }
 
 export const defaultControlStyle: CSSProperties = {
-  width: 35,
+  minWidth: 35,
 };
 
 export const defaultRowStyle: CSSProperties = {
