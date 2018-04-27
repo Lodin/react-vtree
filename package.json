@@ -69,6 +69,7 @@
     "@types/prop-types": "^15.5.2",
     "@types/react": "^16.0.31",
     "@types/react-dom": "^16.0.3",
+    "@types/react-virtualized": "^9.7.9",
     "@types/storybook__addon-actions": "^3.0.1",
     "@types/storybook__addon-knobs": "^3.2.1",
     "@types/storybook__react": "^3.0.5",
@@ -130,7 +131,6 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.0.0-beta.35",
-    "@types/react-virtualized": "^9.7.9",
     "classnames": "^2.2.5",
     "fbjs": "^0.8.16"
   }
