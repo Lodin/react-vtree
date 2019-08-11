@@ -41,9 +41,10 @@ module.exports = api => ({
   ],
   ...(api.env('test') && {
     presets: [
-      ['babel-preset-react-app', {flow: false, typescript: true}],
+      require('@babel/preset-typescript'),
+      [require('@babel/preset-react'), {useBuiltIns: true}],
       [
-        '@babel/preset-env',
+        require('@babel/preset-env'),
         {
           modules: 'commonjs',
           targets: {
