@@ -43,7 +43,7 @@ describe('FixedSizeTree', () => {
 
     treeWalkerSpy = jest.fn(function*(
       refresh: boolean,
-    ): IterableIterator<FixedSizeNodeMetadata | string | symbol | null> {
+    ): IterableIterator<FixedSizeNodeMetadata | string | symbol> {
       const stack: StackElement[] = [];
 
       stack.push({

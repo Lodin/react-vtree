@@ -46,7 +46,7 @@ describe('VariableSizeTree', () => {
 
     treeWalkerSpy = jest.fn(function*(
       refresh: boolean,
-    ): IterableIterator<VariableSizeNodeMetadata | string | symbol | null> {
+    ): IterableIterator<VariableSizeNodeMetadata | string | symbol> {
       const stack: StackElement[] = [];
 
       stack.push({

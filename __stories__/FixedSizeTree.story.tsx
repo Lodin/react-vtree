@@ -52,7 +52,7 @@ const defaultButtonStyle = {fontFamily: 'Courier New'};
 
 function* treeWalker(
   refresh: boolean,
-): IterableIterator<CommonNodeMetadata | string | symbol | null> {
+): IterableIterator<CommonNodeMetadata | string | symbol> {
   const stack: StackElement[] = [];
 
   stack.push({

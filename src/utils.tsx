@@ -61,7 +61,7 @@ export interface TreeProps<TMetadata extends CommonNodeMetadata> {
   readonly rowComponent?: React.ComponentType<ListChildComponentProps>;
   readonly treeWalker: (
     refresh: boolean,
-  ) => IterableIterator<TMetadata | string | symbol | null>;
+  ) => IterableIterator<TMetadata | string | symbol>;
 }
 
 export interface TreeState<T extends CommonNodeRecord> {
