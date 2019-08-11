@@ -83,7 +83,13 @@ export default class VariableSizeTree extends React.PureComponent<
     return new Promise(resolve => {
       this.setState<never>(
         prevState => this.computeTree(options, this.props, prevState),
-        resolve,
+        () => {
+          if (options.useDefaultHeight) {
+            this.resetAfterIndex(0, true);
+          }
+
+          resolve();
+        },
       );
     });
   }
@@ -208,7 +214,10 @@ export default class VariableSizeTree extends React.PureComponent<
       },
       toggle: async () => {
         record.isOpen = !record.isOpen;
-        await this.recomputeTree({refreshNodes: record.isOpen});
+        await this.recomputeTree({
+          refreshNodes: record.isOpen,
+          useDefaultHeight: true,
+        });
       },
     };
 
