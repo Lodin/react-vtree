@@ -28,7 +28,7 @@ export interface VariableSizeNodeComponentProps
 export interface VariableSizeNodeRecord extends CommonNodeRecord {
   height: number;
   metadata: VariableSizeNodeMetadata;
-  readonly resize: (height: number) => void;
+  readonly resize: (height: number, shouldForceUpdate?: boolean) => void;
 }
 
 export interface VariableSizeTreeProps
@@ -84,8 +84,8 @@ export default class VariableSizeTree extends React.PureComponent<
       this.setState<never>(
         prevState => this.computeTree(options, this.props, prevState),
         () => {
-          if (options.useDefaultHeight) {
-            this.resetAfterIndex(0, true);
+          if (options.useDefaultHeight && this.list.current) {
+            this.list.current.resetAfterIndex(0, true);
           }
 
           resolve();
@@ -94,12 +94,15 @@ export default class VariableSizeTree extends React.PureComponent<
     });
   }
 
-  public resetAfterIndex(
-    index: number,
+  public resetAfterId(
+    id: string | symbol,
     shouldForceUpdate: boolean = false,
   ): void {
     if (this.list.current) {
-      this.list.current.resetAfterIndex(index, shouldForceUpdate);
+      this.list.current.resetAfterIndex(
+        this.state.order.indexOf(id),
+        shouldForceUpdate,
+      );
     }
   }
 
@@ -207,10 +210,7 @@ export default class VariableSizeTree extends React.PureComponent<
       metadata,
       resize: (height: number, shouldForceUpdate?: boolean) => {
         record.height = height;
-        this.resetAfterIndex(
-          this.state.order.indexOf(record.metadata.id),
-          shouldForceUpdate,
-        );
+        this.resetAfterId(record.metadata.id, shouldForceUpdate);
       },
       toggle: async () => {
         record.isOpen = !record.isOpen;
