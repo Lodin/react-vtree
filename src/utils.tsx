@@ -2,18 +2,7 @@
 import * as React from 'react';
 import {ListChildComponentProps} from 'react-window';
 
-export interface CommonNodeMetadata<T = any> {
-  /** Number of children of the current node  */
-  readonly childrenCount: number;
-
-  /**
-   * CSS class name. Will be sent as is to the Node component
-   */
-  readonly className?: string;
-
-  /** Data of the node. Will be sent as it to the Node component */
-  readonly data?: T;
-
+export type CommonNodeData<T> = {
   /**
    * Unique ID of the current node. Will be used to identify the node to change
    * its internal state.
@@ -26,61 +15,60 @@ export interface CommonNodeMetadata<T = any> {
    * will be used to set the internal openness state of the node.
    */
   readonly isOpenByDefault: boolean;
+} & {
+  readonly [P in keyof T]: T[P];
+};
 
-  /**
-   * Current node nesting level (how deep it is placed relatively to the tree
-   * root).
-   */
-  readonly nestingLevel: number;
-
-  /**
-   * CSS styles. Will be sent as is to the Node component
-   */
-  readonly style?: React.CSSProperties;
-}
-
-export interface CommonUpdateOptions {
+export type CommonUpdateOptions = {
   readonly refreshNodes?: boolean;
   readonly useDefaultOpenness?: boolean;
-}
+};
 
-export interface CommonNodeRecord {
+export type CommonNodeRecord<TData extends CommonNodeData<T>, T> = {
+  data: TData;
   isOpen: boolean;
-  metadata: CommonNodeMetadata;
   readonly toggle: () => Promise<void>;
-}
+};
 
-export interface CommonNodeComponentProps
-  extends Omit<ListChildComponentProps, 'index'> {
+export type CommonNodeComponentProps<TData extends CommonNodeData<T>, T> = Omit<
+  ListChildComponentProps,
+  'index'
+> & {
+  readonly data: TData;
   readonly isOpen: boolean;
-  readonly metadata: CommonNodeMetadata;
   readonly toggle: () => void;
-}
+  readonly treeData?: any;
+};
 
-export interface TreeProps<TMetadata extends CommonNodeMetadata> {
+export type TreeProps<TData extends CommonNodeData<T>, T> = {
   readonly rowComponent?: React.ComponentType<ListChildComponentProps>;
   readonly treeWalker: (
     refresh: boolean,
-  ) => IterableIterator<TMetadata | string | symbol>;
-}
+  ) => IterableIterator<TData | string | symbol>;
+};
 
-export interface TreeState<T extends CommonNodeRecord> {
-  readonly component: React.ComponentType<CommonNodeComponentProps>;
-  readonly data?: any;
+export type TreeState<
+  TNodeComponentProps extends CommonNodeComponentProps<TData, T>,
+  TNodeRecord extends CommonNodeRecord<TData, T>,
+  TData extends CommonNodeData<T>,
+  T
+> = {
+  readonly component: React.ComponentType<TNodeComponentProps>;
   readonly order: ReadonlyArray<string | symbol>;
-  readonly records: Record<string, T>;
-}
+  readonly records: Record<string, TNodeRecord>;
+  readonly treeData?: any;
+};
 
 export const Row: React.FunctionComponent<ListChildComponentProps> = ({
   index,
-  data: {component: Node, data, order, records}, // tslint:disable-line:naming-convention
+  data: {component: Node, treeData, order, records}, // tslint:disable-line:naming-convention
   style,
   isScrolling,
 }: ListChildComponentProps) => (
   <Node
     {...records[order[index]]}
-    data={data}
     style={style}
     isScrolling={isScrolling}
+    treeData={treeData}
   />
 );

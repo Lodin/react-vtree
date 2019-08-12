@@ -2,7 +2,7 @@ import * as React from 'react';
 import {Align, VariableSizeList, VariableSizeListProps} from 'react-window';
 import {
   CommonNodeComponentProps,
-  CommonNodeMetadata,
+  CommonNodeData,
   CommonNodeRecord,
   CommonUpdateOptions,
   Row,
@@ -10,62 +10,71 @@ import {
   TreeState,
 } from './utils';
 
-export interface VariableSizeUpdateOptions extends CommonUpdateOptions {
+export type VariableSizeUpdateOptions = CommonUpdateOptions & {
   readonly useDefaultHeight?: boolean;
-}
+};
 
-export interface VariableSizeNodeMetadata extends CommonNodeMetadata {
+export type VariableSizeNodeData<T> = {
   /** Default node height. Can be used only with VariableSizeTree */
   readonly defaultHeight: number;
-}
+} & CommonNodeData<T>;
 
-export interface VariableSizeNodeComponentProps
-  extends CommonNodeComponentProps {
+export type VariableSizeNodeComponentProps<T> = CommonNodeComponentProps<
+  VariableSizeNodeData<T>,
+  T
+> & {
   readonly height: number;
   readonly resize: (height: number, shouldForceUpdate?: boolean) => void;
-}
+};
 
-export interface VariableSizeNodeRecord extends CommonNodeRecord {
+export type VariableSizeNodeRecord<T> = CommonNodeRecord<
+  VariableSizeNodeData<T>,
+  T
+> & {
   height: number;
-  metadata: VariableSizeNodeMetadata;
+  data: VariableSizeNodeData<T>;
   readonly resize: (height: number, shouldForceUpdate?: boolean) => void;
-}
+};
 
-export interface VariableSizeTreeProps
-  extends TreeProps<VariableSizeNodeMetadata>,
-    Omit<VariableSizeListProps, 'children' | 'itemCount' | 'itemSize'> {
-  readonly children: React.ComponentType<VariableSizeNodeComponentProps>;
-  readonly itemSize?: VariableSizeListProps['itemSize'];
-}
+export type VariableSizeTreeProps<T> = TreeProps<VariableSizeNodeData<T>, T> &
+  Omit<VariableSizeListProps, 'children' | 'itemCount' | 'itemSize'> & {
+    readonly children: React.ComponentType<VariableSizeNodeComponentProps<T>>;
+    readonly itemSize?: VariableSizeListProps['itemSize'];
+  };
 
-export type VariableSizeTreeState = TreeState<VariableSizeNodeRecord>;
+export type VariableSizeTreeState<T> = TreeState<
+  VariableSizeNodeComponentProps<T>,
+  VariableSizeNodeRecord<T>,
+  VariableSizeNodeData<T>,
+  T
+>;
 
-export default class VariableSizeTree extends React.PureComponent<
-  VariableSizeTreeProps,
-  VariableSizeTreeState
+export default class VariableSizeTree<T> extends React.PureComponent<
+  VariableSizeTreeProps<T>,
+  VariableSizeTreeState<T>
 > {
-  public static defaultProps: Partial<VariableSizeTreeProps> = {
+  public static defaultProps: Partial<VariableSizeTreeProps<{}>> = {
     rowComponent: Row,
   };
 
   public static getDerivedStateFromProps({
     children: component,
-    itemData: data,
-  }: VariableSizeTreeProps): Partial<VariableSizeTreeState> {
+    itemData: treeData,
+  }: VariableSizeTreeProps<{}>): Partial<VariableSizeTreeState<{}>> {
     return {
       component,
-      data,
+      treeData,
     };
   }
 
   private readonly list: React.RefObject<VariableSizeList> = React.createRef();
 
-  public constructor(props: VariableSizeTreeProps, context: any) {
+  public constructor(props: VariableSizeTreeProps<T>, context: any) {
     super(props, context);
 
     this.getItemSize = this.getItemSize.bind(this);
 
-    const initialState: VariableSizeTreeState = {
+    const initialState: VariableSizeTreeState<T> = {
       component: props.children,
       order: [],
       records: {},
@@ -141,9 +150,9 @@ export default class VariableSizeTree extends React.PureComponent<
       useDefaultHeight = false,
       useDefaultOpenness = false,
     }: VariableSizeUpdateOptions,
-    {treeWalker}: VariableSizeTreeProps,
-    {records: prevRecords}: VariableSizeTreeState,
-  ): Pick<VariableSizeTreeState, 'order' | 'records'> {
+    {treeWalker}: VariableSizeTreeProps<T>,
+    {records: prevRecords}: VariableSizeTreeState<T>,
+  ): Pick<VariableSizeTreeState<T>, 'order' | 'records'> {
     const order: Array<string | symbol> = [];
     const records = {...prevRecords};
     const iter = treeWalker(refreshNodes);
@@ -164,12 +173,12 @@ export default class VariableSizeTree extends React.PureComponent<
 
         if (useDefaultOpenness) {
           records[id as string].isOpen =
-            records[id as string].metadata.isOpenByDefault;
+            records[id as string].data.isOpenByDefault;
         }
 
         if (useDefaultHeight) {
           records[id as string].height =
-            records[id as string].metadata.defaultHeight;
+            records[id as string].data.defaultHeight;
         }
       } else {
         ({id} = value);
@@ -179,7 +188,7 @@ export default class VariableSizeTree extends React.PureComponent<
         if (!record) {
           records[id as string] = this.createNodeRecord(value);
         } else {
-          record.metadata = value;
+          record.data = value;
 
           if (useDefaultOpenness) {
             record.isOpen = isOpenByDefault;
@@ -202,15 +211,15 @@ export default class VariableSizeTree extends React.PureComponent<
   }
 
   private createNodeRecord(
-    metadata: VariableSizeNodeMetadata,
-  ): VariableSizeNodeRecord {
-    const record: VariableSizeNodeRecord = {
-      height: metadata.defaultHeight,
-      isOpen: metadata.isOpenByDefault,
-      metadata,
+    data: VariableSizeNodeData<T>,
+  ): VariableSizeNodeRecord<T> {
+    const record: VariableSizeNodeRecord<T> = {
+      data,
+      height: data.defaultHeight,
+      isOpen: data.isOpenByDefault,
       resize: (height: number, shouldForceUpdate?: boolean) => {
         record.height = height;
-        this.resetAfterId(record.metadata.id, shouldForceUpdate);
+        this.resetAfterId(record.data.id, shouldForceUpdate);
       },
       toggle: async () => {
         record.isOpen = !record.isOpen;

@@ -2,8 +2,10 @@ import {number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import * as React from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import Tree from '../src/FixedSizeTree';
-import {CommonNodeComponentProps, CommonNodeMetadata} from '../src/utils';
+import Tree, {
+  FixedSizeNodeComponentProps,
+  FixedSizeNodeData,
+} from '../src/FixedSizeTree';
 
 document.body.style.margin = '0';
 document.body.style.display = 'flex';
@@ -12,16 +14,22 @@ const root = document.getElementById('root')!;
 root.style.margin = '10px 0 0 10px';
 root.style.flex = '1';
 
-interface DataNode {
+type DataNode = {
   children: DataNode[];
   id: number;
   name: string;
-}
+};
 
-interface StackElement {
+type StackElement = {
   nestingLevel: number;
   node: DataNode;
-}
+};
+
+type ExtendedData = {
+  readonly isLeaf: boolean;
+  readonly name: string;
+  readonly nestingLevel: number;
+};
 
 let nodeId = 0;
 
@@ -52,7 +60,7 @@ const defaultButtonStyle = {fontFamily: 'Courier New'};
 
 function* treeWalker(
   refresh: boolean,
-): IterableIterator<CommonNodeMetadata | string | symbol> {
+): IterableIterator<FixedSizeNodeData<ExtendedData> | string | symbol> {
   const stack: StackElement[] = [];
 
   stack.push({
@@ -66,10 +74,10 @@ function* treeWalker(
 
     const isOpened = yield refresh
       ? {
-          childrenCount: node.children.length,
-          data: node.name,
           id,
+          isLeaf: node.children.length === 0,
           isOpenByDefault: true,
+          name: node.name,
           nestingLevel,
         }
       : id;
@@ -86,34 +94,27 @@ function* treeWalker(
   }
 }
 
-const Node: React.FunctionComponent<CommonNodeComponentProps> = ({
-  metadata: {childrenCount, data, nestingLevel},
-  isOpen,
-  style,
-  toggle,
-}) => {
-  const isLeaf = childrenCount === 0;
-
-  return (
-    <div
-      style={{
-        ...style,
-        alignItems: 'center',
-        display: 'flex',
-        marginLeft: nestingLevel * 30 + (isLeaf ? 48 : 0),
-      }}
-    >
-      {!isLeaf && (
-        <div>
-          <button type="button" onClick={toggle} style={defaultButtonStyle}>
-            {isOpen ? '-' : '+'}
-          </button>
-        </div>
-      )}
-      <div style={defaultTextStyle}>{data}</div>
-    </div>
-  );
-};
+const Node: React.FunctionComponent<
+  FixedSizeNodeComponentProps<ExtendedData>
+> = ({data: {isLeaf, name, nestingLevel}, isOpen, style, toggle}) => (
+  <div
+    style={{
+      ...style,
+      alignItems: 'center',
+      display: 'flex',
+      marginLeft: nestingLevel * 30 + (isLeaf ? 48 : 0),
+    }}
+  >
+    {!isLeaf && (
+      <div>
+        <button type="button" onClick={toggle} style={defaultButtonStyle}>
+          {isOpen ? '-' : '+'}
+        </button>
+      </div>
+    )}
+    <div style={defaultTextStyle}>{name}</div>
+  </div>
+);
 
 interface TreePresenterProps {
   readonly itemSize: number;
@@ -124,7 +125,7 @@ const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
 }) => (
   <AutoSizer disableWidth>
     {({height}) => (
-      <Tree
+      <Tree<ExtendedData>
         treeWalker={treeWalker}
         itemSize={itemSize}
         height={height}

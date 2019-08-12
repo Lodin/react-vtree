@@ -4,7 +4,7 @@ import * as React from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import Tree, {
   VariableSizeNodeComponentProps,
-  VariableSizeNodeMetadata,
+  VariableSizeNodeData,
 } from '../src/VariableSizeTree';
 
 document.body.style.margin = '0';
@@ -14,16 +14,22 @@ const root = document.getElementById('root')!;
 root.style.margin = '10px 0 0 10px';
 root.style.flex = '1';
 
-interface DataNode {
+type DataNode = {
   children: DataNode[];
   id: number;
   name: string;
-}
+};
 
-interface StackElement {
+type StackElement = {
   nestingLevel: number;
   node: DataNode;
-}
+};
+
+type ExtendedData = {
+  readonly isLeaf: boolean;
+  readonly name: string;
+  readonly nestingLevel: number;
+};
 
 let nodeId = 0;
 
@@ -52,16 +58,17 @@ const rootNode = createNode();
 const defaultGapStyle = {marginLeft: 10};
 const defaultButtonStyle = {fontFamily: 'Courier New'};
 
-const Node: React.FunctionComponent<VariableSizeNodeComponentProps> = ({
-  data: itemSize,
+const Node: React.FunctionComponent<
+  VariableSizeNodeComponentProps<ExtendedData>
+> = ({
   height,
-  metadata: {childrenCount, data, nestingLevel},
+  data: {isLeaf, name, nestingLevel},
   isOpen,
   resize,
   style,
   toggle,
+  treeData: itemSize,
 }) => {
-  const isLeaf = childrenCount === 0;
   const canOpen = height <= itemSize;
   const halfSize = itemSize / 2;
 
@@ -87,7 +94,7 @@ const Node: React.FunctionComponent<VariableSizeNodeComponentProps> = ({
           </button>
         </div>
       )}
-      <div style={defaultGapStyle}>{data}</div>
+      <div style={defaultGapStyle}>{name}</div>
       <div>
         <button type="button" onClick={toggleNodeSize} style={defaultGapStyle}>
           {canOpen ? 'Open' : 'Close'}
@@ -104,12 +111,12 @@ interface TreePresenterProps {
 const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
   itemSize,
 }) => {
-  const tree = React.useRef<Tree>(null);
+  const tree = React.useRef<Tree<ExtendedData>>(null);
 
   const treeWalker = React.useCallback(
     function*(
       refresh: boolean,
-    ): IterableIterator<VariableSizeNodeMetadata | string | symbol> {
+    ): IterableIterator<VariableSizeNodeData<ExtendedData> | string | symbol> {
       const stack: StackElement[] = [];
 
       stack.push({
@@ -123,11 +130,11 @@ const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
 
         const isOpened = yield refresh
           ? {
-              childrenCount: node.children.length,
-              data: node.name,
               defaultHeight: itemSize,
               id,
+              isLeaf: node.children.length === 0,
               isOpenByDefault: true,
+              name: node.name,
               nestingLevel,
             }
           : id;
@@ -155,7 +162,7 @@ const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
   return (
     <AutoSizer disableWidth>
       {({height}) => (
-        <Tree
+        <Tree<ExtendedData>
           ref={tree}
           itemData={itemSize}
           treeWalker={treeWalker}

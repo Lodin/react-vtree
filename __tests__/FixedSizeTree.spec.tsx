@@ -4,29 +4,36 @@ import {FixedSizeList} from 'react-window';
 import {Row} from '../src';
 import FixedSizeTree, {
   FixedSizeNodeComponentProps,
-  FixedSizeNodeMetadata,
+  FixedSizeNodeData,
   FixedSizeTreeProps,
   FixedSizeTreeState,
 } from '../src/FixedSizeTree';
 
-interface DataNode {
+type DataNode = {
   children?: DataNode[];
   id: string;
   name: string;
-}
+};
 
-interface StackElement {
+type StackElement = {
   nestingLevel: number;
   node: DataNode;
-}
+};
+
+type ExtendedData = {
+  readonly name: string;
+  readonly nestingLevel: number;
+};
 
 describe('FixedSizeTree', () => {
-  const Node: React.FunctionComponent<FixedSizeNodeComponentProps> = () => null;
+  const Node: React.FunctionComponent<
+    FixedSizeNodeComponentProps<ExtendedData>
+  > = () => null;
 
   let component: ReactWrapper<
-    FixedSizeTreeProps,
-    FixedSizeTreeState,
-    FixedSizeTree
+    FixedSizeTreeProps<ExtendedData>,
+    FixedSizeTreeState<ExtendedData>,
+    FixedSizeTree<ExtendedData>
   >;
   let tree: DataNode;
   let treeWalkerSpy: jest.Mock;
@@ -43,7 +50,7 @@ describe('FixedSizeTree', () => {
 
     treeWalkerSpy = jest.fn(function*(
       refresh: boolean,
-    ): IterableIterator<FixedSizeNodeMetadata | string | symbol> {
+    ): IterableIterator<FixedSizeNodeData<ExtendedData> | string | symbol> {
       const stack: StackElement[] = [];
 
       stack.push({
@@ -59,10 +66,9 @@ describe('FixedSizeTree', () => {
 
         const isOpened = yield refresh
           ? {
-              childrenCount,
-              data: node.name,
               id,
               isOpenByDefault,
+              name: node.name,
               nestingLevel,
             }
           : id;
@@ -80,7 +86,7 @@ describe('FixedSizeTree', () => {
     });
 
     component = mount(
-      <FixedSizeTree
+      <FixedSizeTree<ExtendedData>
         itemSize={30}
         treeWalker={treeWalkerSpy}
         height={500}
@@ -106,36 +112,33 @@ describe('FixedSizeTree', () => {
         order: ['foo-1', 'foo-2', 'foo-3'],
         records: {
           'foo-1': {
-            isOpen: true,
-            metadata: {
-              childrenCount: 2,
-              data: 'Foo #1',
+            data: {
               id: 'foo-1',
               isOpenByDefault: true,
+              name: 'Foo #1',
               nestingLevel: 0,
             },
+            isOpen: true,
             toggle: expect.any(Function),
           },
           'foo-2': {
-            isOpen: true,
-            metadata: {
-              childrenCount: 0,
-              data: 'Foo #2',
+            data: {
               id: 'foo-2',
               isOpenByDefault: true,
+              name: 'Foo #2',
               nestingLevel: 1,
             },
+            isOpen: true,
             toggle: expect.any(Function),
           },
           'foo-3': {
-            isOpen: true,
-            metadata: {
-              childrenCount: 0,
-              data: 'Foo #3',
+            data: {
               id: 'foo-3',
               isOpenByDefault: true,
+              name: 'Foo #3',
               nestingLevel: 1,
             },
+            isOpen: true,
             toggle: expect.any(Function),
           },
         },
@@ -154,7 +157,7 @@ describe('FixedSizeTree', () => {
   });
 
   describe('component instance', () => {
-    let treeInstance: FixedSizeTree;
+    let treeInstance: FixedSizeTree<ExtendedData>;
 
     beforeEach(() => {
       treeInstance = component.instance();
@@ -198,43 +201,40 @@ describe('FixedSizeTree', () => {
 
         expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
           component: Node,
-          data: undefined,
           order: ['foo-1', 'foo-3', 'foo-2'],
           records: {
             'foo-1': {
-              isOpen: true,
-              metadata: {
-                childrenCount: 2,
-                data: 'Foo #1',
+              data: {
                 id: 'foo-1',
                 isOpenByDefault: true,
+                name: 'Foo #1',
                 nestingLevel: 0,
               },
+              isOpen: true,
               toggle: expect.any(Function),
             },
             'foo-2': {
-              isOpen: true,
-              metadata: {
-                childrenCount: 0,
-                data: 'Foo #2',
+              data: {
                 id: 'foo-2',
                 isOpenByDefault: true,
+                name: 'Foo #2',
                 nestingLevel: 1,
               },
+              isOpen: true,
               toggle: expect.any(Function),
             },
             'foo-3': {
-              isOpen: true,
-              metadata: {
-                childrenCount: 0,
-                data: 'Foo #3',
+              data: {
                 id: 'foo-3',
                 isOpenByDefault: true,
+                name: 'Foo #3',
                 nestingLevel: 1,
               },
+              isOpen: true,
               toggle: expect.any(Function),
             },
           },
+          treeData: undefined,
         });
       });
 
@@ -253,43 +253,40 @@ describe('FixedSizeTree', () => {
 
         expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
           component: Node,
-          data: undefined,
           order: ['foo-1', 'foo-3', 'foo-2'],
           records: {
             'foo-1': {
-              isOpen: true,
-              metadata: {
-                childrenCount: 2,
-                data: 'Foo #1 Bar',
+              data: {
                 id: 'foo-1',
                 isOpenByDefault: true,
+                name: 'Foo #1 Bar',
                 nestingLevel: 0,
               },
+              isOpen: true,
               toggle: expect.any(Function),
             },
             'foo-2': {
-              isOpen: true,
-              metadata: {
-                childrenCount: 0,
-                data: 'Foo #2 Bar',
+              data: {
                 id: 'foo-2',
                 isOpenByDefault: true,
+                name: 'Foo #2 Bar',
                 nestingLevel: 1,
               },
+              isOpen: true,
               toggle: expect.any(Function),
             },
             'foo-3': {
-              isOpen: true,
-              metadata: {
-                childrenCount: 0,
-                data: 'Foo #3 Bar',
+              data: {
                 id: 'foo-3',
                 isOpenByDefault: true,
+                name: 'Foo #3 Bar',
                 nestingLevel: 1,
               },
+              isOpen: true,
               toggle: expect.any(Function),
             },
           },
+          treeData: undefined,
         });
       });
 
@@ -312,43 +309,40 @@ describe('FixedSizeTree', () => {
         // foo-1 node is open again
         expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
           component: Node,
-          data: undefined,
           order: ['foo-1', 'foo-2', 'foo-3'],
           records: {
             'foo-1': {
-              isOpen: true,
-              metadata: {
-                childrenCount: 2,
-                data: 'Foo #1',
+              data: {
                 id: 'foo-1',
                 isOpenByDefault: true,
+                name: 'Foo #1',
                 nestingLevel: 0,
               },
+              isOpen: true,
               toggle: expect.any(Function),
             },
             'foo-2': {
-              isOpen: true,
-              metadata: {
-                childrenCount: 0,
-                data: 'Foo #2',
+              data: {
                 id: 'foo-2',
                 isOpenByDefault: true,
+                name: 'Foo #2',
                 nestingLevel: 1,
               },
+              isOpen: true,
               toggle: expect.any(Function),
             },
             'foo-3': {
-              isOpen: true,
-              metadata: {
-                childrenCount: 0,
-                data: 'Foo #3',
+              data: {
                 id: 'foo-3',
                 isOpenByDefault: true,
+                name: 'Foo #3',
                 nestingLevel: 1,
               },
+              isOpen: true,
               toggle: expect.any(Function),
             },
           },
+          treeData: undefined,
         });
       });
 
@@ -363,44 +357,41 @@ describe('FixedSizeTree', () => {
 
         expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
           component: Node,
-          data: undefined,
           order: ['foo-1'],
           records: {
             'foo-1': {
-              isOpen: false,
-              metadata: {
-                childrenCount: 2,
-                data: 'Foo #1',
+              data: {
                 id: 'foo-1',
                 isOpenByDefault: false,
+                name: 'Foo #1',
                 nestingLevel: 0,
               },
+              isOpen: false,
               toggle: expect.any(Function),
             },
             // Child nodes of the closed one are omitted
             'foo-2': {
-              isOpen: true,
-              metadata: {
-                childrenCount: 0,
-                data: 'Foo #2',
+              data: {
                 id: 'foo-2',
                 isOpenByDefault: true,
+                name: 'Foo #2',
                 nestingLevel: 1,
               },
+              isOpen: true,
               toggle: expect.any(Function),
             },
             'foo-3': {
-              isOpen: true,
-              metadata: {
-                childrenCount: 0,
-                data: 'Foo #3',
+              data: {
                 id: 'foo-3',
                 isOpenByDefault: true,
+                name: 'Foo #3',
                 nestingLevel: 1,
               },
+              isOpen: true,
               toggle: expect.any(Function),
             },
           },
+          treeData: undefined,
         });
       });
 

@@ -2,33 +2,33 @@ import {shallow, ShallowWrapper} from 'enzyme';
 import * as React from 'react';
 import {ListChildComponentProps} from 'react-window';
 import {FixedSizeNodeRecord, Row} from '../src';
-import {CommonNodeMetadata} from '../src/utils';
+import {CommonNodeData} from '../src/utils';
 
 describe('Row component', () => {
-  let metadata: CommonNodeMetadata;
-  let dataMock: object;
+  let data: CommonNodeData<{}>;
+  let treeData: object;
   let order: readonly string[];
-  let records: Record<string, FixedSizeNodeRecord>;
+  let records: Record<string, FixedSizeNodeRecord<{}>>;
   let row: ShallowWrapper<ListChildComponentProps>;
 
   beforeEach(() => {
-    metadata = {} as any;
-    dataMock = {foo: 1};
+    data = {} as any;
+    treeData = {foo: 1};
     order = ['foo-1', 'foo-2', 'foo-3'];
     records = {
       'foo-1': {
+        data,
         isOpen: true,
-        metadata,
         toggle: jest.fn(),
       },
       'foo-2': {
+        data,
         isOpen: true,
-        metadata,
         toggle: jest.fn(),
       },
       'foo-3': {
+        data,
         isOpen: true,
-        metadata,
         toggle: jest.fn(),
       },
     };
@@ -38,9 +38,9 @@ describe('Row component', () => {
       <Row
         data={{
           component: Node,
-          data: dataMock,
           order,
           records,
+          treeData,
         }}
         index={2}
         isScrolling
@@ -52,12 +52,12 @@ describe('Row component', () => {
   it('renders Node component', () => {
     const node = row.find(Node);
     expect(node.props()).toMatchObject({
-      data: dataMock,
+      data,
       isOpen: true,
       isScrolling: true,
-      metadata,
       style: {marginLeft: 10},
       toggle: records['foo-3'].toggle,
+      treeData,
     });
   });
 });

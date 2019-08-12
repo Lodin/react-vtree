@@ -4,30 +4,36 @@ import {VariableSizeList} from 'react-window';
 import {Row} from '../src';
 import VariableSizeTree, {
   VariableSizeNodeComponentProps,
-  VariableSizeNodeMetadata,
+  VariableSizeNodeData,
   VariableSizeTreeProps,
   VariableSizeTreeState,
 } from '../src/VariableSizeTree';
 
-interface DataNode {
+type DataNode = {
   children?: DataNode[];
   id: string;
   name: string;
-}
+};
 
-interface StackElement {
+type StackElement = {
   nestingLevel: number;
   node: DataNode;
-}
+};
+
+type ExtendedData = {
+  readonly name: string;
+  readonly nestingLevel: number;
+};
 
 describe('VariableSizeTree', () => {
-  const Node: React.FunctionComponent<VariableSizeNodeComponentProps> = () =>
-    null;
+  const Node: React.FunctionComponent<
+    VariableSizeNodeComponentProps<ExtendedData>
+  > = () => null;
 
   let component: ReactWrapper<
-    VariableSizeTreeProps,
-    VariableSizeTreeState,
-    VariableSizeTree
+    VariableSizeTreeProps<ExtendedData>,
+    VariableSizeTreeState<ExtendedData>,
+    VariableSizeTree<ExtendedData>
   >;
   let tree: DataNode;
   let treeWalkerSpy: jest.Mock;
@@ -46,7 +52,7 @@ describe('VariableSizeTree', () => {
 
     treeWalkerSpy = jest.fn(function*(
       refresh: boolean,
-    ): IterableIterator<VariableSizeNodeMetadata | string | symbol> {
+    ): IterableIterator<VariableSizeNodeData<ExtendedData> | string | symbol> {
       const stack: StackElement[] = [];
 
       stack.push({
@@ -62,11 +68,10 @@ describe('VariableSizeTree', () => {
 
         const isOpened = yield refresh
           ? {
-              childrenCount,
-              data: node.name,
               defaultHeight,
               id,
               isOpenByDefault,
+              name: node.name,
               nestingLevel,
             }
           : id;
@@ -84,7 +89,11 @@ describe('VariableSizeTree', () => {
     });
 
     component = mount(
-      <VariableSizeTree treeWalker={treeWalkerSpy} height={500} width={500}>
+      <VariableSizeTree<ExtendedData>
+        treeWalker={treeWalkerSpy}
+        height={500}
+        width={500}
+      >
         {Node}
       </VariableSizeTree>,
     );
@@ -105,42 +114,39 @@ describe('VariableSizeTree', () => {
         order: ['foo-1', 'foo-2', 'foo-3'],
         records: {
           'foo-1': {
-            height: 30,
-            isOpen: true,
-            metadata: {
-              childrenCount: 2,
-              data: 'Foo #1',
+            data: {
               defaultHeight: 30,
               id: 'foo-1',
               isOpenByDefault: true,
+              name: 'Foo #1',
               nestingLevel: 0,
             },
+            height: 30,
+            isOpen: true,
             toggle: expect.any(Function),
           },
           'foo-2': {
-            height: 30,
-            isOpen: true,
-            metadata: {
-              childrenCount: 0,
-              data: 'Foo #2',
+            data: {
               defaultHeight: 30,
               id: 'foo-2',
               isOpenByDefault: true,
+              name: 'Foo #2',
               nestingLevel: 1,
             },
+            height: 30,
+            isOpen: true,
             toggle: expect.any(Function),
           },
           'foo-3': {
-            height: 30,
-            isOpen: true,
-            metadata: {
-              childrenCount: 0,
-              data: 'Foo #3',
+            data: {
               defaultHeight: 30,
               id: 'foo-3',
               isOpenByDefault: true,
+              name: 'Foo #3',
               nestingLevel: 1,
             },
+            height: 30,
+            isOpen: true,
             toggle: expect.any(Function),
           },
         },
@@ -161,7 +167,7 @@ describe('VariableSizeTree', () => {
   });
 
   describe('component instance', () => {
-    let treeInstance: VariableSizeTree;
+    let treeInstance: VariableSizeTree<ExtendedData>;
 
     beforeEach(() => {
       treeInstance = component.instance();
@@ -212,49 +218,46 @@ describe('VariableSizeTree', () => {
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
           {
             component: Node,
-            data: undefined,
             order: ['foo-1', 'foo-3', 'foo-2'],
             records: {
               'foo-1': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 2,
-                  data: 'Foo #1',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-1',
                   isOpenByDefault: true,
+                  name: 'Foo #1',
                   nestingLevel: 0,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
               'foo-2': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #2',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-2',
                   isOpenByDefault: true,
+                  name: 'Foo #2',
                   nestingLevel: 1,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
               'foo-3': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #3',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-3',
                   isOpenByDefault: true,
+                  name: 'Foo #3',
                   nestingLevel: 1,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
             },
+            treeData: undefined,
           },
         );
       });
@@ -275,49 +278,46 @@ describe('VariableSizeTree', () => {
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
           {
             component: Node,
-            data: undefined,
             order: ['foo-1', 'foo-3', 'foo-2'],
             records: {
               'foo-1': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 2,
-                  data: 'Foo #1 Bar',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-1',
                   isOpenByDefault: true,
+                  name: 'Foo #1 Bar',
                   nestingLevel: 0,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
               'foo-2': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #2 Bar',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-2',
                   isOpenByDefault: true,
+                  name: 'Foo #2 Bar',
                   nestingLevel: 1,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
               'foo-3': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #3 Bar',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-3',
                   isOpenByDefault: true,
+                  name: 'Foo #3 Bar',
                   nestingLevel: 1,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
             },
+            treeData: undefined,
           },
         );
       });
@@ -342,49 +342,46 @@ describe('VariableSizeTree', () => {
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
           {
             component: Node,
-            data: undefined,
             order: ['foo-1', 'foo-2', 'foo-3'],
             records: {
               'foo-1': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 2,
-                  data: 'Foo #1',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-1',
                   isOpenByDefault: true,
+                  name: 'Foo #1',
                   nestingLevel: 0,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
               'foo-2': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #2',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-2',
                   isOpenByDefault: true,
+                  name: 'Foo #2',
                   nestingLevel: 1,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
               'foo-3': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #3',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-3',
                   isOpenByDefault: true,
+                  name: 'Foo #3',
                   nestingLevel: 1,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
             },
+            treeData: undefined,
           },
         );
       });
@@ -401,50 +398,47 @@ describe('VariableSizeTree', () => {
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
           {
             component: Node,
-            data: undefined,
             order: ['foo-1'],
             records: {
               'foo-1': {
-                height: 30,
-                isOpen: false,
-                metadata: {
-                  childrenCount: 2,
-                  data: 'Foo #1',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-1',
                   isOpenByDefault: false,
+                  name: 'Foo #1',
                   nestingLevel: 0,
                 },
+                height: 30,
+                isOpen: false,
                 toggle: expect.any(Function),
               },
               // Child nodes of the closed one are omitted
               'foo-2': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #2',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-2',
                   isOpenByDefault: true,
+                  name: 'Foo #2',
                   nestingLevel: 1,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
               'foo-3': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #3',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-3',
                   isOpenByDefault: true,
+                  name: 'Foo #3',
                   nestingLevel: 1,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
             },
+            treeData: undefined,
           },
         );
       });
@@ -482,49 +476,46 @@ describe('VariableSizeTree', () => {
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
           {
             component: Node,
-            data: undefined,
             order: ['foo-1', 'foo-2', 'foo-3'],
             records: {
               'foo-1': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 2,
-                  data: 'Foo #1',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-1',
                   isOpenByDefault: true,
+                  name: 'Foo #1',
                   nestingLevel: 0,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
               'foo-2': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #2',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-2',
                   isOpenByDefault: true,
+                  name: 'Foo #2',
                   nestingLevel: 1,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
               'foo-3': {
-                height: 30,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #3',
+                data: {
                   defaultHeight: 30,
                   id: 'foo-3',
                   isOpenByDefault: true,
+                  name: 'Foo #3',
                   nestingLevel: 1,
                 },
+                height: 30,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
             },
+            treeData: undefined,
           },
         );
       });
@@ -541,50 +532,47 @@ describe('VariableSizeTree', () => {
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
           {
             component: Node,
-            data: undefined,
             order: ['foo-1', 'foo-2', 'foo-3'],
             records: {
               'foo-1': {
-                height: 60,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 2,
-                  data: 'Foo #1',
+                data: {
                   defaultHeight: 60,
                   id: 'foo-1',
                   isOpenByDefault: true,
+                  name: 'Foo #1',
                   nestingLevel: 0,
                 },
+                height: 60,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
               // Child nodes of the closed one are omitted
               'foo-2': {
-                height: 60,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #2',
+                data: {
                   defaultHeight: 60,
                   id: 'foo-2',
                   isOpenByDefault: true,
+                  name: 'Foo #2',
                   nestingLevel: 1,
                 },
+                height: 60,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
               'foo-3': {
-                height: 60,
-                isOpen: true,
-                metadata: {
-                  childrenCount: 0,
-                  data: 'Foo #3',
+                data: {
                   defaultHeight: 60,
                   id: 'foo-3',
                   isOpenByDefault: true,
+                  name: 'Foo #3',
                   nestingLevel: 1,
                 },
+                height: 60,
+                isOpen: true,
                 toggle: expect.any(Function),
               },
             },
+            treeData: undefined,
           },
         );
       });

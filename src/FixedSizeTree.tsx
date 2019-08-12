@@ -2,7 +2,7 @@ import * as React from 'react';
 import {Align, FixedSizeList, FixedSizeListProps} from 'react-window';
 import {
   CommonNodeComponentProps,
-  CommonNodeMetadata,
+  CommonNodeData,
   CommonNodeRecord,
   CommonUpdateOptions,
   Row,
@@ -11,44 +11,51 @@ import {
 } from './utils';
 
 export type FixedSizeUpdateOptions = CommonUpdateOptions;
-export type FixedSizeNodeMetadata = CommonNodeMetadata;
-export type FixedSizeNodeComponentProps = CommonNodeComponentProps;
-export type FixedSizeNodeRecord = CommonNodeRecord;
+export type FixedSizeNodeData<T> = CommonNodeData<T>;
+export type FixedSizeNodeComponentProps<T> = CommonNodeComponentProps<
+  FixedSizeNodeData<T>,
+  T
+>;
+export type FixedSizeNodeRecord<T> = CommonNodeRecord<FixedSizeNodeData<T>, T>;
 
-export interface FixedSizeTreeProps
-  extends TreeProps<FixedSizeNodeMetadata>,
-    Omit<FixedSizeListProps, 'children' | 'itemCount'> {
-  readonly children: React.ComponentType<FixedSizeNodeComponentProps>;
-}
+export type FixedSizeTreeProps<T> = TreeProps<FixedSizeNodeData<T>, T> &
+  Omit<FixedSizeListProps, 'children' | 'itemCount'> & {
+    readonly children: React.ComponentType<FixedSizeNodeComponentProps<T>>;
+  };
 
-export type FixedSizeTreeState = TreeState<FixedSizeNodeRecord>;
+export type FixedSizeTreeState<T> = TreeState<
+  FixedSizeNodeComponentProps<T>,
+  FixedSizeNodeRecord<T>,
+  FixedSizeNodeData<T>,
+  T
+>;
 
-export default class FixedSizeTree extends React.PureComponent<
-  FixedSizeTreeProps,
-  FixedSizeTreeState
+export default class FixedSizeTree<T> extends React.PureComponent<
+  FixedSizeTreeProps<T>,
+  FixedSizeTreeState<T>
 > {
-  public static defaultProps: Partial<FixedSizeTreeProps> = {
+  public static defaultProps: Partial<FixedSizeTreeProps<{}>> = {
     rowComponent: Row,
   };
 
   public static getDerivedStateFromProps({
     children: component,
-    itemData: data,
-  }: FixedSizeTreeProps): Partial<FixedSizeTreeState> {
+    itemData: treeData,
+  }: FixedSizeTreeProps<{}>): Partial<FixedSizeTreeState<{}>> {
     return {
       component,
-      data,
+      treeData,
     };
   }
 
   private readonly list: React.RefObject<FixedSizeList> = React.createRef();
 
-  public constructor(props: FixedSizeTreeProps, context: any) {
+  public constructor(props: FixedSizeTreeProps<T>, context: any) {
     super(props, context);
 
     this.createNodeRecord = this.createNodeRecord.bind(this);
 
-    const initialState: FixedSizeTreeState = {
+    const initialState: FixedSizeTreeState<T> = {
       component: props.children,
       order: [],
       records: {},
@@ -98,9 +105,9 @@ export default class FixedSizeTree extends React.PureComponent<
 
   private computeTree(
     {refreshNodes = false, useDefaultOpenness = false}: FixedSizeUpdateOptions,
-    {treeWalker}: FixedSizeTreeProps,
-    {records: prevRecords}: FixedSizeTreeState,
-  ): Pick<FixedSizeTreeState, 'order' | 'records'> {
+    {treeWalker}: FixedSizeTreeProps<T>,
+    {records: prevRecords}: FixedSizeTreeState<T>,
+  ): Pick<FixedSizeTreeState<T>, 'order' | 'records'> {
     const order: Array<string | symbol> = [];
     const records = {...prevRecords};
     const iter = treeWalker(refreshNodes);
@@ -121,7 +128,7 @@ export default class FixedSizeTree extends React.PureComponent<
 
         if (useDefaultOpenness) {
           records[id as string].isOpen =
-            records[id as string].metadata.isOpenByDefault;
+            records[id as string].data.isOpenByDefault;
         }
       } else {
         ({id} = value);
@@ -131,7 +138,7 @@ export default class FixedSizeTree extends React.PureComponent<
         if (!record) {
           records[id as string] = this.createNodeRecord(value);
         } else {
-          record.metadata = value;
+          record.data = value;
 
           if (useDefaultOpenness) {
             record.isOpen = isOpenByDefault;
@@ -149,12 +156,10 @@ export default class FixedSizeTree extends React.PureComponent<
     };
   }
 
-  private createNodeRecord(
-    metadata: FixedSizeNodeMetadata,
-  ): FixedSizeNodeRecord {
-    const record: FixedSizeNodeRecord = {
-      isOpen: metadata.isOpenByDefault,
-      metadata,
+  private createNodeRecord(data: FixedSizeNodeData<T>): FixedSizeNodeRecord<T> {
+    const record: FixedSizeNodeRecord<T> = {
+      data,
+      isOpen: data.isOpenByDefault,
       toggle: async () => {
         record.isOpen = !record.isOpen;
         await this.recomputeTree({refreshNodes: record.isOpen});
