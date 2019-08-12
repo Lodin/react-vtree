@@ -3,22 +3,24 @@ const isCjs = BUILD_TYPE === 'cjs';
 const isLib = BUILD_TYPE === 'lib';
 
 module.exports = api => ({
-  plugins: isLib
-    ? []
-    : [
-        [
-          require('babel-plugin-transform-async-to-promises'),
-          {hoist: true, inlineHelpers: true},
-        ],
-        [
-          require('@babel/plugin-transform-runtime'),
-          {
-            regenerator: false,
-          },
-        ],
-        [require('@babel/plugin-proposal-class-properties'), {loose: true}],
-        [require('@babel/plugin-proposal-object-rest-spread'), {loose: true}],
-      ],
+  plugins: [
+    [require('@babel/plugin-proposal-class-properties'), {loose: true}],
+    ...(isLib
+      ? []
+      : [
+          [
+            require('babel-plugin-transform-async-to-promises'),
+            {hoist: true, inlineHelpers: true},
+          ],
+          [
+            require('@babel/plugin-transform-runtime'),
+            {
+              regenerator: false,
+            },
+          ],
+          [require('@babel/plugin-proposal-object-rest-spread'), {loose: true}],
+        ]),
+  ],
   presets: [
     require('@babel/preset-typescript'),
     [require('@babel/preset-react'), {useBuiltIns: true}],
