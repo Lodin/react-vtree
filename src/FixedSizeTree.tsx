@@ -112,6 +112,12 @@ export default class FixedSizeTree<T> extends React.PureComponent<
     const records = {...prevRecords};
     const iter = treeWalker(refreshNodes);
 
+    if (useDefaultOpenness) {
+      for (const id in records) {
+        records[id].isOpen = records[id].data.isOpenByDefault;
+      }
+    }
+
     let isPreviousOpened = false;
 
     while (true) {

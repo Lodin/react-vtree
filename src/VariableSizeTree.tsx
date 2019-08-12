@@ -157,6 +157,18 @@ export default class VariableSizeTree<T> extends React.PureComponent<
     const records = {...prevRecords};
     const iter = treeWalker(refreshNodes);
 
+    if (useDefaultHeight || useDefaultOpenness) {
+      for (const id in records) {
+        if (useDefaultHeight) {
+          records[id].height = records[id].data.defaultHeight;
+        }
+
+        if (useDefaultOpenness) {
+          records[id].isOpen = records[id].data.isOpenByDefault;
+        }
+      }
+    }
+
     let isPreviousOpened = false;
 
     while (true) {

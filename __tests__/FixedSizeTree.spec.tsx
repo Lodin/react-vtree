@@ -291,16 +291,16 @@ describe('FixedSizeTree', () => {
       });
 
       it('resets current openness to default', async () => {
+        const {records} = component.state();
+
+        for (const id in records) {
+          records[id].isOpen = false;
+        }
+
         // Imitate closing the foo-1 node
         component.setState({
           order: ['foo-1'],
-          records: {
-            ...component.state().records,
-            'foo-1': {
-              ...component.state().records['foo-1'],
-              isOpen: false,
-            },
-          },
+          records,
         });
 
         await treeInstance.recomputeTree({useDefaultOpenness: true});
