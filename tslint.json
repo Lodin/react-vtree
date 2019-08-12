@@ -2,6 +2,7 @@
   "extends": ["tslint-config-poetez", "tslint-config-prettier"],
   "rulesDirectory": ["tslint-plugin-prettier"],
   "rules": {
+    "interface-over-type-literal": false,
     "object-literal-sort-keys": [true, "ignore-case"],
     "prettier": true
   }
