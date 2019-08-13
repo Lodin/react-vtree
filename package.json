@@ -5,6 +5,9 @@
   "main": "./dist/cjs/index.js",
   "module": "./dist/es/index.js",
   "typings": "./dist/es/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build-storybook": "build-storybook -c .storybook -o docs",
     "check": "run-p lint typecheck",
