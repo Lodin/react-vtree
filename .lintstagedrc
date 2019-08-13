@@ -1,10 +1,4 @@
 {
-  "linters": {
-    ".storybook/**/*.js": ["npm run lint:storybook -- --fix", "git add"],
-    "__stories__/**/*.+(ts|tsx)": ["npm run lint:src -- --fix", "node ./scripts/typecheck.js", "git add"],
-    "__tests__/**/*.+(ts|tsx)": ["npm run lint:src -- --fix", "node ./scripts/typecheck.js", "git add"],
-    "config/**/*.js": ["npm run lint:config -- --fix", "git add"],
-    "scripts/**/*.js": ["npm run lint:scripts -- --fix", "git add"],
-    "src/**/*.+(ts|tsx)": ["npm run lint:src -- --fix", "node ./scripts/typecheck.js", "git add"],
-  }
+  "*.js": ["prettier --write", "eslint --fix", "git add"],
+  "*.+(ts|tsx)": ["prettier --write", "tslint -c tslint.json -p tsconfig.json -t verbose --fix", "git add"]
 }

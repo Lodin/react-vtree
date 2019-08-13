@@ -1,0 +1,9 @@
+{
+  "extends": ["eslint-config-poetez", "plugin:prettier/recommended"],
+  "env": {
+    "node": true
+  },
+  "rules": {
+    "global-require": "off"
+  }
+}
