@@ -27,6 +27,7 @@ export type CommonUpdateOptions = {
 export type CommonNodeRecord<TData extends CommonNodeData<T>, T> = {
   data: TData;
   isOpen: boolean;
+  readonly recomputeTree: (options: CommonUpdateOptions) => Promise<void>;
   readonly toggle: () => Promise<void>;
 };
 

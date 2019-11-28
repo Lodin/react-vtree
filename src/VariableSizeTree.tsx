@@ -229,6 +229,8 @@ export default class VariableSizeTree<T> extends React.PureComponent<
       data,
       height: data.defaultHeight,
       isOpen: data.isOpenByDefault,
+      recomputeTree: (options: VariableSizeUpdateOptions = {}) =>
+        this.recomputeTree(options),
       resize: (height: number, shouldForceUpdate?: boolean) => {
         record.height = height;
         this.resetAfterId(record.data.id, shouldForceUpdate);

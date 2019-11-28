@@ -166,6 +166,8 @@ export default class FixedSizeTree<T> extends React.PureComponent<
     const record: FixedSizeNodeRecord<T> = {
       data,
       isOpen: data.isOpenByDefault,
+      recomputeTree: (options: FixedSizeUpdateOptions = {}) =>
+        this.recomputeTree(options),
       toggle: async () => {
         record.isOpen = !record.isOpen;
         await this.recomputeTree({refreshNodes: record.isOpen});
