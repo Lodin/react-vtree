@@ -44,7 +44,7 @@ export type TreeProps<TData extends CommonNodeData<T>, T> = {
   readonly rowComponent?: React.ComponentType<ListChildComponentProps>;
   readonly treeWalker: (
     refresh: boolean,
-  ) => IterableIterator<TData | string | symbol>;
+  ) => Generator<TData | string | symbol, void, boolean>;
 };
 
 export type TreeState<

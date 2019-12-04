@@ -5,6 +5,7 @@ const isLib = BUILD_TYPE === 'lib';
 module.exports = api => ({
   plugins: [
     [require('@babel/plugin-proposal-class-properties'), {loose: true}],
+    [require('@babel/plugin-proposal-optional-chaining'), {loose: true}],
     ...(isLib
       ? []
       : [

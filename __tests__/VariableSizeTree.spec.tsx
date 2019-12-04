@@ -26,9 +26,9 @@ type ExtendedData = {
 };
 
 describe('VariableSizeTree', () => {
-  const Node: React.FunctionComponent<
-    VariableSizeNodeComponentProps<ExtendedData>
-  > = () => null;
+  const Node: React.FunctionComponent<VariableSizeNodeComponentProps<
+    ExtendedData
+  >> = () => null;
 
   let component: ReactWrapper<
     VariableSizeTreeProps<ExtendedData>,
@@ -42,7 +42,10 @@ describe('VariableSizeTree', () => {
 
   beforeEach(() => {
     tree = {
-      children: [{id: 'foo-2', name: 'Foo #2'}, {id: 'foo-3', name: 'Foo #3'}],
+      children: [
+        {id: 'foo-2', name: 'Foo #2'},
+        {id: 'foo-3', name: 'Foo #3'},
+      ],
       id: 'foo-1',
       name: 'Foo #1',
     };
@@ -212,7 +215,7 @@ describe('VariableSizeTree', () => {
           name: 'Foo #1',
         };
 
-        await treeInstance.recomputeTree({refreshNodes: false});
+        await treeInstance.recomputeTree();
         component.update(); // update the wrapper to get the latest changes
 
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(

@@ -26,9 +26,9 @@ type ExtendedData = {
 };
 
 describe('FixedSizeTree', () => {
-  const Node: React.FunctionComponent<
-    FixedSizeNodeComponentProps<ExtendedData>
-  > = () => null;
+  const Node: React.FunctionComponent<FixedSizeNodeComponentProps<
+    ExtendedData
+  >> = () => null;
 
   let component: ReactWrapper<
     FixedSizeTreeProps<ExtendedData>,
@@ -41,7 +41,10 @@ describe('FixedSizeTree', () => {
 
   beforeEach(() => {
     tree = {
-      children: [{id: 'foo-2', name: 'Foo #2'}, {id: 'foo-3', name: 'Foo #3'}],
+      children: [
+        {id: 'foo-2', name: 'Foo #2'},
+        {id: 'foo-3', name: 'Foo #3'},
+      ],
       id: 'foo-1',
       name: 'Foo #1',
     };
@@ -196,7 +199,7 @@ describe('FixedSizeTree', () => {
           name: 'Foo #1',
         };
 
-        await treeInstance.recomputeTree({refreshNodes: false});
+        await treeInstance.recomputeTree();
         component.update(); // update the wrapper to get the latest changes
 
         expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({

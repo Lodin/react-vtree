@@ -87,14 +87,14 @@ export default class VariableSizeTree<T> extends React.PureComponent<
   }
 
   public async recomputeTree(
-    options: VariableSizeUpdateOptions,
+    options?: VariableSizeUpdateOptions,
   ): Promise<void> {
     return new Promise(resolve => {
       this.setState<never>(
         prevState => this.computeTree(options, this.props, prevState),
         () => {
-          if (options.useDefaultHeight && this.list.current) {
-            this.list.current.resetAfterIndex(0, true);
+          if (options?.useDefaultHeight) {
+            this.list.current?.resetAfterIndex(0, true);
           }
 
           resolve();
@@ -107,24 +107,18 @@ export default class VariableSizeTree<T> extends React.PureComponent<
     id: string | symbol,
     shouldForceUpdate: boolean = false,
   ): void {
-    if (this.list.current) {
-      this.list.current.resetAfterIndex(
-        this.state.order.indexOf(id),
-        shouldForceUpdate,
-      );
-    }
+    this.list.current?.resetAfterIndex(
+      this.state.order.indexOf(id),
+      shouldForceUpdate,
+    );
   }
 
   public scrollTo(scrollOffset: number): void {
-    if (this.list.current) {
-      this.list.current.scrollTo(scrollOffset);
-    }
+    this.list.current?.scrollTo(scrollOffset);
   }
 
   public scrollToItem(id: string | symbol, align?: Align): void {
-    if (this.list.current) {
-      this.list.current.scrollToItem(this.state.order.indexOf(id) || 0, align);
-    }
+    this.list.current?.scrollToItem(this.state.order.indexOf(id) || 0, align);
   }
 
   public render(): React.ReactNode {
@@ -149,7 +143,7 @@ export default class VariableSizeTree<T> extends React.PureComponent<
       refreshNodes = false,
       useDefaultHeight = false,
       useDefaultOpenness = false,
-    }: VariableSizeUpdateOptions,
+    }: VariableSizeUpdateOptions = {},
     {treeWalker}: VariableSizeTreeProps<T>,
     {records: prevRecords}: VariableSizeTreeState<T>,
   ): Pick<VariableSizeTreeState<T>, 'order' | 'records'> {
