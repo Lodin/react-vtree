@@ -58,9 +58,9 @@ const rootNode = createNode();
 const defaultGapStyle = {marginLeft: 10};
 const defaultButtonStyle = {fontFamily: 'Courier New'};
 
-const Node: React.FunctionComponent<
-  VariableSizeNodeComponentProps<ExtendedData>
-> = ({
+const Node: React.FunctionComponent<VariableSizeNodeComponentProps<
+  ExtendedData
+>> = ({
   height,
   data: {isLeaf, name, nestingLevel},
   isOpen,
@@ -116,7 +116,11 @@ const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
   const treeWalker = React.useCallback(
     function*(
       refresh: boolean,
-    ): IterableIterator<VariableSizeNodeData<ExtendedData> | string | symbol> {
+    ): Generator<
+      VariableSizeNodeData<ExtendedData> | string | symbol,
+      void,
+      boolean
+    > {
       const stack: StackElement[] = [];
 
       stack.push({
@@ -154,9 +158,7 @@ const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
   );
 
   React.useEffect(() => {
-    if (tree.current) {
-      tree.current!.recomputeTree({refreshNodes: true, useDefaultHeight: true});
-    }
+    tree.current?.recomputeTree({refreshNodes: true, useDefaultHeight: true});
   }, [itemSize]);
 
   return (

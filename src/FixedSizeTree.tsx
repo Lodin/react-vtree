@@ -67,7 +67,7 @@ export default class FixedSizeTree<T> extends React.PureComponent<
     };
   }
 
-  public async recomputeTree(options: FixedSizeUpdateOptions): Promise<void> {
+  public async recomputeTree(options?: FixedSizeUpdateOptions): Promise<void> {
     return new Promise(resolve => {
       this.setState<never>(
         prevState => this.computeTree(options, this.props, prevState),
@@ -77,15 +77,11 @@ export default class FixedSizeTree<T> extends React.PureComponent<
   }
 
   public scrollTo(scrollOffset: number): void {
-    if (this.list.current) {
-      this.list.current.scrollTo(scrollOffset);
-    }
+    this.list.current?.scrollTo(scrollOffset);
   }
 
   public scrollToItem(id: string | symbol, align?: Align): void {
-    if (this.list.current) {
-      this.list.current.scrollToItem(this.state.order.indexOf(id) || 0, align);
-    }
+    this.list.current?.scrollToItem(this.state.order.indexOf(id) || 0, align);
   }
 
   public render(): React.ReactNode {
@@ -104,7 +100,10 @@ export default class FixedSizeTree<T> extends React.PureComponent<
   }
 
   private computeTree(
-    {refreshNodes = false, useDefaultOpenness = false}: FixedSizeUpdateOptions,
+    {
+      refreshNodes = false,
+      useDefaultOpenness = false,
+    }: FixedSizeUpdateOptions = {},
     {treeWalker}: FixedSizeTreeProps<T>,
     {records: prevRecords}: FixedSizeTreeState<T>,
   ): Pick<FixedSizeTreeState<T>, 'order' | 'records'> {

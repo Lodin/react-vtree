@@ -60,7 +60,7 @@ const defaultButtonStyle = {fontFamily: 'Courier New'};
 
 function* treeWalker(
   refresh: boolean,
-): IterableIterator<FixedSizeNodeData<ExtendedData> | string | symbol> {
+): Generator<FixedSizeNodeData<ExtendedData> | string | symbol, void, boolean> {
   const stack: StackElement[] = [];
 
   stack.push({
@@ -94,9 +94,9 @@ function* treeWalker(
   }
 }
 
-const Node: React.FunctionComponent<
-  FixedSizeNodeComponentProps<ExtendedData>
-> = ({data: {isLeaf, name, nestingLevel}, isOpen, style, toggle}) => (
+const Node: React.FunctionComponent<FixedSizeNodeComponentProps<
+  ExtendedData
+>> = ({data: {isLeaf, name, nestingLevel}, isOpen, style, toggle}) => (
   <div
     style={{
       ...style,
