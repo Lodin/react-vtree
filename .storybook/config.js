@@ -1,14 +1,11 @@
-const {configure} = require('@storybook/react');
-const {setOptions} = require('@storybook/addon-options');
+const {addParameters, configure} = require('@storybook/react');
 
-const loadStories = () => {
-  require('../__stories__');
-};
-
-setOptions({
-  downPanelInRight: true,
-  name: 'React Virtualized Tree',
-  selectedAddonPanel: 'knobs',
+addParameters({
+  options: {
+    addonPanelInRight: true,
+    name: 'React Virtualized Tree',
+    selectedPanel: 'knobs',
+  },
 });
 
-configure(loadStories, module);
+configure(() => require('../__stories__'), module);

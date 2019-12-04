@@ -9,6 +9,7 @@ import Tree, {
 
 document.body.style.margin = '0';
 document.body.style.display = 'flex';
+document.body.style.minHeight = '100vh';
 
 const root = document.getElementById('root')!;
 root.style.margin = '10px 0 0 10px';

@@ -9,7 +9,6 @@
     "dist"
   ],
   "scripts": {
-    "build-storybook": "build-storybook -c .storybook -o docs",
     "check": "run-p lint typecheck",
     "clean": "rimraf dist coverage",
     "build": "run-p build:cjs build:es build:lib",
@@ -28,7 +27,8 @@
     "lint:js": "eslint \"+(.storybook|config)/**/*.js\"",
     "precommit": "lint-staged",
     "start": "run-s storybook",
-    "storybook": "start-storybook -p 6006",
+    "storybook:dev": "start-storybook -p 6006",
+    "storybook:build": "build-storybook -c .storybook -o docs",
     "test": "cross-env NODE_ENV=test jest",
     "test:cover": "npm run test -- --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit"
