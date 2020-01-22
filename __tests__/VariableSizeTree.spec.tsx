@@ -447,26 +447,28 @@ describe('VariableSizeTree', () => {
       });
 
       it('provides a toggle function that changes openness state of the specific node', async () => {
-        const recomputeTreeSpy = spyOn(treeInstance, 'recomputeTree');
-        const foo1 = component.state().records['foo-1'];
+        const foo1 = component.state('records')['foo-1'];
 
+        foo1.height = 50;
+
+        treeWalkerSpy.mockClear();
         await foo1.toggle();
 
-        expect(recomputeTreeSpy).toHaveBeenCalledWith({
-          refreshNodes: false,
-          useDefaultHeight: true,
-        });
+        expect(treeWalkerSpy).toHaveBeenCalledWith(false);
+        expect(foo1.height).toBe(defaultHeight);
         expect(foo1.isOpen).toBeFalsy();
       });
 
       it('resets current height to default', async () => {
+        const records = component.state('records');
+
         // Imitate changing height for the foo-1 node
         component.setState({
           order: ['foo-1'],
           records: {
-            ...component.state().records,
+            ...records,
             'foo-1': {
-              ...component.state().records['foo-1'],
+              ...records['foo-1'],
               height: 60,
             },
           },
@@ -581,12 +583,20 @@ describe('VariableSizeTree', () => {
       });
 
       it('provides a resize function that changes height of the specific node', () => {
-        const resetAfterIdSpy = spyOn(treeInstance, 'resetAfterId');
-        const foo3 = component.state().records['foo-3'];
+        const listInstance: VariableSizeList = component
+          .find(VariableSizeList)
+          .instance() as VariableSizeList;
+
+        const resetAfterIndexSpy = spyOn(listInstance, 'resetAfterIndex');
+        const order = component.state('order');
+        const foo3 = component.state('records')['foo-3'];
 
         foo3.resize(100, true);
 
-        expect(resetAfterIdSpy).toHaveBeenCalledWith('foo-3', true);
+        expect(resetAfterIndexSpy).toHaveBeenCalledWith(
+          order.indexOf('foo-3'),
+          true,
+        );
         expect(foo3.height).toBe(100);
       });
     });

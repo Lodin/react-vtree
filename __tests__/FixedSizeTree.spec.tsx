@@ -294,7 +294,7 @@ describe('FixedSizeTree', () => {
       });
 
       it('resets current openness to default', async () => {
-        const {records} = component.state();
+        const records = component.state('records');
 
         for (const id in records) {
           records[id].isOpen = false;
@@ -399,12 +399,12 @@ describe('FixedSizeTree', () => {
       });
 
       it('provides a toggle function that changes openness state of the specific node', async () => {
-        const recomputeTreeSpy = spyOn(treeInstance, 'recomputeTree');
-        const foo1 = component.state().records['foo-1'];
+        const foo1 = component.state('records')['foo-1'];
 
+        treeWalkerSpy.mockClear();
         await foo1.toggle();
 
-        expect(recomputeTreeSpy).toHaveBeenCalledWith({refreshNodes: false});
+        expect(treeWalkerSpy).toHaveBeenCalledWith(false);
         expect(foo1.isOpen).toBeFalsy();
       });
     });

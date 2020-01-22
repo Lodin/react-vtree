@@ -27,8 +27,78 @@ export type FixedSizeTreeState<T> = TreeState<
   FixedSizeNodeComponentProps<T>,
   FixedSizeNodeRecord<T>,
   FixedSizeNodeData<T>,
+  FixedSizeUpdateOptions,
   T
 >;
+
+const computeTree = <T extends {}>(
+  {
+    refreshNodes = false,
+    useDefaultOpenness = false,
+  }: FixedSizeUpdateOptions = {},
+  {treeWalker}: FixedSizeTreeProps<T>,
+  {records: prevRecords, recomputeTree}: FixedSizeTreeState<T>,
+): Pick<FixedSizeTreeState<T>, 'order' | 'records'> => {
+  const order: Array<string | symbol> = [];
+  const records = {...prevRecords};
+  const iter = treeWalker(refreshNodes);
+
+  if (useDefaultOpenness) {
+    for (const id in records) {
+      records[id].isOpen = records[id].data.isOpenByDefault;
+    }
+  }
+
+  let isPreviousOpened = false;
+
+  while (true) {
+    const {done, value} = iter.next(isPreviousOpened);
+
+    if (done || !value) {
+      break;
+    }
+
+    let id: string | symbol;
+
+    if (typeof value === 'string' || typeof value === 'symbol') {
+      id = value;
+
+      if (useDefaultOpenness) {
+        records[id as string].isOpen =
+          records[id as string].data.isOpenByDefault;
+      }
+    } else {
+      ({id} = value);
+      const {isOpenByDefault} = value;
+      const record = records[id as string];
+
+      if (!record) {
+        records[id as string] = {
+          data: value,
+          isOpen: isOpenByDefault,
+          async toggle(this: FixedSizeNodeRecord<T>): Promise<void> {
+            this.isOpen = !this.isOpen;
+            await recomputeTree({refreshNodes: this.isOpen});
+          },
+        };
+      } else {
+        record.data = value;
+
+        if (useDefaultOpenness) {
+          record.isOpen = isOpenByDefault;
+        }
+      }
+    }
+
+    order.push(id);
+    isPreviousOpened = records[id as string].isOpen;
+  }
+
+  return {
+    order,
+    records,
+  };
+};
 
 export default class FixedSizeTree<T> extends React.PureComponent<
   FixedSizeTreeProps<T>,
@@ -38,13 +108,16 @@ export default class FixedSizeTree<T> extends React.PureComponent<
     rowComponent: Row,
   };
 
-  public static getDerivedStateFromProps({
-    children: component,
-    itemData: treeData,
-  }: FixedSizeTreeProps<{}>): Partial<FixedSizeTreeState<{}>> {
+  public static getDerivedStateFromProps(
+    props: FixedSizeTreeProps<{}>,
+    state: FixedSizeTreeState<{}>,
+  ): Partial<FixedSizeTreeState<{}>> {
+    const {children: component, itemData: treeData} = props;
+
     return {
       component,
       treeData,
+      ...computeTree({refreshNodes: true}, props, state),
     };
   }
 
@@ -53,24 +126,23 @@ export default class FixedSizeTree<T> extends React.PureComponent<
   public constructor(props: FixedSizeTreeProps<T>, context: any) {
     super(props, context);
 
-    this.createNodeRecord = this.createNodeRecord.bind(this);
-
     const initialState: FixedSizeTreeState<T> = {
       component: props.children,
       order: [],
+      recomputeTree: this.recomputeTree.bind(this),
       records: {},
     };
 
     this.state = {
       ...initialState,
-      ...this.computeTree({refreshNodes: true}, props, initialState),
+      ...computeTree({refreshNodes: true}, props, initialState),
     };
   }
 
   public async recomputeTree(options?: FixedSizeUpdateOptions): Promise<void> {
     return new Promise(resolve => {
       this.setState<never>(
-        prevState => this.computeTree(options, this.props, prevState),
+        prevState => computeTree(options, this.props, prevState),
         resolve,
       );
     });
@@ -97,80 +169,5 @@ export default class FixedSizeTree<T> extends React.PureComponent<
         {rowComponent!}
       </FixedSizeList>
     );
-  }
-
-  private computeTree(
-    {
-      refreshNodes = false,
-      useDefaultOpenness = false,
-    }: FixedSizeUpdateOptions = {},
-    {treeWalker}: FixedSizeTreeProps<T>,
-    {records: prevRecords}: FixedSizeTreeState<T>,
-  ): Pick<FixedSizeTreeState<T>, 'order' | 'records'> {
-    const order: Array<string | symbol> = [];
-    const records = {...prevRecords};
-    const iter = treeWalker(refreshNodes);
-
-    if (useDefaultOpenness) {
-      for (const id in records) {
-        records[id].isOpen = records[id].data.isOpenByDefault;
-      }
-    }
-
-    let isPreviousOpened = false;
-
-    while (true) {
-      const {done, value} = iter.next(isPreviousOpened);
-
-      if (done || !value) {
-        break;
-      }
-
-      let id: string | symbol;
-
-      if (typeof value === 'string' || typeof value === 'symbol') {
-        id = value;
-
-        if (useDefaultOpenness) {
-          records[id as string].isOpen =
-            records[id as string].data.isOpenByDefault;
-        }
-      } else {
-        ({id} = value);
-        const {isOpenByDefault} = value;
-        const record = records[id as string];
-
-        if (!record) {
-          records[id as string] = this.createNodeRecord(value);
-        } else {
-          record.data = value;
-
-          if (useDefaultOpenness) {
-            record.isOpen = isOpenByDefault;
-          }
-        }
-      }
-
-      order.push(id);
-      isPreviousOpened = records[id as string].isOpen;
-    }
-
-    return {
-      order,
-      records,
-    };
-  }
-
-  private createNodeRecord(data: FixedSizeNodeData<T>): FixedSizeNodeRecord<T> {
-    const record: FixedSizeNodeRecord<T> = {
-      data,
-      isOpen: data.isOpenByDefault,
-      toggle: async () => {
-        record.isOpen = !record.isOpen;
-        await this.recomputeTree({refreshNodes: record.isOpen});
-      },
-    };
-
-    return record;
   }
 }
