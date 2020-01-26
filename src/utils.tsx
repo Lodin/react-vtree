@@ -2,6 +2,10 @@
 import * as React from 'react';
 import {ListChildComponentProps} from 'react-window';
 
+export type TreeWalker<T> = (
+  refresh: boolean,
+) => Generator<T | string | symbol, void, boolean>;
+
 export type CommonNodeData<T> = {
   /**
    * Unique ID of the current node. Will be used to identify the node to change
@@ -42,9 +46,7 @@ export type CommonNodeComponentProps<TData extends CommonNodeData<T>, T> = Omit<
 
 export type TreeProps<TData extends CommonNodeData<T>, T> = {
   readonly rowComponent?: React.ComponentType<ListChildComponentProps>;
-  readonly treeWalker: (
-    refresh: boolean,
-  ) => Generator<TData | string | symbol, void, boolean>;
+  readonly treeWalker: TreeWalker<TData>;
 };
 
 export type TreeState<
@@ -55,10 +57,11 @@ export type TreeState<
   T
 > = {
   readonly component: React.ComponentType<TNodeComponentProps>;
-  readonly order: ReadonlyArray<string | symbol>;
+  readonly order?: ReadonlyArray<string | symbol>;
   readonly records: Record<string, TNodeRecord>;
   readonly treeData?: any;
   readonly recomputeTree: (options?: TUpdateOptions) => Promise<void>;
+  readonly treeWalker: TreeWalker<TData>;
 };
 
 export const Row: React.FunctionComponent<ListChildComponentProps> = ({

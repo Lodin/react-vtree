@@ -112,12 +112,15 @@ export default class FixedSizeTree<T> extends React.PureComponent<
     props: FixedSizeTreeProps<{}>,
     state: FixedSizeTreeState<{}>,
   ): Partial<FixedSizeTreeState<{}>> {
-    const {children: component, itemData: treeData} = props;
+    const {children: component, itemData: treeData, treeWalker} = props;
+    const {treeWalker: oldTreeWalker, order} = state;
 
     return {
       component,
       treeData,
-      ...computeTree({refreshNodes: true}, props, state),
+      ...(treeWalker !== oldTreeWalker || !order
+        ? computeTree({refreshNodes: true}, props, state)
+        : null),
     };
   }
 
@@ -126,16 +129,11 @@ export default class FixedSizeTree<T> extends React.PureComponent<
   public constructor(props: FixedSizeTreeProps<T>, context: any) {
     super(props, context);
 
-    const initialState: FixedSizeTreeState<T> = {
+    this.state = {
       component: props.children,
-      order: [],
       recomputeTree: this.recomputeTree.bind(this),
       records: {},
-    };
-
-    this.state = {
-      ...initialState,
-      ...computeTree({refreshNodes: true}, props, initialState),
+      treeWalker: props.treeWalker,
     };
   }
 
@@ -153,7 +151,7 @@ export default class FixedSizeTree<T> extends React.PureComponent<
   }
 
   public scrollToItem(id: string | symbol, align?: Align): void {
-    this.list.current?.scrollToItem(this.state.order.indexOf(id) || 0, align);
+    this.list.current?.scrollToItem(this.state.order!.indexOf(id) || 0, align);
   }
 
   public render(): React.ReactNode {
@@ -163,7 +161,7 @@ export default class FixedSizeTree<T> extends React.PureComponent<
       <FixedSizeList
         {...rest}
         itemData={this.state}
-        itemCount={this.state.order.length}
+        itemCount={this.state.order!.length}
         ref={this.list}
       >
         {rowComponent!}

@@ -163,12 +163,15 @@ export default class VariableSizeTree<T> extends React.PureComponent<
     props: VariableSizeTreeProps<{}>,
     state: VariableSizeTreeState<{}>,
   ): Partial<VariableSizeTreeState<{}>> {
-    const {children: component, itemData: treeData} = props;
+    const {children: component, itemData: treeData, treeWalker} = props;
+    const {treeWalker: oldTreeWalker, order} = state;
 
     return {
       component,
       treeData,
-      ...computeTree({refreshNodes: true}, props, state),
+      ...(treeWalker !== oldTreeWalker || !order
+        ? computeTree({refreshNodes: true}, props, state)
+        : null),
     };
   }
 
@@ -179,17 +182,12 @@ export default class VariableSizeTree<T> extends React.PureComponent<
 
     this.getItemSize = this.getItemSize.bind(this);
 
-    const initialState: VariableSizeTreeState<T> = {
+    this.state = {
       component: props.children,
-      order: [],
       recomputeTree: this.recomputeTree.bind(this),
       records: {},
       resetAfterId: this.resetAfterId.bind(this),
-    };
-
-    this.state = {
-      ...initialState,
-      ...computeTree({refreshNodes: true}, props, initialState),
+      treeWalker: props.treeWalker,
     };
   }
 
@@ -215,7 +213,7 @@ export default class VariableSizeTree<T> extends React.PureComponent<
     shouldForceUpdate: boolean = false,
   ): void {
     this.list.current?.resetAfterIndex(
-      this.state.order.indexOf(id),
+      this.state.order!.indexOf(id),
       shouldForceUpdate,
     );
   }
@@ -225,7 +223,7 @@ export default class VariableSizeTree<T> extends React.PureComponent<
   }
 
   public scrollToItem(id: string | symbol, align?: Align): void {
-    this.list.current?.scrollToItem(this.state.order.indexOf(id) || 0, align);
+    this.list.current?.scrollToItem(this.state.order!.indexOf(id) || 0, align);
   }
 
   public render(): React.ReactNode {
@@ -235,7 +233,7 @@ export default class VariableSizeTree<T> extends React.PureComponent<
       <VariableSizeList
         {...rest}
         itemData={this.state}
-        itemCount={this.state.order.length}
+        itemCount={this.state.order!.length}
         // tslint:disable-next-line:no-unbound-method
         itemSize={itemSize || this.getItemSize}
         ref={this.list}
@@ -248,6 +246,6 @@ export default class VariableSizeTree<T> extends React.PureComponent<
   private getItemSize(index: number): number {
     const {order, records} = this.state;
 
-    return records[order[index] as string].height;
+    return records[order![index] as string].height;
   }
 }

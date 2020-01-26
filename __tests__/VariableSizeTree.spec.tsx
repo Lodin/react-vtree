@@ -42,7 +42,11 @@ describe('VariableSizeTree', () => {
 
   function* treeWalker(
     refresh: boolean,
-  ): IterableIterator<VariableSizeNodeData<ExtendedData> | string | symbol> {
+  ): Generator<
+    VariableSizeNodeData<ExtendedData> | string | symbol,
+    void,
+    boolean
+  > {
     const stack: StackElement[] = [];
 
     stack.push({
@@ -171,13 +175,24 @@ describe('VariableSizeTree', () => {
     );
   });
 
-  it('recomputes on new props', () => {
+  it('recomputes on new treeWalker', () => {
     treeWalkerSpy = jest.fn(treeWalker);
+
     component.setProps({
       treeWalker: treeWalkerSpy,
     });
 
     expect(treeWalkerSpy).toHaveBeenCalledWith(true);
+  });
+
+  it('does not recompute if treeWalker is the same', () => {
+    treeWalkerSpy.mockClear();
+
+    component.setProps({
+      treeWalker: treeWalkerSpy,
+    });
+
+    expect(treeWalkerSpy).not.toHaveBeenCalled();
   });
 
   describe('component instance', () => {
@@ -599,7 +614,7 @@ describe('VariableSizeTree', () => {
           .instance() as VariableSizeList;
 
         const resetAfterIndexSpy = spyOn(listInstance, 'resetAfterIndex');
-        const order = component.state('order');
+        const order = component.state('order')!;
         const foo3 = component.state('records')['foo-3'];
 
         foo3.resize(100, true);

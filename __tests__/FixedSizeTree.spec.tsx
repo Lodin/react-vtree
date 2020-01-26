@@ -41,7 +41,11 @@ describe('FixedSizeTree', () => {
 
   function* treeWalker(
     refresh: boolean,
-  ): IterableIterator<FixedSizeNodeData<ExtendedData> | string | symbol> {
+  ): Generator<
+    FixedSizeNodeData<ExtendedData> | string | symbol,
+    void,
+    boolean
+  > {
     const stack: StackElement[] = [];
 
     stack.push({
@@ -161,13 +165,24 @@ describe('FixedSizeTree', () => {
     expect(component.find(FixedSizeList).prop('children')).toBe(rowComponent);
   });
 
-  it('recomputes on new props', () => {
+  it('recomputes on new treeWalker', () => {
     treeWalkerSpy = jest.fn(treeWalker);
+
     component.setProps({
       treeWalker: treeWalkerSpy,
     });
 
     expect(treeWalkerSpy).toHaveBeenCalledWith(true);
+  });
+
+  it('does not recompute if treeWalker is the same', () => {
+    treeWalkerSpy.mockClear();
+
+    component.setProps({
+      treeWalker: treeWalkerSpy,
+    });
+
+    expect(treeWalkerSpy).not.toHaveBeenCalled();
   });
 
   describe('component instance', () => {
