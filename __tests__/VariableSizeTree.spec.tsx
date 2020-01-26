@@ -40,6 +40,44 @@ describe('VariableSizeTree', () => {
   let defaultHeight: number;
   let isOpenByDefault: boolean;
 
+  function* treeWalker(
+    refresh: boolean,
+  ): IterableIterator<VariableSizeNodeData<ExtendedData> | string | symbol> {
+    const stack: StackElement[] = [];
+
+    stack.push({
+      nestingLevel: 0,
+      node: tree,
+    });
+
+    while (stack.length !== 0) {
+      const {node, nestingLevel} = stack.pop()!;
+      const id = node.id.toString();
+
+      const childrenCount = node.children ? node.children.length : 0;
+
+      const isOpened = yield refresh
+        ? {
+            defaultHeight,
+            id,
+            isOpenByDefault,
+            name: node.name,
+            nestingLevel,
+          }
+        : id;
+
+      if (childrenCount && isOpened) {
+        // tslint:disable-next-line:increment-decrement
+        for (let i = childrenCount - 1; i >= 0; i--) {
+          stack.push({
+            nestingLevel: nestingLevel + 1,
+            node: node.children![i],
+          });
+        }
+      }
+    }
+  }
+
   beforeEach(() => {
     tree = {
       children: [
@@ -53,43 +91,7 @@ describe('VariableSizeTree', () => {
     defaultHeight = 30;
     isOpenByDefault = true;
 
-    treeWalkerSpy = jest.fn(function*(
-      refresh: boolean,
-    ): IterableIterator<VariableSizeNodeData<ExtendedData> | string | symbol> {
-      const stack: StackElement[] = [];
-
-      stack.push({
-        nestingLevel: 0,
-        node: tree,
-      });
-
-      while (stack.length !== 0) {
-        const {node, nestingLevel} = stack.pop()!;
-        const id = node.id.toString();
-
-        const childrenCount = node.children ? node.children.length : 0;
-
-        const isOpened = yield refresh
-          ? {
-              defaultHeight,
-              id,
-              isOpenByDefault,
-              name: node.name,
-              nestingLevel,
-            }
-          : id;
-
-        if (childrenCount && isOpened) {
-          // tslint:disable-next-line:increment-decrement
-          for (let i = childrenCount - 1; i >= 0; i--) {
-            stack.push({
-              nestingLevel: nestingLevel + 1,
-              node: node.children![i],
-            });
-          }
-        }
-      }
-    });
+    treeWalkerSpy = jest.fn(treeWalker);
 
     component = mount(
       <VariableSizeTree<ExtendedData>
@@ -167,6 +169,15 @@ describe('VariableSizeTree', () => {
     expect(component.find(VariableSizeList).prop('children')).toBe(
       rowComponent,
     );
+  });
+
+  it('recomputes on new props', () => {
+    treeWalkerSpy = jest.fn(treeWalker);
+    component.setProps({
+      treeWalker: treeWalkerSpy,
+    });
+
+    expect(treeWalkerSpy).toHaveBeenCalledWith(true);
   });
 
   describe('component instance', () => {
