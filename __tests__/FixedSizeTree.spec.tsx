@@ -39,6 +39,47 @@ describe('FixedSizeTree', () => {
   let treeWalkerSpy: jest.Mock;
   let isOpenByDefault: boolean;
 
+  function* treeWalker(
+    refresh: boolean,
+  ): Generator<
+    FixedSizeNodeData<ExtendedData> | string | symbol,
+    void,
+    boolean
+  > {
+    const stack: StackElement[] = [];
+
+    stack.push({
+      nestingLevel: 0,
+      node: tree,
+    });
+
+    while (stack.length !== 0) {
+      const {node, nestingLevel} = stack.pop()!;
+      const id = node.id.toString();
+
+      const childrenCount = node.children ? node.children.length : 0;
+
+      const isOpened = yield refresh
+        ? {
+            id,
+            isOpenByDefault,
+            name: node.name,
+            nestingLevel,
+          }
+        : id;
+
+      if (childrenCount && isOpened) {
+        // tslint:disable-next-line:increment-decrement
+        for (let i = childrenCount - 1; i >= 0; i--) {
+          stack.push({
+            nestingLevel: nestingLevel + 1,
+            node: node.children![i],
+          });
+        }
+      }
+    }
+  }
+
   beforeEach(() => {
     tree = {
       children: [
@@ -51,42 +92,7 @@ describe('FixedSizeTree', () => {
 
     isOpenByDefault = true;
 
-    treeWalkerSpy = jest.fn(function*(
-      refresh: boolean,
-    ): IterableIterator<FixedSizeNodeData<ExtendedData> | string | symbol> {
-      const stack: StackElement[] = [];
-
-      stack.push({
-        nestingLevel: 0,
-        node: tree,
-      });
-
-      while (stack.length !== 0) {
-        const {node, nestingLevel} = stack.pop()!;
-        const id = node.id.toString();
-
-        const childrenCount = node.children ? node.children.length : 0;
-
-        const isOpened = yield refresh
-          ? {
-              id,
-              isOpenByDefault,
-              name: node.name,
-              nestingLevel,
-            }
-          : id;
-
-        if (childrenCount && isOpened) {
-          // tslint:disable-next-line:increment-decrement
-          for (let i = childrenCount - 1; i >= 0; i--) {
-            stack.push({
-              nestingLevel: nestingLevel + 1,
-              node: node.children![i],
-            });
-          }
-        }
-      }
-    });
+    treeWalkerSpy = jest.fn(treeWalker);
 
     component = mount(
       <FixedSizeTree<ExtendedData>
@@ -157,6 +163,26 @@ describe('FixedSizeTree', () => {
     );
 
     expect(component.find(FixedSizeList).prop('children')).toBe(rowComponent);
+  });
+
+  it('recomputes on new treeWalker', () => {
+    treeWalkerSpy = jest.fn(treeWalker);
+
+    component.setProps({
+      treeWalker: treeWalkerSpy,
+    });
+
+    expect(treeWalkerSpy).toHaveBeenCalledWith(true);
+  });
+
+  it('does not recompute if treeWalker is the same', () => {
+    treeWalkerSpy.mockClear();
+
+    component.setProps({
+      treeWalker: treeWalkerSpy,
+    });
+
+    expect(treeWalkerSpy).not.toHaveBeenCalled();
   });
 
   describe('component instance', () => {
@@ -294,7 +320,7 @@ describe('FixedSizeTree', () => {
       });
 
       it('resets current openness to default', async () => {
-        const {records} = component.state();
+        const records = component.state('records');
 
         for (const id in records) {
           records[id].isOpen = false;
@@ -399,12 +425,12 @@ describe('FixedSizeTree', () => {
       });
 
       it('provides a toggle function that changes openness state of the specific node', async () => {
-        const recomputeTreeSpy = spyOn(treeInstance, 'recomputeTree');
-        const foo1 = component.state().records['foo-1'];
+        const foo1 = component.state('records')['foo-1'];
 
+        treeWalkerSpy.mockClear();
         await foo1.toggle();
 
-        expect(recomputeTreeSpy).toHaveBeenCalledWith({refreshNodes: false});
+        expect(treeWalkerSpy).toHaveBeenCalledWith(false);
         expect(foo1.isOpen).toBeFalsy();
       });
     });
