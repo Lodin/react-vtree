@@ -478,7 +478,11 @@ describe('VariableSizeTree', () => {
         foo1.height = 50;
 
         treeWalkerSpy.mockClear();
-        await foo1.toggle();
+
+        // Imitate the behavior of Node component where toggle is sent without
+        // context
+        const {toggle} = foo1;
+        await toggle();
 
         expect(treeWalkerSpy).toHaveBeenCalledWith(false);
         expect(foo1.height).toBe(defaultHeight);
