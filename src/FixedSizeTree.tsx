@@ -70,17 +70,19 @@ const computeTree = <T extends {}>(
     } else {
       ({id} = value);
       const {isOpenByDefault} = value;
-      const record = records[id as string];
+      let record = records[id as string];
 
       if (!record) {
-        records[id as string] = {
+        record = {
           data: value,
           isOpen: isOpenByDefault,
-          async toggle(this: FixedSizeNodeRecord<T>): Promise<void> {
-            this.isOpen = !this.isOpen;
-            await recomputeTree({refreshNodes: this.isOpen});
+          async toggle(): Promise<void> {
+            record.isOpen = !record.isOpen;
+            await recomputeTree({refreshNodes: record.isOpen});
           },
         };
+
+        records[id as string] = record;
       } else {
         record.data = value;
 

@@ -105,29 +105,27 @@ const computeTree = <T extends {}>(
     } else {
       ({id} = value);
       const {defaultHeight, isOpenByDefault} = value;
-      const record = records[id as string];
+      let record = records[id as string];
 
       if (!record) {
-        records[id as string] = {
+        record = {
           data: value,
           height: defaultHeight,
           isOpen: isOpenByDefault,
-          resize(
-            this: VariableSizeNodeRecord<T>,
-            height: number,
-            shouldForceUpdate?: boolean,
-          ): void {
-            this.height = height;
-            resetAfterId(this.data.id, shouldForceUpdate);
+          resize(height: number, shouldForceUpdate?: boolean): void {
+            record.height = height;
+            resetAfterId(record.data.id, shouldForceUpdate);
           },
-          async toggle(this: VariableSizeNodeRecord<T>): Promise<void> {
-            this.isOpen = !this.isOpen;
+          async toggle(): Promise<void> {
+            record.isOpen = !record.isOpen;
             await recomputeTree({
-              refreshNodes: this.isOpen,
+              refreshNodes: record.isOpen,
               useDefaultHeight: true,
             });
           },
         };
+
+        records[id as string] = record;
       } else {
         record.data = value;
 

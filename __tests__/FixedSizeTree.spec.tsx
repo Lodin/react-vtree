@@ -428,7 +428,11 @@ describe('FixedSizeTree', () => {
         const foo1 = component.state('records')['foo-1'];
 
         treeWalkerSpy.mockClear();
-        await foo1.toggle();
+
+        // Imitate the behavior of Node component where toggle is sent without
+        // context
+        const {toggle} = foo1;
+        await toggle();
 
         expect(treeWalkerSpy).toHaveBeenCalledWith(false);
         expect(foo1.isOpen).toBeFalsy();
