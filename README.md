@@ -72,7 +72,7 @@ function* treeWalker(refresh) {
   // Walk through the tree until we have no nodes available.
   while (stack.length !== 0) {
     const {
-      node: {children, id, name},
+      node: {children = [], id, name},
       nestingLevel,
     } = stack.pop();
 
@@ -84,7 +84,7 @@ function* treeWalker(refresh) {
     const isOpened = yield refresh
       ? {
           id,
-          isLeaf: !children || children.length === 0,
+          isLeaf: children.length === 0,
           isOpenByDefault: true,
           name,
           nestingLevel,
@@ -93,10 +93,10 @@ function* treeWalker(refresh) {
 
     // Basing on the node openness state we are deciding if we need to render
     // the child nodes (if they exist).
-    if (children && children.length > 0 && isOpened) {
+    if (children.length > 0 && isOpened) {
       // Since it is a stack structure, we need to put nodes we want to render
       // first to the end of the stack.
-      for (let i = children?.length - 1; i >= 0; i--) {
+      for (let i = children.length - 1; i >= 0; i--) {
         stack.push({
           nestingLevel: nestingLevel + 1,
           node: children[i],
@@ -242,7 +242,7 @@ function* treeWalker(refresh) {
 
   while (stack.length !== 0) {
     const {
-      node: {children, id, name},
+      node: {children = [], id, name},
       nestingLevel,
     } = stack.pop();
 
@@ -253,14 +253,14 @@ function* treeWalker(refresh) {
           // object.
           defaultHeight: 30,
           id,
-          isLeaf: !children || children.length === 0,
+          isLeaf: children.length === 0,
           isOpenByDefault: true,
           name,
           nestingLevel,
         }
       : id;
 
-    if (children && children.length !== 0 && isOpened) {
+    if (children.length !== 0 && isOpened) {
       for (let i = children.length - 1; i >= 0; i--) {
         stack.push({
           nestingLevel: nestingLevel + 1,
