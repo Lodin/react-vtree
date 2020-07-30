@@ -1,34 +1,34 @@
 import {mount, ReactWrapper} from 'enzyme';
-import * as React from 'react';
+import React, {FC} from 'react';
 import {VariableSizeList} from 'react-window';
-import {Row} from '../src';
-import VariableSizeTree, {
+import {
+  Row,
   VariableSizeNodeComponentProps,
   VariableSizeNodeData,
+  VariableSizeTree,
   VariableSizeTreeProps,
   VariableSizeTreeState,
-} from '../src/VariableSizeTree';
+} from '../src';
 
-type DataNode = {
+type DataNode = Readonly<{
   children?: DataNode[];
   id: string;
   name: string;
-};
+}>;
 
-type StackElement = {
+type StackElement = Readonly<{
   nestingLevel: number;
   node: DataNode;
-};
+}>;
 
-type ExtendedData = {
-  readonly name: string;
-  readonly nestingLevel: number;
-};
+type ExtendedData = VariableSizeNodeData &
+  Readonly<{
+    name: string;
+    nestingLevel: number;
+  }>;
 
 describe('VariableSizeTree', () => {
-  const Node: React.FunctionComponent<VariableSizeNodeComponentProps<
-    ExtendedData
-  >> = () => null;
+  const Node: FC<VariableSizeNodeComponentProps<ExtendedData>> = () => null;
 
   let component: ReactWrapper<
     VariableSizeTreeProps<ExtendedData>,
@@ -42,11 +42,7 @@ describe('VariableSizeTree', () => {
 
   function* treeWalker(
     refresh: boolean,
-  ): Generator<
-    VariableSizeNodeData<ExtendedData> | string | symbol,
-    void,
-    boolean
-  > {
+  ): Generator<ExtendedData | string | symbol, void, boolean> {
     const stack: StackElement[] = [];
 
     stack.push({
@@ -71,7 +67,6 @@ describe('VariableSizeTree', () => {
         : id;
 
       if (childrenCount && isOpened) {
-        // tslint:disable-next-line:increment-decrement
         for (let i = childrenCount - 1; i >= 0; i--) {
           stack.push({
             nestingLevel: nestingLevel + 1,
@@ -212,19 +207,19 @@ describe('VariableSizeTree', () => {
       });
 
       it('can scroll to a specific offset', () => {
-        const scrollToSpy = spyOn(listInstance, 'scrollTo');
+        const scrollToSpy = jest.spyOn(listInstance, 'scrollTo');
         treeInstance.scrollTo(200);
         expect(scrollToSpy).toHaveBeenCalledWith(200);
       });
 
       it('can scroll to an item', () => {
-        const scrollToItemSpy = spyOn(listInstance, 'scrollToItem');
+        const scrollToItemSpy = jest.spyOn(listInstance, 'scrollToItem');
         treeInstance.scrollToItem('foo-3', 'auto');
         expect(scrollToItemSpy).toHaveBeenCalledWith(2, 'auto');
       });
 
       it('re-renders nodes after specific index', () => {
-        const resetAfterIndexSpy = spyOn(listInstance, 'resetAfterIndex');
+        const resetAfterIndexSpy = jest.spyOn(listInstance, 'resetAfterIndex');
         treeInstance.resetAfterId('foo-3', true);
         expect(resetAfterIndexSpy).toHaveBeenCalledWith(2, true);
       });
@@ -242,7 +237,7 @@ describe('VariableSizeTree', () => {
         };
 
         await treeInstance.recomputeTree();
-        component.update(); // update the wrapper to get the latest changes
+        component.update(); // Update the wrapper to get the latest changes
 
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
           {
@@ -302,7 +297,7 @@ describe('VariableSizeTree', () => {
         };
 
         await treeInstance.recomputeTree({refreshNodes: true});
-        component.update(); // update the wrapper to get the latest changes
+        component.update(); // Update the wrapper to get the latest changes
 
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
           {
@@ -355,7 +350,7 @@ describe('VariableSizeTree', () => {
         const {records} = component.state();
 
         for (const id in records) {
-          records[id].isOpen = false;
+          records[id]!.isOpen = false;
         }
 
         // Imitate closing the foo-1 node
@@ -365,7 +360,7 @@ describe('VariableSizeTree', () => {
         });
 
         await treeInstance.recomputeTree({useDefaultOpenness: true});
-        component.update(); // update the wrapper to get the latest changes
+        component.update(); // Update the wrapper to get the latest changes
 
         // foo-1 node is open again
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
@@ -422,7 +417,7 @@ describe('VariableSizeTree', () => {
           refreshNodes: true,
           useDefaultOpenness: true,
         });
-        component.update(); // update the wrapper to get the latest changes
+        component.update(); // Update the wrapper to get the latest changes
 
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
           {
@@ -473,7 +468,7 @@ describe('VariableSizeTree', () => {
       });
 
       it('provides a toggle function that changes openness state of the specific node', async () => {
-        const foo1 = component.state('records')['foo-1'];
+        const foo1 = component.state('records')['foo-1']!;
 
         foo1.height = 50;
 
@@ -498,14 +493,14 @@ describe('VariableSizeTree', () => {
           records: {
             ...records,
             'foo-1': {
-              ...records['foo-1'],
+              ...records['foo-1']!,
               height: 60,
             },
           },
         });
 
         await treeInstance.recomputeTree({useDefaultHeight: true});
-        component.update(); // update the wrapper to get the latest changes
+        component.update(); // Update the wrapper to get the latest changes
 
         // foo-1 node is open again
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
@@ -562,7 +557,7 @@ describe('VariableSizeTree', () => {
           refreshNodes: true,
           useDefaultHeight: true,
         });
-        component.update(); // update the wrapper to get the latest changes
+        component.update(); // Update the wrapper to get the latest changes
 
         expect(component.find(VariableSizeList).prop('itemData')).toMatchObject(
           {
@@ -617,9 +612,9 @@ describe('VariableSizeTree', () => {
           .find(VariableSizeList)
           .instance() as VariableSizeList;
 
-        const resetAfterIndexSpy = spyOn(listInstance, 'resetAfterIndex');
+        const resetAfterIndexSpy = jest.spyOn(listInstance, 'resetAfterIndex');
         const order = component.state('order')!;
-        const foo3 = component.state('records')['foo-3'];
+        const foo3 = component.state('records')['foo-3']!;
 
         foo3.resize(100, true);
 

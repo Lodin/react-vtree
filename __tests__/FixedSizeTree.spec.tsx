@@ -1,34 +1,34 @@
 import {mount, ReactWrapper} from 'enzyme';
-import * as React from 'react';
+import React, {FC} from 'react';
 import {FixedSizeList} from 'react-window';
-import {Row} from '../src';
-import FixedSizeTree, {
+import {
   FixedSizeNodeComponentProps,
   FixedSizeNodeData,
+  FixedSizeTree,
   FixedSizeTreeProps,
   FixedSizeTreeState,
-} from '../src/FixedSizeTree';
+  Row,
+} from '../src';
 
-type DataNode = {
+type DataNode = Readonly<{
   children?: DataNode[];
   id: string;
   name: string;
-};
+}>;
 
-type StackElement = {
+type StackElement = Readonly<{
   nestingLevel: number;
   node: DataNode;
-};
+}>;
 
-type ExtendedData = {
-  readonly name: string;
-  readonly nestingLevel: number;
-};
+type ExtendedData = FixedSizeNodeData &
+  Readonly<{
+    name: string;
+    nestingLevel: number;
+  }>;
 
 describe('FixedSizeTree', () => {
-  const Node: React.FunctionComponent<FixedSizeNodeComponentProps<
-    ExtendedData
-  >> = () => null;
+  const Node: FC<FixedSizeNodeComponentProps<ExtendedData>> = () => null;
 
   let component: ReactWrapper<
     FixedSizeTreeProps<ExtendedData>,
@@ -41,11 +41,7 @@ describe('FixedSizeTree', () => {
 
   function* treeWalker(
     refresh: boolean,
-  ): Generator<
-    FixedSizeNodeData<ExtendedData> | string | symbol,
-    void,
-    boolean
-  > {
+  ): Generator<ExtendedData | string | symbol, void, boolean> {
     const stack: StackElement[] = [];
 
     stack.push({
@@ -69,7 +65,6 @@ describe('FixedSizeTree', () => {
         : id;
 
       if (childrenCount && isOpened) {
-        // tslint:disable-next-line:increment-decrement
         for (let i = childrenCount - 1; i >= 0; i--) {
           stack.push({
             nestingLevel: nestingLevel + 1,
@@ -202,13 +197,13 @@ describe('FixedSizeTree', () => {
       });
 
       it('can scroll to a specific offset', () => {
-        const scrollToSpy = spyOn(listInstance, 'scrollTo');
+        const scrollToSpy = jest.spyOn(listInstance, 'scrollTo');
         treeInstance.scrollTo(200);
         expect(scrollToSpy).toHaveBeenCalledWith(200);
       });
 
       it('can scroll to an item', () => {
-        const scrollToItemSpy = spyOn(listInstance, 'scrollToItem');
+        const scrollToItemSpy = jest.spyOn(listInstance, 'scrollToItem');
         treeInstance.scrollToItem('foo-3', 'auto');
         expect(scrollToItemSpy).toHaveBeenCalledWith(2, 'auto');
       });
@@ -226,7 +221,7 @@ describe('FixedSizeTree', () => {
         };
 
         await treeInstance.recomputeTree();
-        component.update(); // update the wrapper to get the latest changes
+        component.update(); // Update the wrapper to get the latest changes
 
         expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
           component: Node,
@@ -278,7 +273,7 @@ describe('FixedSizeTree', () => {
         };
 
         await treeInstance.recomputeTree({refreshNodes: true});
-        component.update(); // update the wrapper to get the latest changes
+        component.update(); // Update the wrapper to get the latest changes
 
         expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
           component: Node,
@@ -323,7 +318,7 @@ describe('FixedSizeTree', () => {
         const records = component.state('records');
 
         for (const id in records) {
-          records[id].isOpen = false;
+          records[id]!.isOpen = false;
         }
 
         // Imitate closing the foo-1 node
@@ -333,7 +328,7 @@ describe('FixedSizeTree', () => {
         });
 
         await treeInstance.recomputeTree({useDefaultOpenness: true});
-        component.update(); // update the wrapper to get the latest changes
+        component.update(); // Update the wrapper to get the latest changes
 
         // foo-1 node is open again
         expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
@@ -382,7 +377,7 @@ describe('FixedSizeTree', () => {
           refreshNodes: true,
           useDefaultOpenness: true,
         });
-        component.update(); // update the wrapper to get the latest changes
+        component.update(); // Update the wrapper to get the latest changes
 
         expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
           component: Node,
@@ -425,7 +420,7 @@ describe('FixedSizeTree', () => {
       });
 
       it('provides a toggle function that changes openness state of the specific node', async () => {
-        const foo1 = component.state('records')['foo-1'];
+        const foo1 = component.state('records')['foo-1']!;
 
         treeWalkerSpy.mockClear();
 

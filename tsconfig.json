@@ -4,10 +4,7 @@
     "baseUrl": "./",
     "declaration": true,
     "jsx": "react",
-    "lib": [
-      "dom",
-      "es2017"
-    ],
+    "lib": ["dom", "es2017"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
@@ -18,16 +15,15 @@
     "sourceRoot": "./src",
     "strict": true,
     "target": "es2015",
-    "typeRoots": [
-      "node_modules/@types"
-    ]
+    "typeRoots": ["node_modules/@types"]
   },
   "include": [
+    ".storybook",
+    "__stories__/**/*",
     "__tests__/**/*",
+    "config",
     "src/**/*",
-    "__stories__/**/*"
+    "src2/**/*"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

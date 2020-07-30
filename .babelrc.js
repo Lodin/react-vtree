@@ -2,10 +2,14 @@ const {BUILD_TYPE} = process.env;
 const isCjs = BUILD_TYPE === 'cjs';
 const isLib = BUILD_TYPE === 'lib';
 
-module.exports = api => ({
+module.exports = (api) => ({
   plugins: [
     [require('@babel/plugin-proposal-class-properties'), {loose: true}],
     [require('@babel/plugin-proposal-optional-chaining'), {loose: true}],
+    [
+      require('@babel/plugin-proposal-nullish-coalescing-operator'),
+      {loose: true},
+    ],
     ...(isLib
       ? []
       : [

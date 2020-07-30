@@ -1,209 +1,124 @@
-import * as React from 'react';
-import {Align, VariableSizeList, VariableSizeListProps} from 'react-window';
-import {
-  CommonNodeComponentProps,
-  CommonNodeData,
-  CommonNodeRecord,
-  CommonUpdateOptions,
-  Row,
+import React from 'react';
+import {VariableSizeList, VariableSizeListProps} from 'react-window';
+import Tree, {
+  NodeComponentProps,
+  NodeData,
+  NodeRecord,
   TreeProps,
   TreeState,
-} from './utils';
+  UpdateOptions,
+} from './Tree';
 
-export type VariableSizeUpdateOptions = CommonUpdateOptions & {
-  readonly useDefaultHeight?: boolean;
-};
-
-export type VariableSizeNodeData<T> = {
+export type VariableSizeNodeData = {
   /** Default node height. Can be used only with VariableSizeTree */
   readonly defaultHeight: number;
-} & CommonNodeData<T>;
+} & NodeData;
 
-export type VariableSizeNodeComponentProps<T> = CommonNodeComponentProps<
-  VariableSizeNodeData<T>,
-  T
-> & {
-  readonly height: number;
-  readonly resize: (height: number, shouldForceUpdate?: boolean) => void;
-};
+export type VariableSizeNodeComponentProps<
+  T extends VariableSizeNodeData
+> = NodeComponentProps<T> &
+  Readonly<{
+    height: number;
+    resize: (height: number, shouldForceUpdate?: boolean) => void;
+  }>;
 
-export type VariableSizeNodeRecord<T> = CommonNodeRecord<
-  VariableSizeNodeData<T>,
+export type VariableSizeNodeRecord<T extends VariableSizeNodeData> = NodeRecord<
   T
 > & {
   height: number;
-  data: VariableSizeNodeData<T>;
   readonly resize: (height: number, shouldForceUpdate?: boolean) => void;
 };
 
-export type VariableSizeTreeProps<T> = TreeProps<VariableSizeNodeData<T>, T> &
-  Omit<VariableSizeListProps, 'children' | 'itemCount' | 'itemSize'> & {
-    readonly children: React.ComponentType<VariableSizeNodeComponentProps<T>>;
-    readonly itemSize?: VariableSizeListProps['itemSize'];
-  };
+export type VariableSizeUpdateOptions = UpdateOptions &
+  Readonly<{
+    useDefaultHeight?: boolean;
+  }>;
 
-export type VariableSizeTreeState<T> = TreeState<
+export type VariableSizeTreeProps<T extends VariableSizeNodeData> = TreeProps<
+  VariableSizeNodeComponentProps<T>,
+  T
+> &
+  Readonly<{
+    itemSize?: VariableSizeListProps['itemSize'];
+  }>;
+
+export type VariableSizeTreeState<T extends VariableSizeNodeData> = TreeState<
   VariableSizeNodeComponentProps<T>,
   VariableSizeNodeRecord<T>,
-  VariableSizeNodeData<T>,
   VariableSizeUpdateOptions,
   T
-> & {
-  readonly resetAfterId: (
-    id: string | symbol,
-    shouldForceUpdate?: boolean,
-  ) => void;
-};
+> &
+  Readonly<{
+    resetAfterId: (id: string | symbol, shouldForceUpdate?: boolean) => void;
+  }>;
 
-const computeTree = <T extends {}>(
-  {
-    refreshNodes = false,
-    useDefaultHeight = false,
-    useDefaultOpenness = false,
-  }: VariableSizeUpdateOptions = {},
-  {treeWalker}: VariableSizeTreeProps<T>,
-  {recomputeTree, records: prevRecords, resetAfterId}: VariableSizeTreeState<T>,
-): Pick<VariableSizeTreeState<T>, 'order' | 'records'> => {
-  const order: Array<string | symbol> = [];
-  const records = {...prevRecords};
-  const iter = treeWalker(refreshNodes);
-
-  if (useDefaultHeight || useDefaultOpenness) {
-    for (const id in records) {
-      if (useDefaultHeight) {
-        records[id].height = records[id].data.defaultHeight;
-      }
-
-      if (useDefaultOpenness) {
-        records[id].isOpen = records[id].data.isOpenByDefault;
-      }
-    }
-  }
-
-  let isPreviousOpened = false;
-
-  while (true) {
-    const {done, value} = iter.next(isPreviousOpened);
-
-    if (done || !value) {
-      break;
-    }
-
-    let id: string | symbol;
-
-    if (typeof value === 'string' || typeof value === 'symbol') {
-      id = value;
-
-      if (useDefaultOpenness) {
-        records[id as string].isOpen =
-          records[id as string].data.isOpenByDefault;
-      }
-
-      if (useDefaultHeight) {
-        records[id as string].height = records[id as string].data.defaultHeight;
-      }
-    } else {
-      ({id} = value);
-      const {defaultHeight, isOpenByDefault} = value;
-      let record = records[id as string];
-
-      if (!record) {
-        record = {
-          data: value,
-          height: defaultHeight,
-          isOpen: isOpenByDefault,
-          resize(height: number, shouldForceUpdate?: boolean): void {
-            record.height = height;
-            resetAfterId(record.data.id, shouldForceUpdate);
-          },
-          async toggle(): Promise<void> {
-            record.isOpen = !record.isOpen;
-            await recomputeTree({
-              refreshNodes: record.isOpen,
-              useDefaultHeight: true,
-            });
-          },
-        };
-
-        records[id as string] = record;
-      } else {
-        record.data = value;
-
-        if (useDefaultOpenness) {
-          record.isOpen = isOpenByDefault;
-        }
-
-        if (useDefaultHeight) {
-          record.height = defaultHeight;
-        }
-      }
-    }
-
-    order.push(id);
-    isPreviousOpened = records[id as string].isOpen;
-  }
-
-  return {
-    order,
-    records,
-  };
-};
-
-export default class VariableSizeTree<T> extends React.PureComponent<
+export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
+  VariableSizeNodeComponentProps<T>,
+  VariableSizeNodeRecord<T>,
+  VariableSizeUpdateOptions,
+  T,
   VariableSizeTreeProps<T>,
-  VariableSizeTreeState<T>
+  VariableSizeTreeState<T>,
+  VariableSizeList
 > {
-  public static defaultProps: Partial<VariableSizeTreeProps<{}>> = {
-    rowComponent: Row,
-  };
-
-  public static getDerivedStateFromProps(
-    props: VariableSizeTreeProps<{}>,
-    state: VariableSizeTreeState<{}>,
-  ): Partial<VariableSizeTreeState<{}>> {
-    const {children: component, itemData: treeData, treeWalker} = props;
-    const {treeWalker: oldTreeWalker, order} = state;
-
-    return {
-      component,
-      treeData,
-      ...(treeWalker !== oldTreeWalker || !order
-        ? computeTree({refreshNodes: true}, props, state)
-        : null),
+  protected static constructRecord(
+    data: VariableSizeNodeData,
+    {recomputeTree, resetAfterId}: VariableSizeTreeState<VariableSizeNodeData>,
+  ): NodeRecord<NodeData> {
+    const record = {
+      data,
+      height: data.defaultHeight,
+      isOpen: data.isOpenByDefault,
+      resize(height: number, shouldForceUpdate?: boolean): void {
+        record.height = height;
+        resetAfterId(record.data.id, shouldForceUpdate);
+      },
+      async toggle(): Promise<void> {
+        record.isOpen = !record.isOpen;
+        await recomputeTree({
+          refreshNodes: record.isOpen,
+          useDefaultHeight: true,
+        });
+      },
     };
+
+    return record;
   }
 
-  private readonly list: React.RefObject<VariableSizeList> = React.createRef();
+  protected static shouldUpdateRecords(
+    options: VariableSizeUpdateOptions,
+  ): boolean {
+    return (
+      super.shouldUpdateRecords(options) || (options.useDefaultHeight ?? false)
+    );
+  }
+
+  protected static updateRecord(
+    record: VariableSizeNodeRecord<VariableSizeNodeData>,
+    recordId: string,
+    options: VariableSizeUpdateOptions,
+  ): void {
+    if (options.useDefaultHeight) {
+      record.height = record.data.defaultHeight;
+    }
+
+    super.updateRecord(record, recordId, options);
+  }
+
+  protected static updateRecordDuringTreeWalk(
+    record: VariableSizeNodeRecord<VariableSizeNodeData>,
+    options: VariableSizeUpdateOptions,
+  ): void {
+    super.updateRecordDuringTreeWalk(record, options);
+
+    if (options.useDefaultHeight) {
+      record.height = record.data.defaultHeight;
+    }
+  }
 
   public constructor(props: VariableSizeTreeProps<T>, context: any) {
     super(props, context);
-
     this.getItemSize = this.getItemSize.bind(this);
-
-    this.state = {
-      component: props.children,
-      recomputeTree: this.recomputeTree.bind(this),
-      records: {},
-      resetAfterId: this.resetAfterId.bind(this),
-      treeWalker: props.treeWalker,
-    };
-  }
-
-  public async recomputeTree(
-    options?: VariableSizeUpdateOptions,
-  ): Promise<void> {
-    return new Promise(resolve => {
-      this.setState<never>(
-        prevState => computeTree(options, this.props, prevState),
-        () => {
-          if (options?.useDefaultHeight) {
-            this.list.current?.resetAfterIndex(0, true);
-          }
-
-          resolve();
-        },
-      );
-    });
   }
 
   public resetAfterId(
@@ -216,14 +131,6 @@ export default class VariableSizeTree<T> extends React.PureComponent<
     );
   }
 
-  public scrollTo(scrollOffset: number): void {
-    this.list.current?.scrollTo(scrollOffset);
-  }
-
-  public scrollToItem(id: string | symbol, align?: Align): void {
-    this.list.current?.scrollToItem(this.state.order!.indexOf(id) || 0, align);
-  }
-
   public render(): React.ReactNode {
     const {children, itemSize, rowComponent, treeWalker, ...rest} = this.props;
 
@@ -232,8 +139,8 @@ export default class VariableSizeTree<T> extends React.PureComponent<
         {...rest}
         itemData={this.state}
         itemCount={this.state.order!.length}
-        // tslint:disable-next-line:no-unbound-method
-        itemSize={itemSize || this.getItemSize}
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        itemSize={itemSize ?? this.getItemSize}
         ref={this.list}
       >
         {rowComponent!}
@@ -241,9 +148,16 @@ export default class VariableSizeTree<T> extends React.PureComponent<
     );
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  protected constructState(
+    state: VariableSizeTreeState<T>,
+  ): VariableSizeTreeState<T> {
+    return {...state, resetAfterId: this.resetAfterId.bind(this)};
+  }
+
   private getItemSize(index: number): number {
     const {order, records} = this.state;
 
-    return records[order![index] as string].height;
+    return records[order![index] as string]!.height;
   }
 }
