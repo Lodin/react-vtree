@@ -54,23 +54,6 @@ export type TreeWalker<T> = (
   refresh: boolean,
 ) => Generator<T | string | symbol, void, boolean>;
 
-export type OverridableMethods = Readonly<{
-  constructRecord: (
-    data: NodeData,
-    state: TreeState<any, any, any, any>,
-  ) => NodeRecord<NodeData>;
-  shouldUpdateRecords: (options: UpdateOptions) => boolean;
-  updateRecord: (
-    record: NodeRecord<NodeData>,
-    recordId: string,
-    options: UpdateOptions,
-  ) => void;
-  updateRecordDuringTreeWalk: (
-    record: NodeRecord<NodeData>,
-    options: UpdateOptions,
-  ) => void;
-}>;
-
 export type TreeProps<
   TNodeComponentProps extends NodeComponentProps<TData>,
   TData extends NodeData

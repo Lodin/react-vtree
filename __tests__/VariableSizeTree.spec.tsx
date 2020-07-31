@@ -607,23 +607,84 @@ describe('VariableSizeTree', () => {
         );
       });
 
-      it('provides a resize function that changes height of the specific node', () => {
-        const listInstance: VariableSizeList = component
+      it('opens and closes nodes as specified in opennessState', async () => {
+        await treeInstance.recomputeTree({
+          opennessState: {
+            'foo-2': false,
+          },
+        });
+
+        component.update(); // Update the wrapper to get the latest changes
+
+        let {
+          order,
+          records: {'foo-1': foo1, 'foo-2': foo2, 'foo-3': foo3},
+        }: VariableSizeTreeState<VariableSizeNodeData> = component
           .find(VariableSizeList)
-          .instance() as VariableSizeList;
+          .prop('itemData');
 
-        const resetAfterIndexSpy = jest.spyOn(listInstance, 'resetAfterIndex');
-        const order = component.state('order')!;
-        const foo3 = component.state('records')['foo-3']!;
+        expect(order).toEqual(['foo-1', 'foo-2', 'foo-3']);
+        expect(foo1!.isOpen).toBeTruthy();
+        expect(foo2!.isOpen).not.toBeTruthy();
+        expect(foo3!.isOpen).toBeTruthy();
 
-        foo3.resize(100, true);
+        await treeInstance.recomputeTree({
+          opennessState: {
+            'foo-2': true,
+            'foo-3': false,
+          },
+        });
 
-        expect(resetAfterIndexSpy).toHaveBeenCalledWith(
-          order.indexOf('foo-3'),
-          true,
-        );
-        expect(foo3.height).toBe(100);
+        component.update(); // Update the wrapper to get the latest changes
+
+        ({
+          order,
+          records: {'foo-1': foo1, 'foo-2': foo2, 'foo-3': foo3},
+        } = component.find(VariableSizeList).prop('itemData'));
+
+        expect(order).toEqual(['foo-1', 'foo-2', 'foo-3']);
+        expect(foo1!.isOpen).toBeTruthy();
+        expect(foo2!.isOpen).toBeTruthy();
+        expect(foo3!.isOpen).not.toBeTruthy();
       });
+
+      it('opennessState is overridden by useDefaultOpenness', async () => {
+        await treeInstance.recomputeTree({
+          opennessState: {
+            'foo-2': false,
+          },
+          useDefaultOpenness: true,
+        });
+        component.update(); // Update the wrapper to get the latest changes
+
+        const {
+          records: {'foo-1': foo1, 'foo-2': foo2, 'foo-3': foo3},
+        }: VariableSizeTreeState<VariableSizeNodeData> = component
+          .find(VariableSizeList)
+          .prop('itemData');
+
+        expect(foo1!.isOpen).toBeTruthy();
+        expect(foo2!.isOpen).toBeTruthy();
+        expect(foo3!.isOpen).toBeTruthy();
+      });
+    });
+
+    it('provides a resize function that changes height of the specific node', () => {
+      const listInstance: VariableSizeList = component
+        .find(VariableSizeList)
+        .instance() as VariableSizeList;
+
+      const resetAfterIndexSpy = jest.spyOn(listInstance, 'resetAfterIndex');
+      const order = component.state('order')!;
+      const foo3 = component.state('records')['foo-3']!;
+
+      foo3.resize(100, true);
+
+      expect(resetAfterIndexSpy).toHaveBeenCalledWith(
+        order.indexOf('foo-3'),
+        true,
+      );
+      expect(foo3.height).toBe(100);
     });
   });
 });
