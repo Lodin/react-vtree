@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unused-state,@typescript-eslint/consistent-type-assertions */
 import React, {
   ComponentType,
   PropsWithChildren,
@@ -87,8 +88,15 @@ export type TreeState<
   TData extends NodeData
 > = Readonly<{
   component: ComponentType<TNodeComponentProps>;
-  methods: OverridableMethods;
   order?: ReadonlyArray<string | symbol>;
+  computeTree: TreeComputer<
+    TNodeComponentProps,
+    TNodeRecord,
+    TUpdateOptions,
+    TData,
+    any,
+    any
+  >;
   records: Readonly<Record<string, TNodeRecord | undefined>>;
   treeData?: any;
   recomputeTree: (options?: TUpdateOptions) => Promise<void>;
@@ -126,17 +134,81 @@ export const Row = <TData extends NodeData>({
   />
 );
 
-const computeTree = (
-  {treeWalker}: TreeProps<any, any>,
-  state: TreeState<any, NodeRecord<any>, any, any>,
-  options: UpdateOptions = {},
+export type TreeCreatorOptions<
+  TNodeComponentProps extends NodeComponentProps<TData>,
+  TNodeRecord extends NodeRecord<TData>,
+  TUpdateOptions extends UpdateOptions,
+  TData extends NodeData,
+  TState extends TreeState<
+    TNodeComponentProps,
+    TNodeRecord,
+    TUpdateOptions,
+    TData
+  >
+> = Readonly<{
+  createRecord: (data: TData, state: TState) => TNodeRecord;
+  shouldUpdateRecords: (options: TUpdateOptions) => boolean;
+  updateRecord: (
+    record: TNodeRecord,
+    recordId: string | symbol,
+    options: TUpdateOptions,
+  ) => void;
+  updateRecordOnWalk: (record: TNodeRecord, options: TUpdateOptions) => void;
+}>;
+
+export type TreeComputer<
+  TNodeComponentProps extends NodeComponentProps<TData>,
+  TNodeRecord extends NodeRecord<TData>,
+  TUpdateOptions extends UpdateOptions,
+  TData extends NodeData,
+  TProps extends TreeProps<TNodeComponentProps, TData>,
+  TState extends TreeState<
+    TNodeComponentProps,
+    TNodeRecord,
+    TUpdateOptions,
+    TData
+  >
+> = (
+  props: TProps,
+  state: TState,
+  options?: TUpdateOptions,
+) => Pick<TState, 'order' | 'records'>;
+
+export const createTreeComputer = <
+  TNodeComponentProps extends NodeComponentProps<TData>,
+  TNodeRecord extends NodeRecord<TData>,
+  TUpdateOptions extends UpdateOptions,
+  TData extends NodeData,
+  TProps extends TreeProps<TNodeComponentProps, TData>,
+  TState extends TreeState<
+    TNodeComponentProps,
+    TNodeRecord,
+    TUpdateOptions,
+    TData
+  >
+>({
+  createRecord,
+  shouldUpdateRecords,
+  updateRecord,
+  updateRecordOnWalk,
+}: TreeCreatorOptions<
+  TNodeComponentProps,
+  TNodeRecord,
+  TUpdateOptions,
+  TData,
+  TState
+>): TreeComputer<
+  TNodeComponentProps,
+  TNodeRecord,
+  TUpdateOptions,
+  TData,
+  TProps,
+  TState
+> => (
+  {treeWalker},
+  state,
+  options = {} as TUpdateOptions,
 ): Pick<TreeState<any, any, any, any>, 'order' | 'records'> => {
-  const {
-    constructRecord,
-    shouldUpdateRecords,
-    updateRecord,
-    updateRecordDuringTreeWalk,
-  } = state.methods;
   const order: Array<string | symbol> = [];
   const records = {...state.records};
   const iter = treeWalker(options.refreshNodes ?? false);
@@ -170,10 +242,10 @@ const computeTree = (
       const record = records[id as string];
 
       if (!record) {
-        records[id as string] = constructRecord(value, state);
+        records[id as string] = createRecord(value, state);
       } else {
         record.data = value;
-        updateRecordDuringTreeWalk(record, options);
+        updateRecordOnWalk(record, options);
       }
     }
 
@@ -192,7 +264,7 @@ const computeTree = (
   };
 };
 
-abstract class Tree<
+class Tree<
   TNodeComponentProps extends NodeComponentProps<TData>,
   TNodeRecord extends NodeRecord<TData>,
   TUpdateOptions extends UpdateOptions,
@@ -215,7 +287,7 @@ abstract class Tree<
     state: TreeState<any, any, any, any>,
   ): Partial<TreeState<any, any, any, any>> {
     const {children: component, itemData: treeData, treeWalker} = props;
-    const {treeWalker: oldTreeWalker, order} = state;
+    const {computeTree, order, treeWalker: oldTreeWalker} = state;
 
     return {
       component,
@@ -226,68 +298,23 @@ abstract class Tree<
     };
   }
 
-  protected static constructRecord(
-    data: NodeData,
-    {recomputeTree}: TreeState<any, any, any, any>,
-  ): NodeRecord<NodeData> {
-    const record = {
-      data,
-      isOpen: data.isOpenByDefault,
-      async toggle(): Promise<void> {
-        record.isOpen = !record.isOpen;
-        await recomputeTree({refreshNodes: record.isOpen});
-      },
-    };
-
-    return record;
-  }
-
-  protected static shouldUpdateRecords({
-    opennessState,
-    useDefaultOpenness = false,
-  }: UpdateOptions): boolean {
-    return !!opennessState || useDefaultOpenness;
-  }
-
-  protected static updateRecord(
-    record: NodeRecord<NodeData>,
-    recordId: string,
-    {opennessState, useDefaultOpenness = false}: UpdateOptions,
-  ): void {
-    record.isOpen = useDefaultOpenness
-      ? record.data.isOpenByDefault
-      : opennessState?.[recordId] ?? record.isOpen;
-  }
-
-  protected static updateRecordDuringTreeWalk(
-    record: NodeRecord<NodeData>,
-    {useDefaultOpenness = false}: UpdateOptions,
-  ): void {
-    if (useDefaultOpenness) {
-      record.isOpen = record.data.isOpenByDefault;
-    }
-  }
-
   protected readonly list: React.RefObject<TListComponent> = React.createRef();
 
-  protected constructor(props: TProps, context: any) {
+  public constructor(props: TProps, context: any) {
     super(props, context);
 
-    this.state = this.constructState({
+    this.state = {
       component: props.children,
-      // Remembering the current constructor to use overridable static methods
-      // in computeTree function
-      methods: (this.constructor as unknown) as OverridableMethods,
       recomputeTree: this.recomputeTree.bind(this),
       records: {},
       treeWalker: props.treeWalker,
-    });
+    } as TState;
   }
 
   public async recomputeTree(options?: TUpdateOptions): Promise<void> {
     return new Promise((resolve) => {
       this.setState<never>(
-        (prevState) => computeTree(this.props, prevState, options),
+        (prevState) => prevState.computeTree(this.props, prevState, options),
         resolve,
       );
     });
@@ -301,12 +328,6 @@ abstract class Tree<
     // eslint-disable-next-line react/destructuring-assignment
     this.list.current?.scrollToItem(this.state.order!.indexOf(id), align);
   }
-
-  public abstract render(): React.ReactNode;
-
-  protected abstract constructState(
-    state: TreeState<any, any, any, any>,
-  ): TState;
 }
 
 export default Tree;

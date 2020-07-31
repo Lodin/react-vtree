@@ -1,6 +1,7 @@
 import React from 'react';
 import {VariableSizeList, VariableSizeListProps} from 'react-window';
 import Tree, {
+  createTreeComputer,
   NodeComponentProps,
   NodeData,
   NodeRecord,
@@ -8,6 +9,7 @@ import Tree, {
   TreeState,
   UpdateOptions,
 } from './Tree';
+import {shouldUpdateRecords, updateRecord, updateRecordOnWalk} from './utils';
 
 export type VariableSizeNodeData = {
   /** Default node height. Can be used only with VariableSizeTree */
@@ -52,19 +54,15 @@ export type VariableSizeTreeState<T extends VariableSizeNodeData> = TreeState<
     resetAfterId: (id: string | symbol, shouldForceUpdate?: boolean) => void;
   }>;
 
-export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
-  VariableSizeNodeComponentProps<T>,
-  VariableSizeNodeRecord<T>,
+const computeTree = createTreeComputer<
+  VariableSizeNodeComponentProps<VariableSizeNodeData>,
+  VariableSizeNodeRecord<VariableSizeNodeData>,
   VariableSizeUpdateOptions,
-  T,
-  VariableSizeTreeProps<T>,
-  VariableSizeTreeState<T>,
-  VariableSizeList
-> {
-  protected static constructRecord(
-    data: VariableSizeNodeData,
-    {recomputeTree, resetAfterId}: VariableSizeTreeState<VariableSizeNodeData>,
-  ): NodeRecord<NodeData> {
+  VariableSizeNodeData,
+  VariableSizeTreeProps<VariableSizeNodeData>,
+  VariableSizeTreeState<VariableSizeNodeData>
+>({
+  createRecord: (data, {recomputeTree, resetAfterId}) => {
     const record = {
       data,
       height: data.defaultHeight,
@@ -83,42 +81,43 @@ export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
     };
 
     return record;
-  }
-
-  protected static shouldUpdateRecords(
-    options: VariableSizeUpdateOptions,
-  ): boolean {
-    return (
-      super.shouldUpdateRecords(options) || (options.useDefaultHeight ?? false)
-    );
-  }
-
-  protected static updateRecord(
-    record: VariableSizeNodeRecord<VariableSizeNodeData>,
-    recordId: string,
-    options: VariableSizeUpdateOptions,
-  ): void {
+  },
+  shouldUpdateRecords: (options) =>
+    shouldUpdateRecords(options) || (options.useDefaultHeight ?? false),
+  updateRecord: (record, recordId, options) => {
     if (options.useDefaultHeight) {
       record.height = record.data.defaultHeight;
     }
 
-    super.updateRecord(record, recordId, options);
-  }
+    updateRecord(record, recordId, options);
+  },
 
-  protected static updateRecordDuringTreeWalk(
-    record: VariableSizeNodeRecord<VariableSizeNodeData>,
-    options: VariableSizeUpdateOptions,
-  ): void {
-    super.updateRecordDuringTreeWalk(record, options);
+  updateRecordOnWalk: (record, options) => {
+    updateRecordOnWalk(record, options);
 
     if (options.useDefaultHeight) {
       record.height = record.data.defaultHeight;
     }
-  }
+  },
+});
 
+export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
+  VariableSizeNodeComponentProps<T>,
+  VariableSizeNodeRecord<T>,
+  VariableSizeUpdateOptions,
+  T,
+  VariableSizeTreeProps<T>,
+  VariableSizeTreeState<T>,
+  VariableSizeList
+> {
   public constructor(props: VariableSizeTreeProps<T>, context: any) {
     super(props, context);
     this.getItemSize = this.getItemSize.bind(this);
+    this.state = {
+      ...this.state,
+      computeTree,
+      resetAfterId: this.resetAfterId.bind(this),
+    };
   }
 
   public resetAfterId(
@@ -146,13 +145,6 @@ export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
         {rowComponent!}
       </VariableSizeList>
     );
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  protected constructState(
-    state: VariableSizeTreeState<T>,
-  ): VariableSizeTreeState<T> {
-    return {...state, resetAfterId: this.resetAfterId.bind(this)};
   }
 
   private getItemSize(index: number): number {

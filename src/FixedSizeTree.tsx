@@ -1,7 +1,7 @@
-/* eslint-disable react/no-unused-state */
-import React from 'react';
+import React, {ReactNode} from 'react';
 import {FixedSizeList, FixedSizeListProps} from 'react-window';
 import Tree, {
+  createTreeComputer,
   NodeComponentProps,
   NodeData,
   NodeRecord,
@@ -9,6 +9,12 @@ import Tree, {
   TreeState,
   UpdateOptions,
 } from './Tree';
+import {
+  createRecord,
+  shouldUpdateRecords,
+  updateRecord,
+  updateRecordOnWalk,
+} from './utils';
 
 export type FixedSizeNodeData = NodeData;
 
@@ -33,6 +39,20 @@ export type FixedSizeTreeState<T extends FixedSizeNodeData> = TreeState<
   T
 >;
 
+const computeTree = createTreeComputer<
+  FixedSizeNodeComponentProps<FixedSizeNodeData>,
+  FixedSizeNodeRecord<FixedSizeNodeData>,
+  FixedSizeUpdateOptions,
+  FixedSizeNodeData,
+  FixedSizeTreeProps<FixedSizeNodeData>,
+  FixedSizeTreeState<FixedSizeNodeData>
+>({
+  createRecord,
+  shouldUpdateRecords,
+  updateRecord,
+  updateRecordOnWalk,
+});
+
 export class FixedSizeTree<T extends FixedSizeNodeData = NodeData> extends Tree<
   FixedSizeNodeComponentProps<T>,
   FixedSizeNodeRecord<T>,
@@ -42,7 +62,16 @@ export class FixedSizeTree<T extends FixedSizeNodeData = NodeData> extends Tree<
   FixedSizeTreeState<T>,
   FixedSizeList
 > {
-  public render(): React.ReactNode {
+  public constructor(props: FixedSizeTreeProps<T>, context: any) {
+    super(props, context);
+
+    this.state = {
+      ...this.state,
+      computeTree,
+    };
+  }
+
+  public render(): ReactNode {
     const {children, treeWalker, rowComponent, ...rest} = this.props;
 
     return (
@@ -55,12 +84,5 @@ export class FixedSizeTree<T extends FixedSizeNodeData = NodeData> extends Tree<
         {rowComponent!}
       </FixedSizeList>
     );
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  protected constructState(
-    state: FixedSizeTreeState<T>,
-  ): FixedSizeTreeState<T> {
-    return state;
   }
 }
