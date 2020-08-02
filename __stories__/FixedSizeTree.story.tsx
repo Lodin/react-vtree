@@ -1,6 +1,6 @@
 import {number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
-import * as React from 'react';
+import React, {FC} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   FixedSizeNodeComponentProps,
@@ -27,7 +27,7 @@ type StackElement = Readonly<{
   node: DataNode;
 }>;
 
-type ExtendedData = FixedSizeNodeData &
+type TreeData = FixedSizeNodeData &
   Readonly<{
     isLeaf: boolean;
     name: string;
@@ -62,7 +62,7 @@ const defaultButtonStyle = {fontFamily: 'Courier New'};
 
 function* treeWalker(
   refresh: boolean,
-): Generator<ExtendedData | string | symbol, void, boolean> {
+): Generator<TreeData | string | symbol, void, boolean> {
   const stack: StackElement[] = [];
 
   stack.push({
@@ -95,9 +95,12 @@ function* treeWalker(
   }
 }
 
-const Node: React.FunctionComponent<FixedSizeNodeComponentProps<
-  ExtendedData
->> = ({data: {isLeaf, name, nestingLevel}, isOpen, style, toggle}) => (
+const Node: FC<FixedSizeNodeComponentProps<TreeData>> = ({
+  data: {isLeaf, name, nestingLevel},
+  isOpen,
+  style,
+  toggle,
+}) => (
   <div
     style={{
       ...style,
@@ -117,13 +120,11 @@ const Node: React.FunctionComponent<FixedSizeNodeComponentProps<
   </div>
 );
 
-type TreePresenterProps = {
-  readonly itemSize: number;
-};
+type TreePresenterProps = Readonly<{
+  itemSize: number;
+}>;
 
-const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
-  itemSize,
-}) => (
+const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => (
   <AutoSizer disableWidth>
     {({height}) => (
       <FixedSizeTree

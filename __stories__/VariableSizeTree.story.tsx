@@ -1,6 +1,6 @@
 import {number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
-import React, {FC} from 'react';
+import React, {FC, useCallback, useEffect, useRef} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   VariableSizeNodeComponentProps,
@@ -72,7 +72,7 @@ const Node: FC<VariableSizeNodeComponentProps<ExtendedData>> = ({
   const canOpen = height <= itemSize;
   const halfSize = itemSize / 2;
 
-  const toggleNodeSize = React.useCallback(
+  const toggleNodeSize = useCallback(
     () => resize(canOpen ? height + halfSize : height - halfSize, true),
     [height, resize],
   );
@@ -108,12 +108,10 @@ type TreePresenterProps = Readonly<{
   itemSize: number;
 }>;
 
-const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
-  itemSize,
-}) => {
-  const tree = React.useRef<VariableSizeTree<ExtendedData>>(null);
+const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
+  const tree = useRef<VariableSizeTree<ExtendedData>>(null);
 
-  const treeWalker = React.useCallback(
+  const treeWalker = useCallback(
     function* treeWalker(
       refresh: boolean,
     ): Generator<ExtendedData | string | symbol, void, boolean> {
@@ -152,7 +150,7 @@ const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
     [itemSize],
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     tree.current?.recomputeTree({
       refreshNodes: true,
