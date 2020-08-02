@@ -53,13 +53,14 @@ jobs:
           node-version: 14.x
       - name: Installation
         run: npm ci
-      - name: Building
-        run: npm run build
+      - name: Linting
+        run: npm run check
       - name: Testing
         run: npm run test:coverage
         env:
           CI: true
-      - uses: sonarsource/sonarcloud-github-action@master
+      - name: Analysis
+        uses: sonarsource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
