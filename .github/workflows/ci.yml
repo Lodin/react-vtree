@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/ci.yml'
+      - 'src/**'
+      - 'scripts'
+      - '.eslintignore'
+      - '.eslintrc'
+      - '.prettierignore'
+      - '.prettierrc'
+      - 'babel.config.json'
+      - 'jest.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'sonar-project.properties'
+      - 'tsconfig.json'
+      - 'tsconfig.prod.json'
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/ci.yml'
+      - 'src/**'
+      - 'scripts'
+      - '.eslintignore'
+      - '.eslintrc'
+      - '.prettierignore'
+      - '.prettierrc'
+      - 'babel.config.json'
+      - 'jest.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'sonar-project.properties'
+      - 'tsconfig.json'
+      - 'tsconfig.prod.json'
+jobs:
+  testing:
+    name: Testing and Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout project code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Use Node.js 14.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
+      - name: Installation
+        run: npm ci
+      - name: Building
+        run: npm run build
+      - name: Testing
+        run: npm run test:coverage
+        env:
+          CI: true
+      - uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

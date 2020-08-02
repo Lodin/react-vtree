@@ -4,7 +4,7 @@
     "baseUrl": "./",
     "declaration": true,
     "jsx": "react",
-    "lib": ["dom", "es2017"],
+    "lib": ["dom", "esnext"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
@@ -14,7 +14,7 @@
     "sourceMap": true,
     "sourceRoot": "./src",
     "strict": true,
-    "target": "es2015",
+    "target": "esnext",
     "typeRoots": ["node_modules/@types"]
   },
   "include": [
