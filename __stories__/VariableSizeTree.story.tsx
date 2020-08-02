@@ -1,11 +1,12 @@
 import {number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
-import * as React from 'react';
+import React, {FC, useCallback, useEffect, useRef} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import Tree, {
+import {
   VariableSizeNodeComponentProps,
   VariableSizeNodeData,
-} from '../src/VariableSizeTree';
+  VariableSizeTree,
+} from '../src';
 
 document.body.style.margin = '0';
 document.body.style.display = 'flex';
@@ -15,22 +16,23 @@ const root = document.getElementById('root')!;
 root.style.margin = '10px 0 0 10px';
 root.style.flex = '1';
 
-type DataNode = {
+type DataNode = Readonly<{
   children: DataNode[];
   id: number;
   name: string;
-};
+}>;
 
-type StackElement = {
+type StackElement = Readonly<{
   nestingLevel: number;
   node: DataNode;
-};
+}>;
 
-type ExtendedData = {
-  readonly isLeaf: boolean;
-  readonly name: string;
-  readonly nestingLevel: number;
-};
+type ExtendedData = VariableSizeNodeData &
+  Readonly<{
+    isLeaf: boolean;
+    name: string;
+    nestingLevel: number;
+  }>;
 
 let nodeId = 0;
 
@@ -47,7 +49,6 @@ const createNode = (depth: number = 0) => {
     return node;
   }
 
-  // tslint:disable-next-line:increment-decrement
   for (let i = 0; i < 5; i++) {
     node.children.push(createNode(depth + 1));
   }
@@ -59,9 +60,7 @@ const rootNode = createNode();
 const defaultGapStyle = {marginLeft: 10};
 const defaultButtonStyle = {fontFamily: 'Courier New'};
 
-const Node: React.FunctionComponent<VariableSizeNodeComponentProps<
-  ExtendedData
->> = ({
+const Node: FC<VariableSizeNodeComponentProps<ExtendedData>> = ({
   height,
   data: {isLeaf, name, nestingLevel},
   isOpen,
@@ -73,7 +72,7 @@ const Node: React.FunctionComponent<VariableSizeNodeComponentProps<
   const canOpen = height <= itemSize;
   const halfSize = itemSize / 2;
 
-  const toggleNodeSize = React.useCallback(
+  const toggleNodeSize = useCallback(
     () => resize(canOpen ? height + halfSize : height - halfSize, true),
     [height, resize],
   );
@@ -105,23 +104,17 @@ const Node: React.FunctionComponent<VariableSizeNodeComponentProps<
   );
 };
 
-interface TreePresenterProps {
+type TreePresenterProps = Readonly<{
   itemSize: number;
-}
+}>;
 
-const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
-  itemSize,
-}) => {
-  const tree = React.useRef<Tree<ExtendedData>>(null);
+const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
+  const tree = useRef<VariableSizeTree<ExtendedData>>(null);
 
-  const treeWalker = React.useCallback(
-    function*(
+  const treeWalker = useCallback(
+    function* treeWalker(
       refresh: boolean,
-    ): Generator<
-      VariableSizeNodeData<ExtendedData> | string | symbol,
-      void,
-      boolean
-    > {
+    ): Generator<ExtendedData | string | symbol, void, boolean> {
       const stack: StackElement[] = [];
 
       stack.push({
@@ -145,7 +138,6 @@ const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
           : id;
 
         if (node.children.length !== 0 && isOpened) {
-          // tslint:disable-next-line:increment-decrement
           for (let i = node.children.length - 1; i >= 0; i--) {
             stack.push({
               nestingLevel: nestingLevel + 1,
@@ -158,14 +150,18 @@ const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
     [itemSize],
   );
 
-  React.useEffect(() => {
-    tree.current?.recomputeTree({refreshNodes: true, useDefaultHeight: true});
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    tree.current?.recomputeTree({
+      refreshNodes: true,
+      useDefaultHeight: true,
+    });
   }, [itemSize]);
 
   return (
     <AutoSizer disableWidth>
       {({height}) => (
-        <Tree<ExtendedData>
+        <VariableSizeTree
           ref={tree}
           itemData={itemSize}
           treeWalker={treeWalker}
@@ -173,7 +169,7 @@ const TreePresenter: React.FunctionComponent<TreePresenterProps> = ({
           width="100%"
         >
           {Node}
-        </Tree>
+        </VariableSizeTree>
       )}
     </AutoSizer>
   );

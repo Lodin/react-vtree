@@ -1,5 +1,3 @@
-/* eslint-disable sort-keys */
-
 module.exports = ({config}) => {
   config.devtool = 'eval';
 

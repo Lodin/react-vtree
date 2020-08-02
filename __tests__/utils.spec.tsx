@@ -1,17 +1,19 @@
 import {shallow, ShallowWrapper} from 'enzyme';
-import * as React from 'react';
+import React, {FC} from 'react';
 import {ListChildComponentProps} from 'react-window';
 import {FixedSizeNodeRecord, Row} from '../src';
-import {CommonNodeData} from '../src/utils';
+import {NodeComponentProps, NodeData} from '../src/Tree';
 
 describe('Row component', () => {
-  let data: CommonNodeData<{}>;
+  let component: FC<NodeComponentProps<NodeData>>;
+  let data: NodeData;
   let treeData: object;
   let order: readonly string[];
-  let records: Record<string, FixedSizeNodeRecord<{}>>;
+  let records: Record<string, FixedSizeNodeRecord<NodeData>>;
   let row: ShallowWrapper<ListChildComponentProps>;
 
   beforeEach(() => {
+    component = () => null;
     data = {} as any;
     treeData = {foo: 1};
     order = ['foo-1', 'foo-2', 'foo-3'];
@@ -33,11 +35,10 @@ describe('Row component', () => {
       },
     };
 
-    // tslint:disable-next-line:naming-convention
     row = shallow(
       <Row
         data={{
-          component: Node,
+          component,
           order,
           records,
           treeData,
@@ -50,7 +51,7 @@ describe('Row component', () => {
   });
 
   it('renders Node component', () => {
-    const node = row.find(Node);
+    const node = row.find(component);
     expect(node.props()).toMatchObject({
       data,
       isOpen: true,
