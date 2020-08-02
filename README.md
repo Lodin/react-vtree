@@ -2,8 +2,10 @@
 
 [![Latest Stable Version](https://img.shields.io/npm/v/react-vtree.svg)](https://www.npmjs.com/package/react-vtree)
 [![License](https://img.shields.io/npm/l/react-vtree.svg)](./LICENSE)
-[![Build Status](https://img.shields.io/travis/Lodin/react-vtree/master.svg)](https://travis-ci.org/Lodin/react-vtree)
-[![Test Coverage](https://img.shields.io/codecov/c/github/Lodin/react-vtree/master.svg)](https://codecov.io/gh/Lodin/react-vtree)
+[![CI Status](https://github.com/Lodin/react-vtree/workflows/CI/badge.svg)](https://github.com/Lodin/react-vtree/actions)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Lodin_react-vtree&metric=coverage)](https://sonarcloud.io/dashboard?id=Lodin_react-vtree)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=Lodin_react-vtree&metric=bugs)](https://sonarcloud.io/dashboard?id=Lodin_react-vtree)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=Lodin_react-vtree&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=Lodin_react-vtree)
 
 This package provides a lightweight and flexible solution for rendering large tree structures. It is built on top of the [react-window](https://github.com/bvaughn/react-window) library.
 
@@ -170,10 +172,18 @@ This method runs the `treeWalker` function again and, basing on the received opt
 It receives options object with the following parameters:
 
 - `opennessState: Record<string, boolean>` - nodes whose IDs are specified as keys of this object will be opened or closed according to boolean values. If the value is `true`, node will be opened; otherwise, it will be closed. This object can be used for changing nodes' openness programmatically without re-creating the `treeWalker` generator.
-  
+
   **NOTE**: If you specify both `useDefaultOpenness` and `opennessState`, `opennessState` will be overridden by `useDefaultOpenness` results.
+
 - `refreshNodes: boolean` - if this parameter is `true`, `treeWalker` will receive `refresh` option, and the component will expect the data object yielded. If this parameter is either `false` or not provided, the component will expect string id.
 - `useDefaultOpenness: boolean` - if this parameter is `true`, openness state of all nodes will be reset to `isOpenByDefault`. Nodes updated during the tree walking will use the new `isOpenByDefault` value.
+
+#### Types
+
+- `FixedSizeNodeData` - object the `treeWalker` generator function yields for each new node. By default, it contains only `id` and `isOpenByDefault` fields, but you can add any number of additional fields; they will be sent directly to the Node component. To describe that data, you have to create a new type that extends the `FixedSizeNodeData` type.
+- `FixedSizeNodeComponentProps<T extends FixedSizeNodeData>` - props that `Node` component receives. They are described in the Props [children](#children) section.
+- `FixedSizeTreeProps<T extends FixedSizeNodeData>` - props that `FixedSizeTree` component receives. Described in the [Props](#props) section.
+- `FixedSizeTreeState<T extends FixedSizeNodeData>` - state that `FixedSizeTree` component has.
 
 ### `VariableSizeTree`
 
@@ -308,3 +318,12 @@ This method replaces the `resetAfterIndex` method of `VariableSizeList`, but wor
 This method works exactly the same as the `FixedSizeTree`'s one, but receives one additional option:
 
 - `useDefaultHeight: boolean` - if this parameter is `true`, the height of all nodes will be reset to `defaultHeight`. Nodes updated during the tree walking will use the new `defaultHeight` value.
+
+#### Types
+
+All types in this section are the extended variants of [`FixedSizeTree` types](#types).
+
+- `VariableSizeNodeData`
+- `VariableSizeNodeComponentProps<T extends VariableSizeNodeData>`.
+- `VariableSizeTreeProps<T extends VariableSizeNodeData>`.
+- `VariableSizeTreeState<T extends VariableSizeNodeData>`.
