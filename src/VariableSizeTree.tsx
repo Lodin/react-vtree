@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {ReactNode} from 'react';
 import {VariableSizeList, VariableSizeListProps} from 'react-window';
 import Tree, {
   createTreeComputer,
@@ -11,10 +11,11 @@ import Tree, {
 } from './Tree';
 import {shouldUpdateRecords, updateRecord, updateRecordOnWalk} from './utils';
 
-export type VariableSizeNodeData = {
+export type VariableSizeNodeData = Readonly<{
   /** Default node height. Can be used only with VariableSizeTree */
-  readonly defaultHeight: number;
-} & NodeData;
+  defaultHeight: number;
+}> &
+  NodeData;
 
 export type VariableSizeNodeComponentProps<
   T extends VariableSizeNodeData
@@ -71,9 +72,10 @@ const computeTree = createTreeComputer<
         record.height = height;
         resetAfterId(record.data.id, shouldForceUpdate);
       },
-      async toggle(): Promise<void> {
+      toggle(): Promise<void> {
         record.isOpen = !record.isOpen;
-        await recomputeTree({
+
+        return recomputeTree({
           refreshNodes: record.isOpen,
           useDefaultHeight: true,
         });
@@ -130,7 +132,7 @@ export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
     );
   }
 
-  public render(): React.ReactNode {
+  public render(): ReactNode {
     const {children, itemSize, rowComponent, treeWalker, ...rest} = this.props;
 
     return (

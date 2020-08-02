@@ -294,7 +294,7 @@ class Tree<
     } as TState;
   }
 
-  public async recomputeTree(options?: TUpdateOptions): Promise<void> {
+  public recomputeTree(options?: TUpdateOptions): Promise<void> {
     return new Promise((resolve) => {
       this.setState<never>(
         (prevState) => prevState.computeTree(this.props, prevState, options),

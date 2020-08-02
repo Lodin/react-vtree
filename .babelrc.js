@@ -14,10 +14,6 @@ module.exports = (api) => ({
       ? []
       : [
           [
-            require('babel-plugin-transform-async-to-promises'),
-            {hoist: true, inlineHelpers: true},
-          ],
-          [
             require('@babel/plugin-transform-runtime'),
             {
               regenerator: false,

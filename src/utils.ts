@@ -29,9 +29,10 @@ export const createRecord: DefaultTreeCreatorOptions['createRecord'] = (
   const record = {
     data,
     isOpen: data.isOpenByDefault,
-    async toggle(): Promise<void> {
+    toggle(): Promise<void> {
       record.isOpen = !record.isOpen;
-      await recomputeTree({refreshNodes: record.isOpen});
+
+      return recomputeTree({refreshNodes: record.isOpen});
     },
   };
 
