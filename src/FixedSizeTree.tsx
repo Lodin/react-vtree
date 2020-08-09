@@ -13,7 +13,7 @@ import {
   createRecord,
   shouldUpdateRecords,
   updateRecord,
-  updateRecordOnWalk,
+  updateRecordOnNewData,
 } from './utils';
 
 export type FixedSizeNodeData = NodeData;
@@ -50,7 +50,7 @@ const computeTree = createTreeComputer<
   createRecord,
   shouldUpdateRecords,
   updateRecord,
-  updateRecordOnWalk,
+  updateRecordOnNewData,
 });
 
 export class FixedSizeTree<T extends FixedSizeNodeData = NodeData> extends Tree<
