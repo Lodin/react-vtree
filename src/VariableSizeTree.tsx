@@ -9,7 +9,11 @@ import Tree, {
   TreeState,
   UpdateOptions,
 } from './Tree';
-import {shouldUpdateRecords, updateRecord, updateRecordOnWalk} from './utils';
+import {
+  shouldUpdateRecords,
+  updateRecord,
+  updateRecordOnNewData,
+} from './utils';
 
 export type VariableSizeNodeData = Readonly<{
   /** Default node height. Can be used only with VariableSizeTree */
@@ -94,8 +98,8 @@ const computeTree = createTreeComputer<
     updateRecord(record, recordId, options);
   },
 
-  updateRecordOnWalk: (record, options) => {
-    updateRecordOnWalk(record, options);
+  updateRecordOnNewData: (record, options) => {
+    updateRecordOnNewData(record, options);
 
     if (options.useDefaultHeight) {
       record.height = record.data.defaultHeight;

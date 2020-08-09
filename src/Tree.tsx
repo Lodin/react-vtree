@@ -136,7 +136,7 @@ export type TreeCreatorOptions<
     recordId: string | symbol,
     options: TUpdateOptions,
   ) => void;
-  updateRecordOnWalk: (record: TNodeRecord, options: TUpdateOptions) => void;
+  updateRecordOnNewData: (record: TNodeRecord, options: TUpdateOptions) => void;
 }>;
 
 export type TreeComputer<
@@ -173,7 +173,7 @@ export const createTreeComputer = <
   createRecord,
   shouldUpdateRecords,
   updateRecord,
-  updateRecordOnWalk,
+  updateRecordOnNewData,
 }: TreeCreatorOptions<
   TNodeComponentProps,
   TNodeRecord,
@@ -228,7 +228,7 @@ export const createTreeComputer = <
         records[id as string] = createRecord(value, state);
       } else {
         record.data = value;
-        updateRecordOnWalk(record, options);
+        updateRecordOnNewData(record, options);
       }
     }
 

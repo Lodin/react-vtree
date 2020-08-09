@@ -54,7 +54,7 @@ export const updateRecord: DefaultTreeCreatorOptions['updateRecord'] = (
     : opennessState?.[recordId as string] ?? record.isOpen;
 };
 
-export const updateRecordOnWalk: DefaultTreeCreatorOptions['updateRecordOnWalk'] = (
+export const updateRecordOnNewData: DefaultTreeCreatorOptions['updateRecordOnNewData'] = (
   record,
   {useDefaultOpenness = false},
 ) => {
