@@ -132,6 +132,14 @@ export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
     );
   }
 
+  public recomputeTree(options?: VariableSizeUpdateOptions): Promise<void> {
+    return super.recomputeTree(options).then(() => {
+      if (options?.useDefaultHeight) {
+        this.list.current?.resetAfterIndex(0, true);
+      }
+    });
+  }
+
   public render(): ReactNode {
     const {children, itemSize, rowComponent, treeWalker, ...rest} = this.props;
 

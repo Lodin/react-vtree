@@ -220,6 +220,10 @@ export const createTreeComputer = <
 
     if (typeof value === 'string' || typeof value === 'symbol') {
       id = value;
+
+      if (records[id as string]) {
+        updateRecordOnWalk(records[id as string]!, options);
+      }
     } else {
       ({id} = value);
       const record = records[id as string];
