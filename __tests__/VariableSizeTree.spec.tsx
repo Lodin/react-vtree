@@ -686,5 +686,21 @@ describe('VariableSizeTree', () => {
       );
       expect(foo3.height).toBe(100);
     });
+
+    it('properly resets heights after re-computation', async () => {
+      const listInstance: VariableSizeList = component
+        .find(VariableSizeList)
+        .instance() as VariableSizeList;
+
+      const resetAfterIndexSpy = jest.spyOn(listInstance, 'resetAfterIndex');
+      const foo1 = component.state('records')['foo-1']!;
+      const foo3 = component.state('records')['foo-3']!;
+
+      foo3.resize(100, true);
+      await foo1.toggle();
+
+      expect(resetAfterIndexSpy).toHaveBeenCalledWith(0, true);
+      expect(foo3.height).toBe(30);
+    });
   });
 });
