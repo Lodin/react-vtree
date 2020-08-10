@@ -138,9 +138,7 @@ export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
 
   public recomputeTree(options?: VariableSizeUpdateOptions): Promise<void> {
     return super.recomputeTree(options).then(() => {
-      if (options?.useDefaultHeight) {
-        this.list.current?.resetAfterIndex(0, true);
-      }
+      this.list.current?.resetAfterIndex(0, true);
     });
   }
 
@@ -150,8 +148,8 @@ export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
     return (
       <VariableSizeList
         {...rest}
-        itemData={this.state}
         itemCount={this.state.order!.length}
+        itemData={this.state}
         // eslint-disable-next-line @typescript-eslint/unbound-method
         itemSize={itemSize ?? this.getItemSize}
         ref={this.list}
