@@ -12,6 +12,7 @@ import {
   ListProps,
   VariableSizeList,
 } from 'react-window';
+import {DefaultTreeProps, DefaultTreeState} from './utils';
 
 export type NodeData = Readonly<{
   /**
@@ -261,14 +262,14 @@ class Tree<
   >,
   TListComponent extends FixedSizeList | VariableSizeList
 > extends PureComponent<TProps, TState> {
-  public static defaultProps: Partial<TreeProps<any, any>> = {
+  public static defaultProps: Partial<DefaultTreeProps> = {
     rowComponent: Row,
   };
 
   public static getDerivedStateFromProps(
-    props: TreeProps<any, any>,
-    state: TreeState<any, any, any, any>,
-  ): Partial<TreeState<any, any, any, any>> {
+    props: DefaultTreeProps,
+    state: DefaultTreeState,
+  ): Partial<DefaultTreeState> {
     const {children: component, itemData: treeData, treeWalker} = props;
     const {computeTree, order, treeWalker: oldTreeWalker} = state;
 

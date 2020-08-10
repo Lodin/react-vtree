@@ -77,8 +77,8 @@ export class FixedSizeTree<T extends FixedSizeNodeData = NodeData> extends Tree<
     return (
       <FixedSizeList
         {...rest}
-        itemData={this.state}
         itemCount={this.state.order!.length}
+        itemData={this.state}
         ref={this.list}
       >
         {rowComponent!}

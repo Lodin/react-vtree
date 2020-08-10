@@ -3,21 +3,29 @@ import {
   NodeData,
   NodeRecord,
   TreeCreatorOptions,
+  TreeProps,
   TreeState,
   UpdateOptions,
 } from './Tree';
+
+export type DefaultTreeProps = TreeProps<
+  NodeComponentProps<NodeData>,
+  NodeData
+>;
+
+export type DefaultTreeState = TreeState<
+  NodeComponentProps<NodeData>,
+  NodeRecord<NodeData>,
+  UpdateOptions,
+  NodeData
+>;
 
 export type DefaultTreeCreatorOptions = TreeCreatorOptions<
   NodeComponentProps<NodeData>,
   NodeRecord<NodeData>,
   UpdateOptions,
   NodeData,
-  TreeState<
-    NodeComponentProps<NodeData>,
-    NodeRecord<NodeData>,
-    UpdateOptions,
-    NodeData
-  >
+  DefaultTreeState
 >;
 
 export const identity = <T>(value: T): T => value;

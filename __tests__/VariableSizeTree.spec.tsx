@@ -226,6 +226,16 @@ describe('VariableSizeTree', () => {
     });
 
     describe('recomputeTree', () => {
+      let resetAfterIndexSpy: jest.SpyInstance;
+
+      beforeEach(() => {
+        const listInstance = component
+          .find(VariableSizeList)
+          .instance() as VariableSizeList;
+
+        resetAfterIndexSpy = jest.spyOn(listInstance, 'resetAfterIndex');
+      });
+
       it('updates tree order', async () => {
         tree = {
           children: [
@@ -284,6 +294,8 @@ describe('VariableSizeTree', () => {
             treeData: undefined,
           },
         );
+
+        expect(resetAfterIndexSpy).toHaveBeenCalledWith(0, true);
       });
 
       it('updates tree nodes metadata', async () => {
@@ -344,6 +356,8 @@ describe('VariableSizeTree', () => {
             treeData: undefined,
           },
         );
+
+        expect(resetAfterIndexSpy).toHaveBeenCalledWith(0, true);
       });
 
       it('resets current openness to default', async () => {
@@ -408,6 +422,8 @@ describe('VariableSizeTree', () => {
             treeData: undefined,
           },
         );
+
+        expect(resetAfterIndexSpy).toHaveBeenCalledWith(0, true);
       });
 
       it('resets current openness to the new default provided by the node refreshing', async () => {
@@ -465,6 +481,8 @@ describe('VariableSizeTree', () => {
             treeData: undefined,
           },
         );
+
+        expect(resetAfterIndexSpy).toHaveBeenCalledWith(0, true);
       });
 
       it('provides a toggle function that changes openness state of the specific node', async () => {
@@ -482,6 +500,8 @@ describe('VariableSizeTree', () => {
         expect(treeWalkerSpy).toHaveBeenCalledWith(false);
         expect(foo1.height).toBe(defaultHeight);
         expect(foo1.isOpen).toBeFalsy();
+
+        expect(resetAfterIndexSpy).toHaveBeenCalledWith(0, true);
       });
 
       it('resets current height to default', async () => {
@@ -548,6 +568,8 @@ describe('VariableSizeTree', () => {
             treeData: undefined,
           },
         );
+
+        expect(resetAfterIndexSpy).toHaveBeenCalledWith(0, true);
       });
 
       it('resets current height to the new default provided by the node refreshing', async () => {
@@ -605,6 +627,8 @@ describe('VariableSizeTree', () => {
             treeData: undefined,
           },
         );
+
+        expect(resetAfterIndexSpy).toHaveBeenCalledWith(0, true);
       });
 
       it('opens and closes nodes as specified in opennessState', async () => {
@@ -646,6 +670,7 @@ describe('VariableSizeTree', () => {
         expect(foo1!.isOpen).toBeTruthy();
         expect(foo2!.isOpen).toBeTruthy();
         expect(foo3!.isOpen).not.toBeTruthy();
+        expect(resetAfterIndexSpy).toHaveBeenCalledWith(0, true);
       });
 
       it('opennessState is overridden by useDefaultOpenness', async () => {
