@@ -9,6 +9,7 @@ import {
   VariableSizeTreeProps,
   VariableSizeTreeState,
 } from '../src';
+import {itemKey} from '../src/utils';
 
 type DataNode = Readonly<{
   children?: DataNode[];
@@ -188,6 +189,11 @@ describe('VariableSizeTree', () => {
     });
 
     expect(treeWalkerSpy).not.toHaveBeenCalled();
+  });
+
+  it('uses node id as the react key for row', () => {
+    const list = component.find(VariableSizeList);
+    expect(list.prop('itemKey')).toBe(itemKey);
   });
 
   describe('component instance', () => {

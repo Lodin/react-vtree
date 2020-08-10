@@ -9,6 +9,7 @@ import {
   FixedSizeTreeState,
   Row,
 } from '../src';
+import {itemKey} from '../src/utils';
 
 type DataNode = Readonly<{
   children?: DataNode[];
@@ -178,6 +179,11 @@ describe('FixedSizeTree', () => {
     });
 
     expect(treeWalkerSpy).not.toHaveBeenCalled();
+  });
+
+  it('uses node id as the react key for row', () => {
+    const list = component.find(FixedSizeList);
+    expect(list.prop('itemKey')).toBe(itemKey);
   });
 
   describe('component instance', () => {

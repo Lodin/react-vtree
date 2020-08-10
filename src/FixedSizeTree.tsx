@@ -11,6 +11,7 @@ import Tree, {
 } from './Tree';
 import {
   createRecord,
+  itemKey,
   shouldUpdateRecords,
   updateRecord,
   updateRecordOnNewData,
@@ -78,6 +79,7 @@ export class FixedSizeTree<T extends FixedSizeNodeData = NodeData> extends Tree<
       <FixedSizeList
         {...rest}
         itemCount={this.state.order!.length}
+        itemKey={itemKey}
         itemData={this.state}
         ref={this.list}
       >

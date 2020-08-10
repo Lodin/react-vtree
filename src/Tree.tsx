@@ -19,7 +19,7 @@ export type NodeData = Readonly<{
    * Unique ID of the current node. Will be used to identify the node to change
    * its internal state.
    */
-  id: string | symbol;
+  id: string;
 
   /**
    * Default node openness state. If the Tree component performs rendering at
@@ -53,7 +53,7 @@ export type NodeComponentProps<TData extends NodeData> = Readonly<
 
 export type TreeWalker<T> = (
   refresh: boolean,
-) => Generator<T | string | symbol, void, boolean>;
+) => Generator<T | string, void, boolean>;
 
 export type TreeProps<
   TNodeComponentProps extends NodeComponentProps<TData>,
@@ -72,7 +72,7 @@ export type TreeState<
   TData extends NodeData
 > = Readonly<{
   component: ComponentType<TNodeComponentProps>;
-  order?: ReadonlyArray<string | symbol>;
+  order?: readonly string[];
   computeTree: TreeComputer<
     TNodeComponentProps,
     TNodeRecord,
@@ -111,7 +111,7 @@ export const Row = <TData extends NodeData>({
   TypedListChildComponentProps<TData>
 >): ReactElement | null => (
   <Node
-    {...records[order![index] as string]!}
+    {...records[order![index]]!}
     style={style}
     isScrolling={isScrolling}
     treeData={treeData}
@@ -134,7 +134,7 @@ export type TreeCreatorOptions<
   shouldUpdateRecords: (options: TUpdateOptions) => boolean;
   updateRecord: (
     record: TNodeRecord,
-    recordId: string | symbol,
+    recordId: string,
     options: TUpdateOptions,
   ) => void;
   updateRecordOnNewData: (record: TNodeRecord, options: TUpdateOptions) => void;
@@ -193,7 +193,7 @@ export const createTreeComputer = <
   state,
   options = {} as TUpdateOptions,
 ): Pick<TreeState<any, any, any, any>, 'order' | 'records'> => {
-  const order: Array<string | symbol> = [];
+  const order: string[] = [];
   const records = {...state.records};
   const iter = treeWalker(options.refreshNodes ?? false);
 
@@ -217,25 +217,25 @@ export const createTreeComputer = <
       break;
     }
 
-    let id: string | symbol;
+    let id: string;
 
-    if (typeof value === 'string' || typeof value === 'symbol') {
+    if (typeof value === 'string') {
       id = value;
     } else {
       ({id} = value);
-      const record = records[id as string];
+      const record = records[id];
 
       if (!record) {
-        records[id as string] = createRecord(value, state);
+        records[id] = createRecord(value, state);
       } else {
         record.data = value;
         updateRecordOnNewData(record, options);
       }
     }
 
-    if (records[id as string]) {
+    if (records[id]) {
       order.push(id);
-      isPreviousOpened = records[id as string]!.isOpen;
+      isPreviousOpened = records[id]!.isOpen;
     } else if (process.env.NODE_ENV === 'development') {
       // eslint-disable-next-line no-console
       console.error(`No record with id ${String(id)} found.`);
@@ -308,7 +308,7 @@ class Tree<
     this.list.current?.scrollTo(scrollOffset);
   }
 
-  public scrollToItem(id: string | symbol, align?: Align): void {
+  public scrollToItem(id: string, align?: Align): void {
     // eslint-disable-next-line react/destructuring-assignment
     this.list.current?.scrollToItem(this.state.order!.indexOf(id), align);
   }

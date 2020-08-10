@@ -70,3 +70,6 @@ export const updateRecordOnNewData: DefaultTreeCreatorOptions['updateRecordOnNew
     record.isOpen = record.data.isOpenByDefault;
   }
 };
+
+export const itemKey = (index: number, {order}: DefaultTreeState): string =>
+  order![index];
