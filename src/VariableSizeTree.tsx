@@ -80,7 +80,6 @@ const computeTree = createTreeComputer<
         record.isOpen = !record.isOpen;
 
         return recomputeTree({
-          refreshNodes: record.isOpen,
           useDefaultHeight: true,
         });
       },

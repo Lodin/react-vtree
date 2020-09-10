@@ -1,3 +1,4 @@
+/* eslint-disable max-depth */
 import {number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import React, {FC, useCallback, useEffect, useRef} from 'react';
@@ -22,10 +23,15 @@ type DataNode = Readonly<{
   name: string;
 }>;
 
-type StackElement = Readonly<{
+type TreeElement = Readonly<{
   nestingLevel: number;
   node: DataNode;
-}>;
+}> & {
+  child: TreeElement | null;
+  parent: TreeElement | null;
+  sibling: TreeElement | null;
+  visited: boolean;
+};
 
 type ExtendedData = VariableSizeNodeData &
   Readonly<{
@@ -45,11 +51,11 @@ const createNode = (depth: number = 0) => {
 
   nodeId += 1;
 
-  if (depth === 5) {
+  if (depth === 2) {
     return node;
   }
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 1000; i++) {
     node.children.push(createNode(depth + 1));
   }
 
@@ -114,38 +120,61 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
   const treeWalker = useCallback(
     function* treeWalker(
       refresh: boolean,
-    ): Generator<ExtendedData | string | symbol, void, boolean> {
-      const stack: StackElement[] = [];
-
-      stack.push({
+    ): Generator<ExtendedData | string, void, boolean> {
+      let current: TreeElement | null = {
+        child: null,
         nestingLevel: 0,
         node: rootNode,
-      });
+        parent: null,
+        sibling: null,
+        visited: false,
+      };
 
-      while (stack.length !== 0) {
-        const {node, nestingLevel} = stack.pop()!;
-        const id = node.id.toString();
+      do {
+        if (!current.visited) {
+          const {node, nestingLevel} = current;
+          const id = node.id.toString();
 
-        const isOpened = yield refresh
-          ? {
-              defaultHeight: itemSize,
-              id,
-              isLeaf: node.children.length === 0,
-              isOpenByDefault: true,
-              name: node.name,
-              nestingLevel,
+          const isOpened = yield refresh
+            ? {
+                defaultHeight: itemSize,
+                id,
+                isLeaf: node.children.length === 0,
+                isOpenByDefault: true,
+                name: node.name,
+                nestingLevel,
+              }
+            : id;
+
+          if (node.children.length !== 0 && (refresh || isOpened)) {
+            let temp: TreeElement = current;
+
+            for (let i = 0; i < node.children.length - 1; i++) {
+              const child: TreeElement = {
+                child: null,
+                nestingLevel: nestingLevel + 1,
+                node: node.children[i],
+                parent: current,
+                sibling: null,
+                visited: false,
+              };
+
+              if (temp === current) {
+                temp.child = child;
+              } else {
+                temp.sibling = child;
+              }
+
+              temp = child;
             }
-          : id;
-
-        if (node.children.length !== 0 && isOpened) {
-          for (let i = node.children.length - 1; i >= 0; i--) {
-            stack.push({
-              nestingLevel: nestingLevel + 1,
-              node: node.children[i],
-            });
           }
+
+          current.visited = true;
+          current = current.child ?? current.sibling ?? current.parent;
+        } else {
+          current = current.sibling ?? current.parent;
         }
-      }
+      } while (current !== null);
     },
     [itemSize],
   );

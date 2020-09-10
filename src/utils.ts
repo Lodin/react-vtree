@@ -40,7 +40,7 @@ export const createRecord: DefaultTreeCreatorOptions['createRecord'] = (
     toggle(): Promise<void> {
       record.isOpen = !record.isOpen;
 
-      return recomputeTree({refreshNodes: record.isOpen});
+      return recomputeTree();
     },
   };
 
