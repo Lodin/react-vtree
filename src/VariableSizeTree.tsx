@@ -9,11 +9,7 @@ import Tree, {
   TreeState,
   UpdateOptions,
 } from './Tree';
-import {
-  shouldUpdateRecords,
-  updateRecord,
-  updateRecordOnNewData,
-} from './utils';
+import {createConnections, updateRecord} from './utils';
 
 export type VariableSizeNodeData = Readonly<{
   /** Default node height. Can be used only with VariableSizeTree */
@@ -67,11 +63,14 @@ const computeTree = createTreeComputer<
   VariableSizeTreeProps<VariableSizeNodeData>,
   VariableSizeTreeState<VariableSizeNodeData>
 >({
-  createRecord: (data, {recomputeTree, resetAfterId}) => {
+  createRecord: ({data, node}, {recomputeTree, resetAfterId}, parent) => {
     const record = {
+      connections: createConnections(parent),
       data,
       height: data.defaultHeight,
       isOpen: data.isOpenByDefault,
+      isShown: parent ? parent.isOpen : true,
+      node,
       resize(height: number, shouldForceUpdate?: boolean): void {
         record.height = height;
         resetAfterId(record.data.id, shouldForceUpdate);
@@ -87,22 +86,12 @@ const computeTree = createTreeComputer<
 
     return record;
   },
-  shouldUpdateRecords: (options) =>
-    shouldUpdateRecords(options) || (options.useDefaultHeight ?? false),
-  updateRecord: (record, recordId, options) => {
+  updateRecord: (record, options) => {
     if (options.useDefaultHeight) {
       record.height = record.data.defaultHeight;
     }
 
-    updateRecord(record, recordId, options);
-  },
-
-  updateRecordOnNewData: (record, options) => {
-    updateRecordOnNewData(record, options);
-
-    if (options.useDefaultHeight) {
-      record.height = record.data.defaultHeight;
-    }
+    updateRecord(record, options);
   },
 });
 
@@ -161,6 +150,6 @@ export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
   private getItemSize(index: number): number {
     const {order, records} = this.state;
 
-    return records[order![index] as string]!.height;
+    return records.get(order![index])!.height;
   }
 }

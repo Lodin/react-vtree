@@ -2,11 +2,12 @@
 import {number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import React, {FC} from 'react';
-import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   FixedSizeNodeComponentProps,
   FixedSizeNodeData,
   FixedSizeTree,
+  TreeWalker,
+  TreeWalkerNext,
 } from '../src';
 
 document.body.style.margin = '0';
@@ -17,21 +18,11 @@ const root = document.getElementById('root')!;
 root.style.margin = '10px 0 0 10px';
 root.style.flex = '1';
 
-type DataNode = Readonly<{
-  children: DataNode[];
+type TreeNode = Readonly<{
+  children: TreeNode[];
   id: number;
   name: string;
 }>;
-
-type TreeElement = Readonly<{
-  nestingLevel: number;
-  node: DataNode;
-}> & {
-  child: TreeElement | null;
-  parent: TreeElement | null;
-  sibling: TreeElement | null;
-  visited: boolean;
-};
 
 type TreeData = FixedSizeNodeData &
   Readonly<{
@@ -42,8 +33,8 @@ type TreeData = FixedSizeNodeData &
 
 let nodeId = 0;
 
-const createNode = (depth: number = 0) => {
-  const node: DataNode = {
+const createNode = (depth: number = 0): TreeNode => {
+  const node: TreeNode = {
     children: [],
     id: nodeId,
     name: `test-${nodeId}`,
@@ -66,62 +57,37 @@ const rootNode = createNode();
 const defaultTextStyle = {marginLeft: 10};
 const defaultButtonStyle = {fontFamily: 'Courier New'};
 
-function* treeWalker(
-  refresh: boolean,
-): Generator<TreeData | string, void, boolean> {
-  let current: TreeElement | null = {
-    child: null,
-    nestingLevel: 0,
-    node: rootNode,
-    parent: null,
-    sibling: null,
-    visited: false,
-  };
+type NodeInfo = Readonly<{
+  nestingLevel: number;
+  node: TreeNode;
+}>;
 
-  do {
-    if (!current.visited) {
-      const {node, nestingLevel} = current;
-      const id = node.id.toString();
+const getNodeData = (
+  node: TreeNode,
+  nestingLevel: number,
+): TreeWalkerNext<TreeData, NodeInfo> => ({
+  data: {
+    id: node.id.toString(),
+    isLeaf: node.children.length === 0,
+    isOpenByDefault: true,
+    name: node.name,
+    nestingLevel,
+  },
+  node: {nestingLevel, node},
+});
 
-      const isOpened = yield refresh
-        ? {
-            id,
-            isLeaf: node.children.length === 0,
-            isOpenByDefault: true,
-            name: node.name,
-            nestingLevel,
-          }
-        : id;
+function* treeWalker(): ReturnType<TreeWalker<TreeData, NodeInfo>> {
+  yield getNodeData(rootNode, 0);
 
-      if (node.children.length !== 0 && (refresh || isOpened)) {
-        let temp: TreeElement = current;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  while (true) {
+    const parent = yield;
 
-        for (let i = 0; i < node.children.length - 1; i++) {
-          const child: TreeElement = {
-            child: null,
-            nestingLevel: nestingLevel + 1,
-            node: node.children[i],
-            parent: current,
-            sibling: null,
-            visited: false,
-          };
-
-          if (temp === current) {
-            temp.child = child;
-          } else {
-            temp.sibling = child;
-          }
-
-          temp = child;
-        }
-      }
-
-      current.visited = true;
-      current = current.child ?? current.sibling ?? current.parent;
-    } else {
-      current = current.sibling ?? current.parent;
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
+    for (let i = 0; i < parent.node.children.length; i++) {
+      yield getNodeData(parent.node.children[i], parent.nestingLevel + 1);
     }
-  } while (current !== null);
+  }
 }
 
 const Node: FC<FixedSizeNodeComponentProps<TreeData>> = ({
@@ -153,20 +119,18 @@ type TreePresenterProps = Readonly<{
   itemSize: number;
 }>;
 
-const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => (
-  <AutoSizer disableWidth>
-    {({height}) => (
-      <FixedSizeTree
-        treeWalker={treeWalker}
-        itemSize={itemSize}
-        height={height}
-        width="100%"
-      >
-        {Node}
-      </FixedSizeTree>
-    )}
-  </AutoSizer>
-);
+const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
+  return (
+    <FixedSizeTree
+      treeWalker={treeWalker}
+      itemSize={itemSize}
+      height={500}
+      width="100%"
+    >
+      {Node}
+    </FixedSizeTree>
+  );
+};
 
 storiesOf('Tree', module)
   .addDecorator(withKnobs)

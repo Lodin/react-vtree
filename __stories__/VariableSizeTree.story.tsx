@@ -4,6 +4,8 @@ import {storiesOf} from '@storybook/react';
 import React, {FC, useCallback, useEffect, useRef} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
+  TreeWalker,
+  TreeWalkerNext,
   VariableSizeNodeComponentProps,
   VariableSizeNodeData,
   VariableSizeTree,
@@ -17,21 +19,16 @@ const root = document.getElementById('root')!;
 root.style.margin = '10px 0 0 10px';
 root.style.flex = '1';
 
-type DataNode = Readonly<{
-  children: DataNode[];
+type TreeNode = Readonly<{
+  children: TreeNode[];
   id: number;
   name: string;
 }>;
 
-type TreeElement = Readonly<{
+type NodeInfo = Readonly<{
   nestingLevel: number;
-  node: DataNode;
-}> & {
-  child: TreeElement | null;
-  parent: TreeElement | null;
-  sibling: TreeElement | null;
-  visited: boolean;
-};
+  node: TreeNode;
+}>;
 
 type ExtendedData = VariableSizeNodeData &
   Readonly<{
@@ -43,7 +40,7 @@ type ExtendedData = VariableSizeNodeData &
 let nodeId = 0;
 
 const createNode = (depth: number = 0) => {
-  const node: DataNode = {
+  const node: TreeNode = {
     children: [],
     id: nodeId,
     name: `test-${nodeId}`,
@@ -114,67 +111,42 @@ type TreePresenterProps = Readonly<{
   itemSize: number;
 }>;
 
+const getNodeData = (
+  node: TreeNode,
+  nestingLevel: number,
+  itemSize: number,
+): TreeWalkerNext<ExtendedData, NodeInfo> => ({
+  data: {
+    defaultHeight: itemSize,
+    id: node.id.toString(),
+    isLeaf: node.children.length === 0,
+    isOpenByDefault: true,
+    name: node.name,
+    nestingLevel,
+  },
+  node: {nestingLevel, node},
+});
+
 const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
   const tree = useRef<VariableSizeTree<ExtendedData>>(null);
 
   const treeWalker = useCallback(
-    function* treeWalker(
-      refresh: boolean,
-    ): Generator<ExtendedData | string, void, boolean> {
-      let current: TreeElement | null = {
-        child: null,
-        nestingLevel: 0,
-        node: rootNode,
-        parent: null,
-        sibling: null,
-        visited: false,
-      };
+    function* treeWalker(): ReturnType<TreeWalker<ExtendedData, NodeInfo>> {
+      yield getNodeData(rootNode, 0, itemSize);
 
-      do {
-        if (!current.visited) {
-          const {node, nestingLevel} = current;
-          const id = node.id.toString();
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      while (true) {
+        const parent = yield;
 
-          const isOpened = yield refresh
-            ? {
-                defaultHeight: itemSize,
-                id,
-                isLeaf: node.children.length === 0,
-                isOpenByDefault: true,
-                name: node.name,
-                nestingLevel,
-              }
-            : id;
-
-          if (node.children.length !== 0 && (refresh || isOpened)) {
-            let temp: TreeElement = current;
-
-            for (let i = 0; i < node.children.length - 1; i++) {
-              const child: TreeElement = {
-                child: null,
-                nestingLevel: nestingLevel + 1,
-                node: node.children[i],
-                parent: current,
-                sibling: null,
-                visited: false,
-              };
-
-              if (temp === current) {
-                temp.child = child;
-              } else {
-                temp.sibling = child;
-              }
-
-              temp = child;
-            }
-          }
-
-          current.visited = true;
-          current = current.child ?? current.sibling ?? current.parent;
-        } else {
-          current = current.sibling ?? current.parent;
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
+        for (let i = 0; i < parent.node.children.length; i++) {
+          yield getNodeData(
+            parent.node.children[i],
+            parent.nestingLevel + 1,
+            itemSize,
+          );
         }
-      } while (current !== null);
+      }
     },
     [itemSize],
   );

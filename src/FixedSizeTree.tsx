@@ -9,12 +9,7 @@ import Tree, {
   TreeState,
   UpdateOptions,
 } from './Tree';
-import {
-  createRecord,
-  shouldUpdateRecords,
-  updateRecord,
-  updateRecordOnNewData,
-} from './utils';
+import {createRecord, updateRecord} from './utils';
 
 export type FixedSizeNodeData = NodeData;
 
@@ -48,9 +43,7 @@ const computeTree = createTreeComputer<
   FixedSizeTreeState<FixedSizeNodeData>
 >({
   createRecord,
-  shouldUpdateRecords,
   updateRecord,
-  updateRecordOnNewData,
 });
 
 export class FixedSizeTree<T extends FixedSizeNodeData = NodeData> extends Tree<
