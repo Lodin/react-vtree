@@ -2,6 +2,7 @@
 import {number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import React, {FC} from 'react';
+import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   FixedSizeNodeComponentProps,
   FixedSizeNodeData,
@@ -46,7 +47,7 @@ const createNode = (depth: number = 0): TreeNode => {
     return node;
   }
 
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 10; i++) {
     node.children.push(createNode(depth + 1));
   }
 
@@ -121,14 +122,18 @@ type TreePresenterProps = Readonly<{
 
 const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
   return (
-    <FixedSizeTree
-      treeWalker={treeWalker}
-      itemSize={itemSize}
-      height={500}
-      width="100%"
-    >
-      {Node}
-    </FixedSizeTree>
+    <AutoSizer disableWidth>
+      {({height}) => (
+        <FixedSizeTree
+          treeWalker={treeWalker}
+          itemSize={itemSize}
+          height={height}
+          width="100%"
+        >
+          {Node}
+        </FixedSizeTree>
+      )}
+    </AutoSizer>
   );
 };
 

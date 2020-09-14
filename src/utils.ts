@@ -51,11 +51,12 @@ export const createRecord: DefaultTreeCreatorOptions['createRecord'] = (
     isOpen: data.isOpenByDefault,
     isShown: parent ? parent.isOpen : true,
     node,
-    toggle(): Promise<void> {
-      record.isOpen = !record.isOpen;
-
-      return recomputeTree();
-    },
+    toggle: (): Promise<void> =>
+      recomputeTree({
+        opennessState: {
+          [data.id]: !record.isOpen,
+        },
+      }),
   };
 
   return record;
@@ -70,8 +71,7 @@ export const updateRecord: DefaultTreeCreatorOptions['updateRecord'] = (
     : opennessState?.[record.data.id as string] ?? record.isOpen;
 
   const {parent} = record.connections;
-
-  record.isShown = (parent?.isOpen && parent.isShown) ?? true;
+  record.isShown = parent ? parent.isOpen && parent.isShown : true;
 };
 
 export const NODE_PROCESSING_END = {msg: 'NODE_PROCESSING_END'} as const;
@@ -91,3 +91,6 @@ export const revisitRecord = <T extends NodeRecord<any>>(
 
   return (record.connections.sibling ?? record.connections.parent) as T | null;
 };
+
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+export const noop = (): void => {};

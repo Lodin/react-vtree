@@ -15,6 +15,7 @@ import {
 import {
   DefaultTreeProps,
   DefaultTreeState,
+  noop,
   revisitRecord,
   visitRecord,
 } from './utils';
@@ -101,7 +102,7 @@ export type TreeState<
   TData extends NodeData
 > = Readonly<{
   component: ComponentType<TNodeComponentProps>;
-  order?: ReadonlyArray<string | symbol>;
+  order?: Array<string | symbol>;
   computeTree: TreeComputer<
     TNodeComponentProps,
     TNodeRecord,
@@ -111,10 +112,12 @@ export type TreeState<
     any
   >;
   records: ReadonlyMap<string | symbol, TNodeRecord>;
-  rootId: string | symbol;
   treeData?: any;
   recomputeTree: (options?: TUpdateOptions) => Promise<void>;
   treeWalker: TreeWalker<TData>;
+
+  // A simple hack to get over the PureComponent shallow comparison
+  updateRequest: object;
 }>;
 
 export type TypedListChildComponentProps<TData extends NodeData> = Readonly<
@@ -223,7 +226,8 @@ export const createTreeComputer = <
   {treeWalker},
   state,
   options = {} as TUpdateOptions,
-): Pick<TreeState<any, any, any, any>, 'order' | 'records' | 'rootId'> => {
+): Pick<TreeState<any, any, any, any>, 'order' | 'records'> &
+  Partial<Pick<TreeState<any, any, any, any>, 'updateRequest'>> => {
   const isRefreshing = options.refreshNodes ?? false;
 
   if (isRefreshing) {
@@ -241,7 +245,7 @@ export const createTreeComputer = <
     iter.next();
 
     // Vertical traverse
-    do {
+    while (currentRecord !== null) {
       if (!currentRecord.connections.visited) {
         if (currentRecord.isShown) {
           order.push(currentRecord.data.id);
@@ -276,38 +280,79 @@ export const createTreeComputer = <
       } else {
         currentRecord = revisitRecord(currentRecord);
       }
-    } while (currentRecord !== null);
+    }
 
     return {
       order,
       records,
-      rootId: rootRecord.data.id,
     };
   }
 
-  const {records, rootId} = state;
-  const order: Array<string | symbol> = [];
+  const {order, records} = state;
 
-  let currentRecord: TNodeRecord | null = records.get(rootId)!;
+  if (options.opennessState) {
+    for (const id in options.opennessState) {
+      const rootRecord = records.get(id)!;
+      let update: (record: TNodeRecord) => void = noop;
+      let apply: () => void = noop;
 
-  do {
-    if (!currentRecord.connections.visited) {
-      updateRecord(currentRecord, options);
+      if (rootRecord.isShown) {
+        if (options.opennessState[id] && !rootRecord.isOpen) {
+          const orderPart: Array<string | symbol> = [];
+          const index = order!.indexOf(id);
 
-      if (currentRecord.isShown) {
-        order.push(currentRecord.data.id);
+          update = (record: TNodeRecord) => {
+            if (record.isShown) {
+              orderPart.push(record.data.id);
+            }
+          };
+
+          apply = () => {
+            order!.splice(index + 1, 0, ...orderPart);
+          };
+        } else if (!options.opennessState[id] && rootRecord.isOpen) {
+          const index = order!.indexOf(id);
+
+          let count = 0;
+
+          update = () => {
+            count += 1;
+          };
+
+          apply = () => {
+            // Remove data after element with index
+            order!.splice(index + 1, count);
+          };
+        }
       }
 
-      currentRecord = visitRecord(currentRecord);
-    } else {
-      currentRecord = revisitRecord(currentRecord);
+      let currentRecord: TNodeRecord | null = rootRecord;
+
+      while (currentRecord !== null) {
+        if (!currentRecord.connections.visited) {
+          updateRecord(currentRecord, options);
+
+          if (currentRecord !== rootRecord) {
+            update(currentRecord);
+          }
+
+          currentRecord = visitRecord(currentRecord);
+        } else if (currentRecord !== rootRecord) {
+          currentRecord = revisitRecord(currentRecord);
+        } else {
+          revisitRecord(currentRecord);
+          currentRecord = null;
+        }
+      }
+
+      apply();
     }
-  } while (currentRecord !== null);
+  }
 
   return {
     order,
     records,
-    rootId,
+    updateRequest: {},
   };
 };
 
@@ -353,8 +398,8 @@ class Tree<
     this.state = {
       component: props.children,
       recomputeTree: this.recomputeTree.bind(this),
-      records: {},
       treeWalker: props.treeWalker,
+      updateRequest: {},
     } as TState;
   }
 

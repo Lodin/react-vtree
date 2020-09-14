@@ -48,11 +48,11 @@ const createNode = (depth: number = 0) => {
 
   nodeId += 1;
 
-  if (depth === 2) {
+  if (depth === 5) {
     return node;
   }
 
-  for (let i = 0; i < 1000; i++) {
+  for (let i = 0; i < 10; i++) {
     node.children.push(createNode(depth + 1));
   }
 
