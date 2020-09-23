@@ -4,10 +4,10 @@ import Tree, {
   createTreeComputer,
   NodeComponentProps,
   NodeData,
-  NodeRecord,
   TreeProps,
   TreeState,
-  UpdateOptions,
+  NodeRecordPublic,
+  OpennessStateOptions,
 } from './Tree';
 import {createRecord, updateRecord} from './utils';
 
@@ -17,9 +17,11 @@ export type FixedSizeNodeComponentProps<
   T extends FixedSizeNodeData
 > = NodeComponentProps<T>;
 
-export type FixedSizeNodeRecord<T extends FixedSizeNodeData> = NodeRecord<T>;
+export type FixedSizeNodeRecordPublic<
+  T extends FixedSizeNodeData
+> = NodeRecordPublic<T>;
 
-export type FixedSizeUpdateOptions = UpdateOptions;
+export type FixedSizeOpennessStateOptions = OpennessStateOptions;
 
 export type FixedSizeTreeProps<T extends FixedSizeNodeData> = TreeProps<
   FixedSizeNodeComponentProps<T>,
@@ -29,15 +31,15 @@ export type FixedSizeTreeProps<T extends FixedSizeNodeData> = TreeProps<
 
 export type FixedSizeTreeState<T extends FixedSizeNodeData> = TreeState<
   FixedSizeNodeComponentProps<T>,
-  FixedSizeNodeRecord<T>,
-  FixedSizeUpdateOptions,
+  FixedSizeNodeRecordPublic<T>,
+  FixedSizeOpennessStateOptions,
   T
 >;
 
 const computeTree = createTreeComputer<
   FixedSizeNodeComponentProps<FixedSizeNodeData>,
-  FixedSizeNodeRecord<FixedSizeNodeData>,
-  FixedSizeUpdateOptions,
+  FixedSizeNodeRecordPublic<FixedSizeNodeData>,
+  FixedSizeOpennessStateOptions,
   FixedSizeNodeData,
   FixedSizeTreeProps<FixedSizeNodeData>,
   FixedSizeTreeState<FixedSizeNodeData>
@@ -48,8 +50,8 @@ const computeTree = createTreeComputer<
 
 export class FixedSizeTree<T extends FixedSizeNodeData = NodeData> extends Tree<
   FixedSizeNodeComponentProps<T>,
-  FixedSizeNodeRecord<T>,
-  FixedSizeUpdateOptions,
+  FixedSizeNodeRecordPublic<T>,
+  FixedSizeOpennessStateOptions,
   T,
   FixedSizeTreeProps<T>,
   FixedSizeTreeState<T>,
@@ -71,7 +73,7 @@ export class FixedSizeTree<T extends FixedSizeNodeData = NodeData> extends Tree<
       <FixedSizeList
         {...rest}
         itemCount={this.state.order!.length}
-        itemData={this.state}
+        itemData={this.getItemData()}
         ref={this.list}
       >
         {rowComponent!}

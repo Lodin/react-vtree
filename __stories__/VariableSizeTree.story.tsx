@@ -5,7 +5,7 @@ import React, {FC, useCallback, useEffect, useRef} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   TreeWalker,
-  TreeWalkerNext,
+  TreeWalkerYieldingValue,
   VariableSizeNodeComponentProps,
   VariableSizeNodeData,
   VariableSizeTree,
@@ -25,7 +25,7 @@ type TreeNode = Readonly<{
   name: string;
 }>;
 
-type NodeInfo = Readonly<{
+type NodeMeta = Readonly<{
   nestingLevel: number;
   node: TreeNode;
 }>;
@@ -115,7 +115,7 @@ const getNodeData = (
   node: TreeNode,
   nestingLevel: number,
   itemSize: number,
-): TreeWalkerNext<ExtendedData, NodeInfo> => ({
+): TreeWalkerYieldingValue<ExtendedData, NodeMeta> => ({
   data: {
     defaultHeight: itemSize,
     id: node.id.toString(),
@@ -124,25 +124,25 @@ const getNodeData = (
     name: node.name,
     nestingLevel,
   },
-  node: {nestingLevel, node},
+  meta: {nestingLevel, node},
 });
 
 const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
   const tree = useRef<VariableSizeTree<ExtendedData>>(null);
 
   const treeWalker = useCallback(
-    function* treeWalker(): ReturnType<TreeWalker<ExtendedData, NodeInfo>> {
+    function* treeWalker(): ReturnType<TreeWalker<ExtendedData, NodeMeta>> {
       yield getNodeData(rootNode, 0, itemSize);
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       while (true) {
-        const parent = yield;
+        const parentMeta = yield;
 
         // eslint-disable-next-line @typescript-eslint/prefer-for-of
-        for (let i = 0; i < parent.node.children.length; i++) {
+        for (let i = 0; i < parentMeta.node.children.length; i++) {
           yield getNodeData(
-            parent.node.children[i],
-            parent.nestingLevel + 1,
+            parentMeta.node.children[i],
+            parentMeta.nestingLevel + 1,
             itemSize,
           );
         }

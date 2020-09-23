@@ -8,7 +8,7 @@ import {
   FixedSizeNodeData,
   FixedSizeTree,
   TreeWalker,
-  TreeWalkerNext,
+  TreeWalkerYieldingValue,
 } from '../src';
 
 document.body.style.margin = '0';
@@ -58,7 +58,7 @@ const rootNode = createNode();
 const defaultTextStyle = {marginLeft: 10};
 const defaultButtonStyle = {fontFamily: 'Courier New'};
 
-type NodeInfo = Readonly<{
+type NodeMeta = Readonly<{
   nestingLevel: number;
   node: TreeNode;
 }>;
@@ -66,7 +66,7 @@ type NodeInfo = Readonly<{
 const getNodeData = (
   node: TreeNode,
   nestingLevel: number,
-): TreeWalkerNext<TreeData, NodeInfo> => ({
+): TreeWalkerYieldingValue<TreeData, NodeMeta> => ({
   data: {
     id: node.id.toString(),
     isLeaf: node.children.length === 0,
@@ -74,19 +74,22 @@ const getNodeData = (
     name: node.name,
     nestingLevel,
   },
-  node: {nestingLevel, node},
+  meta: {nestingLevel, node},
 });
 
-function* treeWalker(): ReturnType<TreeWalker<TreeData, NodeInfo>> {
+function* treeWalker(): ReturnType<TreeWalker<TreeData, NodeMeta>> {
   yield getNodeData(rootNode, 0);
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
-    const parent = yield;
+    const parentMeta = yield;
 
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let i = 0; i < parent.node.children.length; i++) {
-      yield getNodeData(parent.node.children[i], parent.nestingLevel + 1);
+    for (let i = 0; i < parentMeta.node.children.length; i++) {
+      yield getNodeData(
+        parentMeta.node.children[i],
+        parentMeta.nestingLevel + 1,
+      );
     }
   }
 }

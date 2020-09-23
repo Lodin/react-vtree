@@ -1,12 +1,12 @@
-import {
+import type {
   NodeComponentProps,
   NodeData,
   NodeRecord,
-  NodeRecordConnections,
   TreeCreatorOptions,
   TreeProps,
   TreeState,
-  UpdateOptions,
+  NodeRecordPublic,
+  OpennessStateOptions,
 } from './Tree';
 
 export type DefaultTreeProps = TreeProps<
@@ -16,47 +16,41 @@ export type DefaultTreeProps = TreeProps<
 
 export type DefaultTreeState = TreeState<
   NodeComponentProps<NodeData>,
-  NodeRecord<NodeData>,
-  UpdateOptions,
+  NodeRecordPublic<NodeData>,
+  OpennessStateOptions,
   NodeData
 >;
 
 export type DefaultTreeCreatorOptions = TreeCreatorOptions<
   NodeComponentProps<NodeData>,
-  NodeRecord<NodeData>,
-  UpdateOptions,
+  NodeRecordPublic<NodeData>,
+  OpennessStateOptions,
   NodeData,
   DefaultTreeState
 >;
 
 export const identity = <T>(value: T): T => value;
 
-export const createConnections = <T extends NodeRecord<any>>(
-  parent: T | null = null,
-): NodeRecordConnections<T> => ({
-  child: null,
-  parent,
-  sibling: null,
-  visited: false,
-});
-
 export const createRecord: DefaultTreeCreatorOptions['createRecord'] = (
-  {data, node},
+  {data, meta},
   {recomputeTree},
-  parent,
+  parent = null,
 ) => {
   const record = {
-    connections: createConnections(parent),
-    data,
-    isOpen: data.isOpenByDefault,
-    isShown: parent ? parent.isOpen : true,
-    node,
-    toggle: (): Promise<void> =>
-      recomputeTree({
-        opennessState: {
-          [data.id]: !record.isOpen,
-        },
-      }),
+    child: null,
+    isShown: parent ? parent.public.isOpen : true,
+    meta,
+    parent,
+    public: {
+      data,
+      isOpen: data.isOpenByDefault,
+      toggle: (): Promise<void> =>
+        recomputeTree({
+          [data.id]: !record.public.isOpen,
+        }),
+    },
+    sibling: null,
+    visited: false,
   };
 
   return record;
@@ -64,32 +58,34 @@ export const createRecord: DefaultTreeCreatorOptions['createRecord'] = (
 
 export const updateRecord: DefaultTreeCreatorOptions['updateRecord'] = (
   record,
-  {opennessState, useDefaultOpenness = false},
+  id,
+  {open, useDefaultOpenness = false},
 ) => {
-  record.isOpen = useDefaultOpenness
-    ? record.data.isOpenByDefault
-    : opennessState?.[record.data.id as string] ?? record.isOpen;
+  const {public: publicRecord, parent} = record;
 
-  const {parent} = record.connections;
-  record.isShown = parent ? parent.isOpen && parent.isShown : true;
+  publicRecord.isOpen = useDefaultOpenness
+    ? publicRecord.data.isOpenByDefault
+    : id === publicRecord.data.id
+    ? open
+    : publicRecord.isOpen;
+
+  record.isShown = parent ? parent.public.isOpen && parent.isShown : true;
 };
 
 export const NODE_PROCESSING_END = {msg: 'NODE_PROCESSING_END'} as const;
 
 export const visitRecord = <T extends NodeRecord<any>>(record: T): T | null => {
-  record.connections.visited = !!record.connections.child;
+  record.visited = !!record.child;
 
-  return (record.connections.child ??
-    record.connections.sibling ??
-    record.connections.parent) as T | null;
+  return (record.child ?? record.sibling ?? record.parent) as T | null;
 };
 
 export const revisitRecord = <T extends NodeRecord<any>>(
   record: T,
 ): T | null => {
-  record.connections.visited = false;
+  record.visited = false;
 
-  return (record.connections.sibling ?? record.connections.parent) as T | null;
+  return (record.sibling ?? record.parent) as T | null;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
