@@ -1,4 +1,4 @@
-/* eslint-disable react/no-unused-state,@typescript-eslint/consistent-type-assertions,no-labels,max-depth */
+/* eslint-disable react/no-unused-state,@typescript-eslint/consistent-type-assertions,no-labels,max-depth,complexity */
 import React, {
   ComponentType,
   PropsWithChildren,
@@ -208,9 +208,13 @@ export type TreeComputer<
   props: TProps,
   state: TState,
   options: TreeComputerOptions<TOpennessStateOptions>,
-) => Pick<TState, 'order' | 'records'> & Partial<Pick<TState, 'updateRequest'>>;
+) =>
+  | (Pick<TState, 'order' | 'records'> & Partial<Pick<TState, 'updateRequest'>>)
+  | null;
 
-export const createTreeComputer = <
+// If refresh is required, we will run the TreeWalker. It will completely
+// update all requests and reset every state to default.
+const generateNewTree = <
   TNodeComponentProps extends NodeComponentProps<TData>,
   TNodeRecordPublic extends NodeRecordPublic<TData>,
   TOpennessStateOptions extends OpennessStateOptions,
@@ -222,87 +226,125 @@ export const createTreeComputer = <
     TOpennessStateOptions,
     TData
   >
->({
-  createRecord,
-  updateRecord,
-}: TreeCreatorOptions<
-  TNodeComponentProps,
-  TNodeRecordPublic,
-  TOpennessStateOptions,
-  TData,
-  TState
->): TreeComputer<
-  TNodeComponentProps,
-  TNodeRecordPublic,
-  TOpennessStateOptions,
-  TData,
-  TProps,
-  TState
-> => ({treeWalker}, state, {opennessState, refresh}) => {
-  // If refresh is required, we will run the TreeWalker. It will completely
-  // update all requests and reset every state to default.
-  if (refresh) {
-    const records = new Map<string | symbol, NodeRecord<TNodeRecordPublic>>();
-    const iter = treeWalker();
-    const {value: root} = iter.next() as TreeWalkerIteratorResult<TData>;
+>(
+  {
+    createRecord,
+  }: TreeCreatorOptions<
+    TNodeComponentProps,
+    TNodeRecordPublic,
+    TOpennessStateOptions,
+    TData,
+    TState
+  >,
+  {treeWalker}: TProps,
+  state: TState,
+): ReturnType<
+  TreeComputer<
+    TNodeComponentProps,
+    TNodeRecordPublic,
+    TOpennessStateOptions,
+    TData,
+    TProps,
+    TState
+  >
+> => {
+  const records = new Map<string | symbol, NodeRecord<TNodeRecordPublic>>();
+  const iter = treeWalker();
+  const {value: root} = iter.next() as TreeWalkerIteratorResult<TData>;
 
-    // Each record has a link to a parent, the next sibling and the next child.
-    // Having this info, we can perform a depth-first traverse.
-    const rootRecord = createRecord(root, state);
-    records.set(rootRecord.public.data.id, rootRecord);
+  // Each record has a link to a parent, the next sibling and the next child.
+  // Having this info, we can perform a depth-first traverse.
+  const rootRecord = createRecord(root, state);
+  records.set(rootRecord.public.data.id, rootRecord);
 
-    const order: Array<string | symbol> = [];
+  const order: Array<string | symbol> = [];
 
-    let currentRecord: NodeRecord<TNodeRecordPublic> | null = rootRecord;
+  let currentRecord: NodeRecord<TNodeRecordPublic> | null = rootRecord;
 
-    iter.next();
+  iter.next();
 
-    while (currentRecord !== null) {
-      if (!currentRecord.visited) {
-        if (currentRecord.isShown) {
-          order.push(currentRecord.public.data.id);
-        }
-
-        let tempRecord: NodeRecord<TNodeRecordPublic> | null = currentRecord;
-
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition,no-constant-condition
-        while (true) {
-          const {value: child} = iter.next(
-            currentRecord.meta,
-          ) as TreeWalkerIteratorResult<TData, any, undefined>;
-
-          if (!child) {
-            break;
-          }
-
-          const childRecord = createRecord(child, state, currentRecord);
-          records.set(childRecord.public.data.id, childRecord);
-
-          if (tempRecord === currentRecord) {
-            tempRecord.child = childRecord;
-          } else {
-            tempRecord.sibling = childRecord;
-          }
-
-          tempRecord = childRecord;
-        }
-
-        currentRecord = visitRecord(currentRecord);
-      } else {
-        currentRecord = revisitRecord(currentRecord);
+  while (currentRecord !== null) {
+    if (!currentRecord.visited) {
+      if (currentRecord.isShown) {
+        order.push(currentRecord.public.data.id);
       }
-    }
 
-    return {
-      order,
-      records,
-    };
+      let tempRecord: NodeRecord<TNodeRecordPublic> | null = currentRecord;
+
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition,no-constant-condition
+      while (true) {
+        const {value: child} = iter.next(
+          currentRecord.meta,
+        ) as TreeWalkerIteratorResult<TData, any, undefined>;
+
+        if (!child) {
+          break;
+        }
+
+        const childRecord = createRecord(child, state, currentRecord);
+        records.set(childRecord.public.data.id, childRecord);
+
+        if (tempRecord === currentRecord) {
+          tempRecord.child = childRecord;
+        } else {
+          tempRecord.sibling = childRecord;
+        }
+
+        tempRecord = childRecord;
+      }
+
+      currentRecord = visitRecord(currentRecord);
+    } else {
+      currentRecord = revisitRecord(currentRecord);
+    }
   }
 
-  // If we need to perform only the update, treeWalker won't be used. It will
-  // work internally, traversing only the subtree of elements that require
-  // update through the opennessState option.
-  const {order, records} = state;
+  return {
+    order,
+    records,
+  };
+};
+
+// If we need to perform only the update, treeWalker won't be used. Update will
+// work internally, traversing only the subtree of elements that require
+// update through the opennessState option.
+const updateExistingTree = <
+  TNodeComponentProps extends NodeComponentProps<TData>,
+  TNodeRecordPublic extends NodeRecordPublic<TData>,
+  TOpennessStateOptions extends OpennessStateOptions,
+  TData extends NodeData,
+  TProps extends TreeProps<TNodeComponentProps, TData>,
+  TState extends TreeState<
+    TNodeComponentProps,
+    TNodeRecordPublic,
+    TOpennessStateOptions,
+    TData
+  >
+>(
+  {
+    updateRecord,
+  }: TreeCreatorOptions<
+    TNodeComponentProps,
+    TNodeRecordPublic,
+    TOpennessStateOptions,
+    TData,
+    TState
+  >,
+  {order, records}: TState,
+  {opennessState}: TreeComputerOptions<TOpennessStateOptions>,
+): ReturnType<
+  TreeComputer<
+    TNodeComponentProps,
+    TNodeRecordPublic,
+    TOpennessStateOptions,
+    TData,
+    TProps,
+    TState
+  >
+> => {
+  if (typeof opennessState !== 'object') {
+    return null;
+  }
 
   for (const id in opennessState) {
     if (!records.has(id)) {
@@ -379,6 +421,52 @@ export const createTreeComputer = <
     updateRequest: {},
   };
 };
+
+export const createTreeComputer = <
+  TNodeComponentProps extends NodeComponentProps<TData>,
+  TNodeRecordPublic extends NodeRecordPublic<TData>,
+  TOpennessStateOptions extends OpennessStateOptions,
+  TData extends NodeData,
+  TProps extends TreeProps<TNodeComponentProps, TData>,
+  TState extends TreeState<
+    TNodeComponentProps,
+    TNodeRecordPublic,
+    TOpennessStateOptions,
+    TData
+  >
+>(
+  creatorOptions: TreeCreatorOptions<
+    TNodeComponentProps,
+    TNodeRecordPublic,
+    TOpennessStateOptions,
+    TData,
+    TState
+  >,
+): TreeComputer<
+  TNodeComponentProps,
+  TNodeRecordPublic,
+  TOpennessStateOptions,
+  TData,
+  TProps,
+  TState
+> => (props, state, options) =>
+  options.refresh
+    ? generateNewTree<
+        TNodeComponentProps,
+        TNodeRecordPublic,
+        TOpennessStateOptions,
+        TData,
+        TProps,
+        TState
+      >(creatorOptions, props, state)
+    : updateExistingTree<
+        TNodeComponentProps,
+        TNodeRecordPublic,
+        TOpennessStateOptions,
+        TData,
+        TProps,
+        TState
+      >(creatorOptions, state, options);
 
 class Tree<
   TNodeComponentProps extends NodeComponentProps<TData>,

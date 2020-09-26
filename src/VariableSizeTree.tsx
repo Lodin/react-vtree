@@ -91,7 +91,7 @@ const computeTree = createTreeComputer<
     return record;
   },
   updateRecord: (record, id, options) => {
-    if (record.public.data.id === id && options.useDefaultHeight) {
+    if (options.useDefaultHeight) {
       record.public.height = record.public.data.defaultHeight;
     }
 
