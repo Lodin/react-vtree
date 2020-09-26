@@ -22,6 +22,7 @@
     "__stories__/**/*",
     "__tests__/**/*",
     "config",
+    "jest.config.js",
     "src/**/*",
     "src2/**/*"
   ],
