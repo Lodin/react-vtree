@@ -2,30 +2,20 @@ import React, {ReactNode} from 'react';
 import {VariableSizeList, VariableSizeListProps} from 'react-window';
 import Tree, {
   createTreeComputer,
-  NodeComponentProps,
   NodeData,
   NodeRecord,
   TreeProps,
   TreeState,
   NodeRecordPublic,
-  OpennessStateOptions,
   OpennessState,
 } from './Tree';
-import {createRecord, updateRecord} from './utils';
+import {createRecord} from './utils';
 
 export type VariableSizeNodeData = Readonly<{
   /** Default node height. Can be used only with VariableSizeTree */
   defaultHeight: number;
 }> &
   NodeData;
-
-export type VariableSizeNodeComponentProps<
-  T extends VariableSizeNodeData
-> = NodeComponentProps<T> &
-  Readonly<{
-    height: number;
-    resize: (height: number, shouldForceUpdate?: boolean) => void;
-  }>;
 
 export type VariableSizeNodeRecordPublic<
   T extends VariableSizeNodeData
@@ -34,34 +24,24 @@ export type VariableSizeNodeRecordPublic<
   readonly resize: (height: number, shouldForceUpdate?: boolean) => void;
 };
 
-export type VariableSizeOpennessStateOptions = OpennessStateOptions &
-  Readonly<{
-    useDefaultHeight?: boolean;
-  }>;
-
-export type VariableSizeTreeProps<T extends VariableSizeNodeData> = TreeProps<
-  VariableSizeNodeComponentProps<T>,
-  T
-> &
+export type VariableSizeTreeProps<
+  TData extends VariableSizeNodeData
+> = TreeProps<TData, VariableSizeNodeRecordPublic<TData>> &
   Readonly<{
     itemSize?: VariableSizeListProps['itemSize'];
   }>;
 
 export type VariableSizeTreeState<T extends VariableSizeNodeData> = TreeState<
-  VariableSizeNodeComponentProps<T>,
-  VariableSizeNodeRecordPublic<T>,
-  VariableSizeOpennessStateOptions,
-  T
+  T,
+  VariableSizeNodeRecordPublic<T>
 > &
   Readonly<{
     resetAfterId: (id: string | symbol, shouldForceUpdate?: boolean) => void;
   }>;
 
 const computeTree = createTreeComputer<
-  VariableSizeNodeComponentProps<VariableSizeNodeData>,
-  VariableSizeNodeRecordPublic<VariableSizeNodeData>,
-  VariableSizeOpennessStateOptions,
   VariableSizeNodeData,
+  VariableSizeNodeRecordPublic<VariableSizeNodeData>,
   VariableSizeTreeProps<VariableSizeNodeData>,
   VariableSizeTreeState<VariableSizeNodeData>
 >({
@@ -83,32 +63,22 @@ const computeTree = createTreeComputer<
         recomputeTree({
           [data.id]: {
             open: !record.public.isOpen,
-            useDefaultHeight: true,
           },
         }),
     });
 
     return record;
   },
-  updateRecord: (record, id, options) => {
-    if (options.useDefaultHeight) {
-      record.public.height = record.public.data.defaultHeight;
-    }
-
-    updateRecord(record, id, options);
-  },
 });
 
-export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
-  VariableSizeNodeComponentProps<T>,
-  VariableSizeNodeRecordPublic<T>,
-  VariableSizeOpennessStateOptions,
-  T,
-  VariableSizeTreeProps<T>,
-  VariableSizeTreeState<T>,
+export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
+  TData,
+  VariableSizeNodeRecordPublic<TData>,
+  VariableSizeTreeProps<TData>,
+  VariableSizeTreeState<TData>,
   VariableSizeList
 > {
-  public constructor(props: VariableSizeTreeProps<T>, context: any) {
+  public constructor(props: VariableSizeTreeProps<TData>, context: any) {
     super(props, context);
     this.getItemSize = this.getItemSize.bind(this);
     this.state = {
@@ -129,7 +99,7 @@ export class VariableSizeTree<T extends VariableSizeNodeData> extends Tree<
   }
 
   public recomputeTree(
-    options: OpennessState<VariableSizeOpennessStateOptions>,
+    options: OpennessState<TData, VariableSizeNodeRecordPublic<TData>>,
   ): Promise<void> {
     return super.recomputeTree(options).then(() => {
       this.list.current?.resetAfterIndex(0, true);

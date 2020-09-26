@@ -6,10 +6,11 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   TreeWalker,
   TreeWalkerYieldingValue,
-  VariableSizeNodeComponentProps,
   VariableSizeNodeData,
+  VariableSizeNodeRecordPublic,
   VariableSizeTree,
 } from '../src';
+import {NodeComponentProps} from '../src/Tree';
 
 document.body.style.margin = '0';
 document.body.style.display = 'flex';
@@ -63,7 +64,10 @@ const rootNode = createNode();
 const defaultGapStyle = {marginLeft: 10};
 const defaultButtonStyle = {fontFamily: 'Courier New'};
 
-const Node: FC<VariableSizeNodeComponentProps<ExtendedData>> = ({
+const Node: FC<NodeComponentProps<
+  ExtendedData,
+  VariableSizeNodeRecordPublic<ExtendedData>
+>> = ({
   height,
   data: {isLeaf, name, nestingLevel},
   isOpen,

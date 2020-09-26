@@ -4,12 +4,13 @@ import {storiesOf} from '@storybook/react';
 import React, {FC} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
-  FixedSizeNodeComponentProps,
   FixedSizeNodeData,
+  FixedSizeNodeRecordPublic,
   FixedSizeTree,
   TreeWalker,
   TreeWalkerYieldingValue,
 } from '../src';
+import {NodeComponentProps} from '../src/Tree';
 
 document.body.style.margin = '0';
 document.body.style.display = 'flex';
@@ -94,12 +95,10 @@ function* treeWalker(): ReturnType<TreeWalker<TreeData, NodeMeta>> {
   }
 }
 
-const Node: FC<FixedSizeNodeComponentProps<TreeData>> = ({
-  data: {isLeaf, name, nestingLevel},
-  isOpen,
-  style,
-  toggle,
-}) => (
+const Node: FC<NodeComponentProps<
+  TreeData,
+  FixedSizeNodeRecordPublic<TreeData>
+>> = ({data: {isLeaf, name, nestingLevel}, isOpen, style, toggle}) => (
   <div
     style={{
       ...style,

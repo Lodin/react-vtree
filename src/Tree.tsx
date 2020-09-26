@@ -43,13 +43,19 @@ export type TreeWalkerYieldingValue<
   meta: TMeta;
 }>;
 
-export type OpennessStateOptions = Readonly<{
+export type OpennessStateOptions<
+  TData extends NodeData,
+  TNodeRecordPublic extends NodeRecordPublic<TData>
+> = Readonly<{
   open: boolean;
-  useDefaultOpenness?: boolean;
+  subtreeCallback?: (
+    node: TNodeRecordPublic,
+    rootNode: TNodeRecordPublic,
+  ) => void;
 }>;
 
-export type NodeRecordPublic<T extends NodeData> = Readonly<{
-  data: T;
+export type NodeRecordPublic<TData extends NodeData> = Readonly<{
+  data: TData;
   toggle: () => Promise<void>;
 }> & {
   isOpen: boolean;
@@ -68,61 +74,48 @@ export type NodeRecord<
   visited: boolean;
 };
 
-export type NodeComponentProps<TData extends NodeData> = Readonly<
-  Omit<ListChildComponentProps, 'data' | 'index'>
-> &
-  Pick<NodeRecordPublic<TData>, 'data' | 'isOpen' | 'toggle'> &
-  Readonly<{
-    treeData?: any;
-  }>;
+export type NodeComponentProps<
+  TData extends NodeData,
+  TNodeRecordPublic extends NodeRecordPublic<TData>
+> = Readonly<
+  Omit<ListChildComponentProps, 'data' | 'index'> &
+    TNodeRecordPublic & {
+      treeData?: any;
+    }
+>;
 
 export type TreeWalker<TData extends NodeData, TMeta = any> = () => Generator<
   TreeWalkerYieldingValue<TData, TMeta> | undefined,
-  void,
+  undefined,
   TMeta
 >;
 
-export type TreeWalkerIteratorResult<
+export type OpennessState<
   TData extends NodeData,
-  TMeta = any,
-  TResult = never
-> = IteratorResult<
-  TreeWalkerYieldingValue<TData, TMeta> | TResult,
-  TreeWalkerYieldingValue<TData, TMeta> | TResult
->;
-
-export type OpennessState<T extends OpennessStateOptions> = Readonly<
-  Record<string, T | boolean>
+  TNodeRecordPublic extends NodeRecordPublic<TData>
+> = Readonly<
+  Record<string, OpennessStateOptions<TData, TNodeRecordPublic> | boolean>
 >;
 
 export type TreeProps<
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TData extends NodeData
+  TData extends NodeData,
+  TNodeRecordPublic extends NodeRecordPublic<TData>
 > = Readonly<Omit<ListProps, 'children' | 'itemCount'>> &
   Readonly<{
-    children: ComponentType<TNodeComponentProps>;
+    children: ComponentType<NodeComponentProps<TData, TNodeRecordPublic>>;
     rowComponent?: ComponentType<ListChildComponentProps>;
     treeWalker: TreeWalker<TData>;
   }>;
 
 export type TreeState<
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecordPublic extends NodeRecordPublic<TData>,
-  TOpennessStateOptions extends OpennessStateOptions,
-  TData extends NodeData
+  TData extends NodeData,
+  TNodeRecordPublic extends NodeRecordPublic<TData>
 > = Readonly<{
   order?: Array<string | symbol>;
-  computeTree: TreeComputer<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData,
-    any,
-    any
-  >;
+  computeTree: TreeComputer<any, any, any, any>;
   records: ReadonlyMap<string | symbol, NodeRecord<TNodeRecordPublic>>;
   recomputeTree: (
-    options: OpennessState<TOpennessStateOptions>,
+    options: OpennessState<TData, TNodeRecordPublic>,
   ) => Promise<void>;
   treeWalker: TreeWalker<TData>;
 
@@ -130,26 +123,35 @@ export type TreeState<
   updateRequest: object;
 }>;
 
-export type TypedListChildComponentData<TData extends NodeData> = Readonly<{
-  component: ComponentType<NodeComponentProps<TData>>;
-  getRecordData: (index: number) => NodeRecordPublic<TData>;
+export type TypedListChildComponentData<
+  TData extends NodeData,
+  TNodeRecordPublic extends NodeRecordPublic<TData>
+> = Readonly<{
+  component: ComponentType<NodeComponentProps<TData, TNodeRecordPublic>>;
+  getRecordData: (index: number) => TNodeRecordPublic;
   treeData: any;
 }>;
 
-export type TypedListChildComponentProps<TData extends NodeData> = Readonly<
+export type TypedListChildComponentProps<
+  TData extends NodeData,
+  TNodeRecordPublic extends NodeRecordPublic<TData>
+> = Readonly<
   Omit<ListChildComponentProps, 'data'> & {
-    data: TypedListChildComponentData<TData>;
+    data: TypedListChildComponentData<TData, TNodeRecordPublic>;
   }
 >;
 
 // eslint-disable-next-line @typescript-eslint/naming-convention,@typescript-eslint/prefer-readonly-parameter-types
-export const Row = <TData extends NodeData>({
+export const Row = <
+  TData extends NodeData,
+  TNodeRecordPublic extends NodeRecordPublic<TData>
+>({
   index,
   data: {component: Node, getRecordData, treeData},
   style,
   isScrolling,
 }: PropsWithChildren<
-  TypedListChildComponentProps<TData>
+  TypedListChildComponentProps<TData, TNodeRecordPublic>
 >): ReactElement | null => {
   const data = getRecordData(index);
 
@@ -164,50 +166,34 @@ export const Row = <TData extends NodeData>({
 };
 
 export type TreeCreatorOptions<
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecordPublic extends NodeRecordPublic<TData>,
-  TOpennessStateOptions extends OpennessStateOptions,
   TData extends NodeData,
-  TState extends TreeState<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData
-  >
+  TNodeRecordPublic extends NodeRecordPublic<TData>,
+  TState extends TreeState<TData, TNodeRecordPublic>
 > = Readonly<{
   createRecord: (
     value: TreeWalkerYieldingValue<TData>,
     state: TState,
     parent?: NodeRecord<TNodeRecordPublic> | null,
   ) => NodeRecord<TNodeRecordPublic>;
-  updateRecord: (
-    record: NodeRecord<TNodeRecordPublic>,
-    id: string | symbol,
-    options: TOpennessStateOptions,
-  ) => void;
 }>;
 
-export type TreeComputerOptions<T extends OpennessStateOptions> = Readonly<{
-  opennessState?: OpennessState<T>;
+export type TreeComputerOptions<
+  TData extends NodeData,
+  TNodeRecordPublic extends NodeRecordPublic<TData>
+> = Readonly<{
+  opennessState?: OpennessState<TData, TNodeRecordPublic>;
   refresh?: boolean;
 }>;
 
 export type TreeComputer<
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecordPublic extends NodeRecordPublic<TData>,
-  TOpennessStateOptions extends OpennessStateOptions,
   TData extends NodeData,
-  TProps extends TreeProps<TNodeComponentProps, TData>,
-  TState extends TreeState<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData
-  >
+  TNodeRecordPublic extends NodeRecordPublic<TData>,
+  TProps extends TreeProps<TData, TNodeRecordPublic>,
+  TState extends TreeState<TData, TNodeRecordPublic>
 > = (
   props: TProps,
   state: TState,
-  options: TreeComputerOptions<TOpennessStateOptions>,
+  options: TreeComputerOptions<TData, TNodeRecordPublic>,
 ) =>
   | (Pick<TState, 'order' | 'records'> & Partial<Pick<TState, 'updateRequest'>>)
   | null;
@@ -215,46 +201,22 @@ export type TreeComputer<
 // If refresh is required, we will run the TreeWalker. It will completely
 // update all requests and reset every state to default.
 const generateNewTree = <
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecordPublic extends NodeRecordPublic<TData>,
-  TOpennessStateOptions extends OpennessStateOptions,
   TData extends NodeData,
-  TProps extends TreeProps<TNodeComponentProps, TData>,
-  TState extends TreeState<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData
-  >
+  TNodeRecordPublic extends NodeRecordPublic<TData>,
+  TProps extends TreeProps<TData, TNodeRecordPublic>,
+  TState extends TreeState<TData, TNodeRecordPublic>
 >(
-  {
-    createRecord,
-  }: TreeCreatorOptions<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData,
-    TState
-  >,
+  {createRecord}: TreeCreatorOptions<TData, TNodeRecordPublic, TState>,
   {treeWalker}: TProps,
   state: TState,
-): ReturnType<
-  TreeComputer<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData,
-    TProps,
-    TState
-  >
-> => {
+): ReturnType<TreeComputer<TData, TNodeRecordPublic, TProps, TState>> => {
   const records = new Map<string | symbol, NodeRecord<TNodeRecordPublic>>();
   const iter = treeWalker();
-  const {value: root} = iter.next() as TreeWalkerIteratorResult<TData>;
+  const {value: root} = iter.next();
 
   // Each record has a link to a parent, the next sibling and the next child.
   // Having this info, we can perform a depth-first traverse.
-  const rootRecord = createRecord(root, state);
+  const rootRecord = createRecord(root!, state);
   records.set(rootRecord.public.data.id, rootRecord);
 
   const order: Array<string | symbol> = [];
@@ -273,9 +235,7 @@ const generateNewTree = <
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition,no-constant-condition
       while (true) {
-        const {value: child} = iter.next(
-          currentRecord.meta,
-        ) as TreeWalkerIteratorResult<TData, any, undefined>;
+        const {value: child} = iter.next(currentRecord.meta);
 
         if (!child) {
           break;
@@ -305,43 +265,37 @@ const generateNewTree = <
   };
 };
 
+const updateRecord = <
+  TData extends NodeData,
+  TNodeRecordPublic extends NodeRecordPublic<TData>
+>(
+  record: NodeRecord<TNodeRecordPublic>,
+  rootRecord: NodeRecord<TNodeRecordPublic>,
+  {
+    open,
+    subtreeCallback = noop,
+  }: OpennessStateOptions<TData, TNodeRecordPublic>,
+) => {
+  record.public.isOpen = record === rootRecord ? open : record.public.isOpen;
+
+  subtreeCallback(record.public, rootRecord.public);
+
+  const {parent} = record;
+  record.isShown = parent ? parent.public.isOpen && parent.isShown : true;
+};
+
 // If we need to perform only the update, treeWalker won't be used. Update will
 // work internally, traversing only the subtree of elements that require
 // update through the opennessState option.
 const updateExistingTree = <
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecordPublic extends NodeRecordPublic<TData>,
-  TOpennessStateOptions extends OpennessStateOptions,
   TData extends NodeData,
-  TProps extends TreeProps<TNodeComponentProps, TData>,
-  TState extends TreeState<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData
-  >
+  TNodeRecordPublic extends NodeRecordPublic<TData>,
+  TProps extends TreeProps<TData, TNodeRecordPublic>,
+  TState extends TreeState<TData, TNodeRecordPublic>
 >(
-  {
-    updateRecord,
-  }: TreeCreatorOptions<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData,
-    TState
-  >,
   {order, records}: TState,
-  {opennessState}: TreeComputerOptions<TOpennessStateOptions>,
-): ReturnType<
-  TreeComputer<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData,
-    TProps,
-    TState
-  >
-> => {
+  {opennessState}: TreeComputerOptions<TData, TNodeRecordPublic>,
+): ReturnType<TreeComputer<TData, TNodeRecordPublic, TProps, TState>> => {
   if (typeof opennessState !== 'object') {
     return null;
   }
@@ -355,10 +309,8 @@ const updateExistingTree = <
     const rootRecord = records.get(id)!;
 
     // Here we unify the shape of openness state options
-    const recordState =
-      typeof opts === 'boolean'
-        ? ({open: opts} as TOpennessStateOptions)
-        : opts;
+    const recordState: OpennessStateOptions<TData, TNodeRecordPublic> =
+      typeof opts === 'boolean' ? {open: opts} : opts;
 
     let update: (record: NodeRecord<TNodeRecordPublic>) => void = noop;
     let apply: () => void = noop;
@@ -397,7 +349,7 @@ const updateExistingTree = <
 
     while (currentRecord) {
       if (!currentRecord.visited) {
-        updateRecord(currentRecord, id, recordState);
+        updateRecord(currentRecord, rootRecord, recordState);
 
         if (currentRecord !== rootRecord) {
           update(currentRecord);
@@ -423,63 +375,26 @@ const updateExistingTree = <
 };
 
 export const createTreeComputer = <
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecordPublic extends NodeRecordPublic<TData>,
-  TOpennessStateOptions extends OpennessStateOptions,
   TData extends NodeData,
-  TProps extends TreeProps<TNodeComponentProps, TData>,
-  TState extends TreeState<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData
-  >
+  TNodeRecordPublic extends NodeRecordPublic<TData>,
+  TProps extends TreeProps<TData, TNodeRecordPublic>,
+  TState extends TreeState<TData, TNodeRecordPublic>
 >(
-  creatorOptions: TreeCreatorOptions<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData,
-    TState
-  >,
-): TreeComputer<
-  TNodeComponentProps,
-  TNodeRecordPublic,
-  TOpennessStateOptions,
-  TData,
-  TProps,
-  TState
-> => (props, state, options) =>
+  creatorOptions: TreeCreatorOptions<TData, TNodeRecordPublic, TState>,
+): TreeComputer<TData, TNodeRecordPublic, TProps, TState> => (
+  props,
+  state,
+  options,
+) =>
   options.refresh
-    ? generateNewTree<
-        TNodeComponentProps,
-        TNodeRecordPublic,
-        TOpennessStateOptions,
-        TData,
-        TProps,
-        TState
-      >(creatorOptions, props, state)
-    : updateExistingTree<
-        TNodeComponentProps,
-        TNodeRecordPublic,
-        TOpennessStateOptions,
-        TData,
-        TProps,
-        TState
-      >(creatorOptions, state, options);
+    ? generateNewTree(creatorOptions, props, state)
+    : updateExistingTree(state, options);
 
 class Tree<
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecordPublic extends NodeRecordPublic<TData>,
-  TOpennessStateOptions extends OpennessStateOptions,
   TData extends NodeData,
-  TProps extends TreeProps<TNodeComponentProps, TData>,
-  TState extends TreeState<
-    TNodeComponentProps,
-    TNodeRecordPublic,
-    TOpennessStateOptions,
-    TData
-  >,
+  TNodeRecordPublic extends NodeRecordPublic<TData>,
+  TProps extends TreeProps<TData, TNodeRecordPublic>,
+  TState extends TreeState<TData, TNodeRecordPublic>,
   TListComponent extends FixedSizeList | VariableSizeList
 > extends PureComponent<TProps, TState> {
   public static defaultProps: Partial<DefaultTreeProps> = {
@@ -511,7 +426,10 @@ class Tree<
     } as TState;
   }
 
-  protected getItemData(): TypedListChildComponentData<TData> {
+  protected getItemData(): TypedListChildComponentData<
+    TData,
+    TNodeRecordPublic
+  > {
     const {children: component, itemData: treeData} = this.props;
 
     return {
@@ -519,7 +437,7 @@ class Tree<
       // eslint-disable-next-line @typescript-eslint/unbound-method
       getRecordData: this.getRecordData,
       treeData,
-    } as TypedListChildComponentData<TData>;
+    };
   }
 
   protected getRecordData(index: number): TNodeRecordPublic {
@@ -529,7 +447,7 @@ class Tree<
   }
 
   public recomputeTree(
-    options: OpennessState<TOpennessStateOptions>,
+    options: OpennessState<TData, TNodeRecordPublic>,
   ): Promise<void> {
     return new Promise((resolve) => {
       this.setState<never>(
