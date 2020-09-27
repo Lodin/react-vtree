@@ -23,14 +23,13 @@ export const noop = (): void => {};
 export const identity = <T>(value: T): T => value;
 
 export const createRecord: DefaultTreeCreatorOptions['createRecord'] = (
-  {data, meta},
+  data,
   {recomputeTree},
   parent = null,
 ) => {
   const record = {
     child: null,
     isShown: parent ? parent.public.isOpen : true,
-    meta,
     parent,
     public: {
       data,

@@ -45,11 +45,10 @@ const computeTree = createTreeComputer<
   VariableSizeTreeProps<VariableSizeNodeData>,
   VariableSizeTreeState<VariableSizeNodeData>
 >({
-  createRecord: (value, state, parent) => {
-    const {data} = value;
+  createRecord: (data, state, parent) => {
     const {recomputeTree, resetAfterId} = state;
 
-    const record = createRecord(value, state, parent) as NodeRecord<
+    const record = createRecord(data, state, parent) as NodeRecord<
       VariableSizeNodeRecordPublic<VariableSizeNodeData>
     >;
 

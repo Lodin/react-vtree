@@ -64,7 +64,6 @@ export type NodeRecordPublic<TData extends NodeData> = Readonly<{
 export type NodeRecord<
   TNodeRecordPublic extends NodeRecordPublic<any>
 > = Readonly<{
-  meta: any;
   public: TNodeRecordPublic;
 }> & {
   child: NodeRecord<TNodeRecordPublic> | null;
@@ -171,7 +170,7 @@ export type TreeCreatorOptions<
   TState extends TreeState<TData, TNodeRecordPublic>
 > = Readonly<{
   createRecord: (
-    value: TreeWalkerYieldingValue<TData>,
+    data: TData,
     state: TState,
     parent?: NodeRecord<TNodeRecordPublic> | null,
   ) => NodeRecord<TNodeRecordPublic>;
@@ -211,13 +210,15 @@ const generateNewTree = <
   state: TState,
 ): ReturnType<TreeComputer<TData, TNodeRecordPublic, TProps, TState>> => {
   const records = new Map<string | symbol, NodeRecord<TNodeRecordPublic>>();
+  const recordsMeta = new WeakMap<NodeRecord<TNodeRecordPublic>>();
   const iter = treeWalker();
   const {value: root} = iter.next();
 
   // Each record has a link to a parent, the next sibling and the next child.
   // Having this info, we can perform a depth-first traverse.
-  const rootRecord = createRecord(root!, state);
+  const rootRecord = createRecord(root!.data, state);
   records.set(rootRecord.public.data.id, rootRecord);
+  recordsMeta.set(rootRecord, root!.meta);
 
   const order: Array<string | symbol> = [];
 
@@ -235,14 +236,15 @@ const generateNewTree = <
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition,no-constant-condition
       while (true) {
-        const {value: child} = iter.next(currentRecord.meta);
+        const {value: child} = iter.next(recordsMeta.get(currentRecord));
 
         if (!child) {
           break;
         }
 
-        const childRecord = createRecord(child, state, currentRecord);
+        const childRecord = createRecord(child.data, state, currentRecord);
         records.set(childRecord.public.data.id, childRecord);
+        recordsMeta.set(childRecord, child.meta);
 
         if (tempRecord === currentRecord) {
           tempRecord.child = childRecord;
