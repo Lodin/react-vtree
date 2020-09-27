@@ -35,13 +35,9 @@ export type NodeData = Readonly<{
   isOpenByDefault: boolean;
 }>;
 
-export type TreeWalkerYieldingValue<
-  TData extends NodeData,
-  TMeta = any
-> = Readonly<{
-  data: TData;
-  meta: TMeta;
-}>;
+export type TreeWalkerValue<TData extends NodeData, TMeta = {}> = Readonly<
+  {data: TData} & TMeta
+>;
 
 export type OpennessStateOptions<
   TData extends NodeData,
@@ -83,10 +79,10 @@ export type NodeComponentProps<
     }
 >;
 
-export type TreeWalker<TData extends NodeData, TMeta = any> = () => Generator<
-  TreeWalkerYieldingValue<TData, TMeta> | undefined,
+export type TreeWalker<TData extends NodeData, TMeta = {}> = () => Generator<
+  TreeWalkerValue<TData, TMeta> | undefined,
   undefined,
-  TMeta
+  TreeWalkerValue<TData, TMeta>
 >;
 
 export type OpennessState<
@@ -210,15 +206,23 @@ const generateNewTree = <
   state: TState,
 ): ReturnType<TreeComputer<TData, TNodeRecordPublic, TProps, TState>> => {
   const records = new Map<string | symbol, NodeRecord<TNodeRecordPublic>>();
-  const recordsMeta = new WeakMap<NodeRecord<TNodeRecordPublic>>();
+
+  // This WeakMap will preserve iterations result; they will be used for sending
+  // the node info back to the treeWalker. Also, we have to preserve the whole
+  // iterator result to avoid unnecessary GC.
+  const meta = new WeakMap<
+    NodeRecord<TNodeRecordPublic>,
+    IteratorResult<TreeWalkerValue<TData> | undefined>
+  >();
+
   const iter = treeWalker();
-  const {value: root} = iter.next();
+  let iteration = iter.next();
 
   // Each record has a link to a parent, the next sibling and the next child.
   // Having this info, we can perform a depth-first traverse.
-  const rootRecord = createRecord(root!.data, state);
+  const rootRecord = createRecord(iteration.value!.data, state);
   records.set(rootRecord.public.data.id, rootRecord);
-  recordsMeta.set(rootRecord, root!.meta);
+  meta.set(rootRecord, iteration);
 
   const order: Array<string | symbol> = [];
 
@@ -236,15 +240,19 @@ const generateNewTree = <
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition,no-constant-condition
       while (true) {
-        const {value: child} = iter.next(recordsMeta.get(currentRecord));
+        iteration = iter.next(meta.get(currentRecord)!.value);
 
-        if (!child) {
+        if (!iteration.value) {
           break;
         }
 
-        const childRecord = createRecord(child.data, state, currentRecord);
+        const childRecord = createRecord(
+          iteration.value.data,
+          state,
+          currentRecord,
+        );
         records.set(childRecord.public.data.id, childRecord);
-        recordsMeta.set(childRecord, child.meta);
+        meta.set(childRecord, iteration);
 
         if (tempRecord === currentRecord) {
           tempRecord.child = childRecord;

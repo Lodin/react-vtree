@@ -8,7 +8,7 @@ import {
   FixedSizeNodeRecordPublic,
   FixedSizeTree,
   TreeWalker,
-  TreeWalkerYieldingValue,
+  TreeWalkerValue,
 } from '../src';
 import {NodeComponentProps} from '../src/Tree';
 
@@ -67,7 +67,7 @@ type NodeMeta = Readonly<{
 const getNodeData = (
   node: TreeNode,
   nestingLevel: number,
-): TreeWalkerYieldingValue<TreeData, NodeMeta> => ({
+): TreeWalkerValue<TreeData, NodeMeta> => ({
   data: {
     id: node.id.toString(),
     isLeaf: node.children.length === 0,
@@ -75,7 +75,8 @@ const getNodeData = (
     name: node.name,
     nestingLevel,
   },
-  meta: {nestingLevel, node},
+  nestingLevel,
+  node,
 });
 
 function* treeWalker(): ReturnType<TreeWalker<TreeData, NodeMeta>> {

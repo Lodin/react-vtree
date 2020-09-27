@@ -4,7 +4,7 @@ import {VariableSizeList} from 'react-window';
 import {
   Row,
   TreeWalker,
-  TreeWalkerYieldingValue,
+  TreeWalkerValue,
   VariableSizeNodeData,
   VariableSizeNodeRecordPublic,
   VariableSizeTree,
@@ -50,7 +50,7 @@ describe('VariableSizeTree', () => {
   const getNodeData = (
     node: TreeNode,
     nestingLevel: number,
-  ): TreeWalkerYieldingValue<ExtendedData, NodeMeta> => ({
+  ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
     data: {
       defaultHeight,
       id: node.id.toString(),
@@ -58,7 +58,8 @@ describe('VariableSizeTree', () => {
       name: node.name,
       nestingLevel,
     },
-    meta: {nestingLevel, node},
+    nestingLevel,
+    node,
   });
 
   function* treeWalker(): ReturnType<TreeWalker<ExtendedData, NodeMeta>> {

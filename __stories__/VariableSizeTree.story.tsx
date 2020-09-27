@@ -5,7 +5,7 @@ import React, {FC, useCallback, useEffect, useRef} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   TreeWalker,
-  TreeWalkerYieldingValue,
+  TreeWalkerValue,
   VariableSizeNodeData,
   VariableSizeNodeRecordPublic,
   VariableSizeTree,
@@ -119,7 +119,7 @@ const getNodeData = (
   node: TreeNode,
   nestingLevel: number,
   itemSize: number,
-): TreeWalkerYieldingValue<ExtendedData, NodeMeta> => ({
+): TreeWalkerValue<ExtendedData, NodeMeta> => ({
   data: {
     defaultHeight: itemSize,
     id: node.id.toString(),
@@ -128,7 +128,8 @@ const getNodeData = (
     name: node.name,
     nestingLevel,
   },
-  meta: {nestingLevel, node},
+  nestingLevel,
+  node,
 });
 
 const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {

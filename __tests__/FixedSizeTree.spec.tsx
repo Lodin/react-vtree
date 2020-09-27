@@ -9,7 +9,7 @@ import {
   FixedSizeTreeState,
   Row,
   TreeWalker,
-  TreeWalkerYieldingValue,
+  TreeWalkerValue,
 } from '../src';
 import {NodeComponentProps} from '../src/Tree';
 import {defaultTree, extractReceivedRecords} from './utils/misc';
@@ -49,14 +49,15 @@ describe('FixedSizeTree', () => {
   const getNodeData = (
     node: TreeNode,
     nestingLevel: number,
-  ): TreeWalkerYieldingValue<ExtendedData, NodeMeta> => ({
+  ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
     data: {
       id: node.id.toString(),
       isOpenByDefault,
       name: node.name,
       nestingLevel,
     },
-    meta: {nestingLevel, node},
+    nestingLevel,
+    node,
   });
 
   function* treeWalker(): ReturnType<TreeWalker<ExtendedData, NodeMeta>> {
