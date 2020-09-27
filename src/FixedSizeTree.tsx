@@ -7,7 +7,7 @@ import Tree, {
   TreeState,
   NodeRecordPublic,
 } from './Tree';
-import {createRecord} from './utils';
+import {createBasicRecord} from './utils';
 
 export type FixedSizeNodeData = NodeData;
 
@@ -32,7 +32,21 @@ const computeTree = createTreeComputer<
   FixedSizeTreeProps<FixedSizeNodeData>,
   FixedSizeTreeState<FixedSizeNodeData>
 >({
-  createRecord,
+  createRecord(data, {recomputeTree}, parent) {
+    const record = createBasicRecord(
+      {
+        data,
+        isOpen: data.isOpenByDefault,
+        toggle: (): Promise<void> =>
+          recomputeTree({
+            [data.id]: !record.public.isOpen,
+          }),
+      },
+      parent,
+    );
+
+    return record;
+  },
 });
 
 export class FixedSizeTree<

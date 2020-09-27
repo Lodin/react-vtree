@@ -3,13 +3,12 @@ import {VariableSizeList, VariableSizeListProps} from 'react-window';
 import Tree, {
   createTreeComputer,
   NodeData,
-  NodeRecord,
-  TreeProps,
-  TreeState,
   NodeRecordPublic,
   OpennessState,
+  TreeProps,
+  TreeState,
 } from './Tree';
-import {createRecord} from './utils';
+import {createBasicRecord} from './utils';
 
 export type VariableSizeNodeData = Readonly<{
   /** Default node height. Can be used only with VariableSizeTree */
@@ -45,26 +44,23 @@ const computeTree = createTreeComputer<
   VariableSizeTreeProps<VariableSizeNodeData>,
   VariableSizeTreeState<VariableSizeNodeData>
 >({
-  createRecord: (data, state, parent) => {
-    const {recomputeTree, resetAfterId} = state;
-
-    const record = createRecord(data, state, parent) as NodeRecord<
-      VariableSizeNodeRecordPublic<VariableSizeNodeData>
-    >;
-
-    Object.assign(record.public, {
-      height: data.defaultHeight,
-      resize(height: number, shouldForceUpdate?: boolean): void {
-        record.public.height = height;
-        resetAfterId(record.public.data.id, shouldForceUpdate);
+  createRecord: (data, {recomputeTree, resetAfterId}, parent) => {
+    const record = createBasicRecord(
+      {
+        data,
+        height: data.defaultHeight,
+        isOpen: data.isOpenByDefault,
+        resize: (height: number, shouldForceUpdate?: boolean): void => {
+          record.public.height = height;
+          resetAfterId(record.public.data.id, shouldForceUpdate);
+        },
+        toggle: (): Promise<void> =>
+          recomputeTree({
+            [data.id]: !record.public.isOpen,
+          }),
       },
-      toggle: (): Promise<void> =>
-        recomputeTree({
-          [data.id]: {
-            open: !record.public.isOpen,
-          },
-        }),
-    });
+      parent,
+    );
 
     return record;
   },

@@ -12,13 +12,7 @@ import {
   ListProps,
   VariableSizeList,
 } from 'react-window';
-import {
-  DefaultTreeProps,
-  DefaultTreeState,
-  noop,
-  revisitRecord,
-  visitRecord,
-} from './utils';
+import {DefaultTreeProps, DefaultTreeState, noop} from './utils';
 
 export type NodeData = Readonly<{
   /**
@@ -207,22 +201,19 @@ const generateNewTree = <
 ): ReturnType<TreeComputer<TData, TNodeRecordPublic, TProps, TState>> => {
   const records = new Map<string | symbol, NodeRecord<TNodeRecordPublic>>();
 
-  // This WeakMap will preserve iterations result; they will be used for sending
-  // the node info back to the treeWalker. Also, we have to preserve the whole
-  // iterator result to avoid unnecessary GC.
   const meta = new WeakMap<
     NodeRecord<TNodeRecordPublic>,
-    IteratorResult<TreeWalkerValue<TData> | undefined>
+    TreeWalkerValue<TData>
   >();
 
   const iter = treeWalker();
-  let iteration = iter.next();
+  const {value: root} = iter.next();
 
   // Each record has a link to a parent, the next sibling and the next child.
   // Having this info, we can perform a depth-first traverse.
-  const rootRecord = createRecord(iteration.value!.data, state);
+  const rootRecord = createRecord(root!.data, state);
   records.set(rootRecord.public.data.id, rootRecord);
-  meta.set(rootRecord, iteration);
+  meta.set(rootRecord, root!);
 
   const order: Array<string | symbol> = [];
 
@@ -240,19 +231,16 @@ const generateNewTree = <
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition,no-constant-condition
       while (true) {
-        iteration = iter.next(meta.get(currentRecord)!.value);
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        const {value: child} = iter.next(meta.get(currentRecord)!);
 
-        if (!iteration.value) {
+        if (!child) {
           break;
         }
 
-        const childRecord = createRecord(
-          iteration.value.data,
-          state,
-          currentRecord,
-        );
+        const childRecord = createRecord(child.data, state, currentRecord);
         records.set(childRecord.public.data.id, childRecord);
-        meta.set(childRecord, iteration);
+        meta.set(childRecord, child);
 
         if (tempRecord === currentRecord) {
           tempRecord.child = childRecord;
@@ -263,9 +251,12 @@ const generateNewTree = <
         tempRecord = childRecord;
       }
 
-      currentRecord = visitRecord(currentRecord);
+      currentRecord.visited = !!currentRecord.child;
+      currentRecord =
+        currentRecord.child ?? currentRecord.sibling ?? currentRecord.parent;
     } else {
-      currentRecord = revisitRecord(currentRecord);
+      currentRecord.visited = false;
+      currentRecord = currentRecord.sibling ?? currentRecord.parent;
     }
   }
 
@@ -365,12 +356,15 @@ const updateExistingTree = <
           update(currentRecord);
         }
 
-        currentRecord = visitRecord(currentRecord);
-      } else if (currentRecord !== rootRecord) {
-        currentRecord = revisitRecord(currentRecord);
+        currentRecord.visited = !!currentRecord.child;
+        currentRecord =
+          currentRecord.child ?? currentRecord.sibling ?? currentRecord.parent;
       } else {
-        revisitRecord(currentRecord);
-        currentRecord = null;
+        currentRecord.visited = false;
+        currentRecord =
+          currentRecord === rootRecord
+            ? null
+            : currentRecord.sibling ?? currentRecord.parent;
       }
     }
 
