@@ -5,7 +5,7 @@ import React, {FC} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   FixedSizeNodeData,
-  FixedSizeNodeRecordPublic,
+  FixedSizeNodePublicState,
   FixedSizeTree,
   TreeWalker,
   TreeWalkerValue,
@@ -98,7 +98,7 @@ function* treeWalker(): ReturnType<TreeWalker<TreeData, NodeMeta>> {
 
 const Node: FC<NodeComponentProps<
   TreeData,
-  FixedSizeNodeRecordPublic<TreeData>
+  FixedSizeNodePublicState<TreeData>
 >> = ({data: {isLeaf, name, nestingLevel}, isOpen, style, toggle}) => (
   <div
     style={{

@@ -7,7 +7,7 @@ import {
   TreeWalker,
   TreeWalkerValue,
   VariableSizeNodeData,
-  VariableSizeNodeRecordPublic,
+  VariableSizeNodePublicState,
   VariableSizeTree,
 } from '../src';
 import {NodeComponentProps} from '../src/Tree';
@@ -66,7 +66,7 @@ const defaultButtonStyle = {fontFamily: 'Courier New'};
 
 const Node: FC<NodeComponentProps<
   ExtendedData,
-  VariableSizeNodeRecordPublic<ExtendedData>
+  VariableSizeNodePublicState<ExtendedData>
 >> = ({
   height,
   data: {isLeaf, name, nestingLevel},

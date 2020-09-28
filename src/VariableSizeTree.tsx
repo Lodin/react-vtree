@@ -3,7 +3,7 @@ import {VariableSizeList, VariableSizeListProps} from 'react-window';
 import Tree, {
   createTreeComputer,
   NodeData,
-  NodeRecordPublic,
+  NodePublicState,
   OpennessState,
   TreeProps,
   TreeState,
@@ -16,23 +16,23 @@ export type VariableSizeNodeData = Readonly<{
 }> &
   NodeData;
 
-export type VariableSizeNodeRecordPublic<
+export type VariableSizeNodePublicState<
   T extends VariableSizeNodeData
-> = NodeRecordPublic<T> & {
+> = NodePublicState<T> & {
   height: number;
   readonly resize: (height: number, shouldForceUpdate?: boolean) => void;
 };
 
 export type VariableSizeTreeProps<
   TData extends VariableSizeNodeData
-> = TreeProps<TData, VariableSizeNodeRecordPublic<TData>> &
+> = TreeProps<TData, VariableSizeNodePublicState<TData>> &
   Readonly<{
     itemSize?: VariableSizeListProps['itemSize'];
   }>;
 
 export type VariableSizeTreeState<T extends VariableSizeNodeData> = TreeState<
   T,
-  VariableSizeNodeRecordPublic<T>
+  VariableSizeNodePublicState<T>
 > &
   Readonly<{
     resetAfterId: (id: string | symbol, shouldForceUpdate?: boolean) => void;
@@ -40,7 +40,7 @@ export type VariableSizeTreeState<T extends VariableSizeNodeData> = TreeState<
 
 const computeTree = createTreeComputer<
   VariableSizeNodeData,
-  VariableSizeNodeRecordPublic<VariableSizeNodeData>,
+  VariableSizeNodePublicState<VariableSizeNodeData>,
   VariableSizeTreeProps<VariableSizeNodeData>,
   VariableSizeTreeState<VariableSizeNodeData>
 >({
@@ -68,7 +68,7 @@ const computeTree = createTreeComputer<
 
 export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
   TData,
-  VariableSizeNodeRecordPublic<TData>,
+  VariableSizeNodePublicState<TData>,
   VariableSizeTreeProps<TData>,
   VariableSizeTreeState<TData>,
   VariableSizeList
@@ -94,9 +94,9 @@ export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
   }
 
   public recomputeTree(
-    options: OpennessState<TData, VariableSizeNodeRecordPublic<TData>>,
+    state: OpennessState<TData, VariableSizeNodePublicState<TData>>,
   ): Promise<void> {
-    return super.recomputeTree(options).then(() => {
+    return super.recomputeTree(state).then(() => {
       this.list.current?.resetAfterIndex(0, true);
     });
   }

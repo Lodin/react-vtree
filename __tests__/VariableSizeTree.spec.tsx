@@ -6,7 +6,7 @@ import {
   TreeWalker,
   TreeWalkerValue,
   VariableSizeNodeData,
-  VariableSizeNodeRecordPublic,
+  VariableSizeNodePublicState,
   VariableSizeTree,
   VariableSizeTreeProps,
   VariableSizeTreeState,
@@ -34,7 +34,7 @@ type ExtendedData = VariableSizeNodeData &
 describe('VariableSizeTree', () => {
   const Node: FC<NodeComponentProps<
     ExtendedData,
-    VariableSizeNodeRecordPublic<ExtendedData>
+    VariableSizeNodePublicState<ExtendedData>
   >> = () => null;
 
   let component: ReactWrapper<
@@ -470,7 +470,7 @@ describe('VariableSizeTree', () => {
         .instance() as VariableSizeList;
 
       const resetAfterIndexSpy = jest.spyOn(listInstance, 'resetAfterIndex');
-      const [, , foo3]: ReadonlyArray<VariableSizeNodeRecordPublic<
+      const [, , foo3]: ReadonlyArray<VariableSizeNodePublicState<
         ExtendedData
       >> = extractReceivedRecords(component.find(VariableSizeList));
 

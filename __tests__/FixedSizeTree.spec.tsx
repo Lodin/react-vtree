@@ -3,7 +3,7 @@ import React, {FC} from 'react';
 import {FixedSizeList} from 'react-window';
 import {
   FixedSizeNodeData,
-  FixedSizeNodeRecordPublic,
+  FixedSizeNodePublicState,
   FixedSizeTree,
   FixedSizeTreeProps,
   FixedSizeTreeState,
@@ -34,7 +34,7 @@ type ExtendedData = FixedSizeNodeData &
 describe('FixedSizeTree', () => {
   const Node: FC<NodeComponentProps<
     ExtendedData,
-    FixedSizeNodeRecordPublic<ExtendedData>
+    FixedSizeNodePublicState<ExtendedData>
   >> = () => null;
 
   let component: ReactWrapper<

@@ -5,30 +5,30 @@ import Tree, {
   NodeData,
   TreeProps,
   TreeState,
-  NodeRecordPublic,
+  NodePublicState,
 } from './Tree';
 import {createBasicRecord} from './utils';
 
 export type FixedSizeNodeData = NodeData;
 
-export type FixedSizeNodeRecordPublic<
+export type FixedSizeNodePublicState<
   TData extends FixedSizeNodeData
-> = NodeRecordPublic<TData>;
+> = NodePublicState<TData>;
 
 export type FixedSizeTreeProps<TData extends FixedSizeNodeData> = TreeProps<
   TData,
-  FixedSizeNodeRecordPublic<TData>
+  FixedSizeNodePublicState<TData>
 > &
   Readonly<Pick<FixedSizeListProps, 'itemSize'>>;
 
 export type FixedSizeTreeState<TData extends FixedSizeNodeData> = TreeState<
   TData,
-  FixedSizeNodeRecordPublic<TData>
+  FixedSizeNodePublicState<TData>
 >;
 
 const computeTree = createTreeComputer<
   FixedSizeNodeData,
-  FixedSizeNodeRecordPublic<FixedSizeNodeData>,
+  FixedSizeNodePublicState<FixedSizeNodeData>,
   FixedSizeTreeProps<FixedSizeNodeData>,
   FixedSizeTreeState<FixedSizeNodeData>
 >({
@@ -53,7 +53,7 @@ export class FixedSizeTree<
   TData extends FixedSizeNodeData = FixedSizeNodeData
 > extends Tree<
   TData,
-  FixedSizeNodeRecordPublic<TData>,
+  FixedSizeNodePublicState<TData>,
   FixedSizeTreeProps<TData>,
   FixedSizeTreeState<TData>,
   FixedSizeList

@@ -1,20 +1,20 @@
 import {ReactWrapper} from 'enzyme';
 import {
   NodeData,
-  NodeRecordPublic,
+  NodePublicState,
   TypedListChildComponentData,
 } from '../../src/Tree';
 
 export const extractReceivedRecords = <
   TListProps,
   TData extends NodeData,
-  TNodeRecordPublic extends NodeRecordPublic<TData>
+  TNodePublicState extends NodePublicState<TData>
 >(
   cmp: ReactWrapper<TListProps>,
-): readonly TNodeRecordPublic[] => {
+): readonly TNodePublicState[] => {
   const itemData: TypedListChildComponentData<
     TData,
-    TNodeRecordPublic
+    TNodePublicState
   > = cmp.prop('itemData');
 
   const itemCount: number = cmp.prop('itemCount');
