@@ -5,6 +5,7 @@ import {
   Row,
   VariableSizeNodeComponentProps,
   VariableSizeNodeData,
+  VariableSizeNodeRecord,
   VariableSizeTree,
   VariableSizeTreeProps,
   VariableSizeTreeState,
@@ -77,6 +78,17 @@ describe('VariableSizeTree', () => {
     }
   }
 
+  const mountComponent = (): typeof component =>
+    mount(
+      <VariableSizeTree<ExtendedData>
+        treeWalker={treeWalkerSpy}
+        height={500}
+        width={500}
+      >
+        {Node}
+      </VariableSizeTree>,
+    );
+
   beforeEach(() => {
     tree = {
       children: [
@@ -92,15 +104,7 @@ describe('VariableSizeTree', () => {
 
     treeWalkerSpy = jest.fn(treeWalker);
 
-    component = mount(
-      <VariableSizeTree<ExtendedData>
-        treeWalker={treeWalkerSpy}
-        height={500}
-        width={500}
-      >
-        {Node}
-      </VariableSizeTree>,
-    );
+    component = mountComponent();
   });
 
   it('renders a component', () => {
@@ -691,6 +695,33 @@ describe('VariableSizeTree', () => {
         expect(foo1!.isOpen).toBeTruthy();
         expect(foo2!.isOpen).toBeTruthy();
         expect(foo3!.isOpen).toBeTruthy();
+      });
+
+      it('opennessState works when node is created during update', async () => {
+        component.unmount();
+        isOpenByDefault = false;
+        component = mountComponent();
+        treeInstance = component.instance();
+
+        await treeInstance.recomputeTree({
+          opennessState: {
+            'foo-1': true,
+            'foo-2': true,
+            'foo-3': true,
+          },
+          refreshNodes: true,
+        });
+        component.update();
+
+        const {records} = component.find(VariableSizeList).prop('itemData') as {
+          records: Record<string, VariableSizeNodeRecord<ExtendedData>>;
+        };
+
+        expect(Object.keys(records).map((key) => records[key].isOpen)).toEqual([
+          true,
+          true,
+          true,
+        ]);
       });
     });
 

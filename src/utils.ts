@@ -32,11 +32,12 @@ export const identity = <T>(value: T): T => value;
 
 export const createRecord: DefaultTreeCreatorOptions['createRecord'] = (
   data,
+  {opennessState},
   {recomputeTree},
 ) => {
   const record = {
     data,
-    isOpen: data.isOpenByDefault,
+    isOpen: opennessState?.[data.id as string] ?? data.isOpenByDefault,
     toggle(): Promise<void> {
       record.isOpen = !record.isOpen;
 

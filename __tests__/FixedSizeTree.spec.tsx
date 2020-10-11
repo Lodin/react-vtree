@@ -4,6 +4,7 @@ import {FixedSizeList} from 'react-window';
 import {
   FixedSizeNodeComponentProps,
   FixedSizeNodeData,
+  FixedSizeNodeRecord,
   FixedSizeTree,
   FixedSizeTreeProps,
   FixedSizeTreeState,
@@ -75,6 +76,18 @@ describe('FixedSizeTree', () => {
     }
   }
 
+  const mountComponent = (): typeof component =>
+    mount(
+      <FixedSizeTree<ExtendedData>
+        itemSize={30}
+        treeWalker={treeWalkerSpy}
+        height={500}
+        width={500}
+      >
+        {Node}
+      </FixedSizeTree>,
+    );
+
   beforeEach(() => {
     tree = {
       children: [
@@ -89,16 +102,7 @@ describe('FixedSizeTree', () => {
 
     treeWalkerSpy = jest.fn(treeWalker);
 
-    component = mount(
-      <FixedSizeTree<ExtendedData>
-        itemSize={30}
-        treeWalker={treeWalkerSpy}
-        height={500}
-        width={500}
-      >
-        {Node}
-      </FixedSizeTree>,
-    );
+    component = mountComponent();
   });
 
   it('renders a component', () => {
@@ -478,6 +482,33 @@ describe('FixedSizeTree', () => {
         expect(foo1!.isOpen).toBeTruthy();
         expect(foo2!.isOpen).toBeTruthy();
         expect(foo3!.isOpen).toBeTruthy();
+      });
+
+      it('opennessState works when node is created during update', async () => {
+        component.unmount();
+        isOpenByDefault = false;
+        component = mountComponent();
+        treeInstance = component.instance();
+
+        await treeInstance.recomputeTree({
+          opennessState: {
+            'foo-1': true,
+            'foo-2': true,
+            'foo-3': true,
+          },
+          refreshNodes: true,
+        });
+        component.update();
+
+        const {records} = component.find(FixedSizeList).prop('itemData') as {
+          records: Record<string, FixedSizeNodeRecord<ExtendedData>>;
+        };
+
+        expect(Object.keys(records).map((key) => records[key].isOpen)).toEqual([
+          true,
+          true,
+          true,
+        ]);
       });
     });
 
