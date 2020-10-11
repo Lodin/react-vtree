@@ -130,7 +130,11 @@ export type TreeCreatorOptions<
     TData
   >
 > = Readonly<{
-  createRecord: (data: TData, state: TState) => TNodeRecord;
+  createRecord: (
+    data: TData,
+    options: TUpdateOptions,
+    state: TState,
+  ) => TNodeRecord;
   shouldUpdateRecords: (options: TUpdateOptions) => boolean;
   updateRecord: (
     record: TNodeRecord,
@@ -226,7 +230,7 @@ export const createTreeComputer = <
       const record = records[id as string];
 
       if (!record) {
-        records[id as string] = createRecord(value, state);
+        records[id as string] = createRecord(value, options, state);
       } else {
         record.data = value;
         updateRecordOnNewData(record, options);
