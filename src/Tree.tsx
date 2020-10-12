@@ -187,6 +187,11 @@ export type TreeComputer<
   | (Pick<TState, 'order' | 'records'> & Partial<Pick<TState, 'updateRequest'>>)
   | null;
 
+const ROOTS_STAGE = {};
+const TRANSITION_STAGE = {};
+const CHILDREN_STAGE = {};
+
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 // If refresh is required, we will run the TreeWalker. It will completely
 // update all requests and reset every state to default.
 const generateNewTree = <
@@ -218,15 +223,10 @@ const generateNewTree = <
   const order: Array<string | symbol> = [];
 
   let currentRecord: NodeRecord<TNodePublicState> | null = rootRecord;
-
-  iter.next();
+  let stage = ROOTS_STAGE;
 
   while (currentRecord !== null) {
     if (!currentRecord.visited) {
-      if (currentRecord.isShown) {
-        order.push(currentRecord.public.data.id);
-      }
-
       let tempRecord: NodeRecord<TNodePublicState> | null = currentRecord;
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition,no-constant-condition
@@ -234,15 +234,24 @@ const generateNewTree = <
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         const {value: child} = iter.next(meta.get(currentRecord)!);
 
-        if (!child) {
+        if (child === undefined) {
+          if (stage === ROOTS_STAGE) {
+            stage = TRANSITION_STAGE;
+          }
           break;
         }
 
-        const childRecord = createRecord(child.data, state, currentRecord);
+        const isChildrenStage = stage === CHILDREN_STAGE;
+
+        const childRecord = createRecord(
+          child.data,
+          state,
+          isChildrenStage ? currentRecord : undefined,
+        );
         records.set(childRecord.public.data.id, childRecord);
         meta.set(childRecord, child);
 
-        if (tempRecord === currentRecord) {
+        if (isChildrenStage && tempRecord === currentRecord) {
           tempRecord.child = childRecord;
         } else {
           tempRecord.sibling = childRecord;
@@ -251,12 +260,20 @@ const generateNewTree = <
         tempRecord = childRecord;
       }
 
-      currentRecord.visited = !!currentRecord.child;
-      currentRecord =
-        currentRecord.child ?? currentRecord.sibling ?? currentRecord.parent;
+      if (stage === CHILDREN_STAGE) {
+        if (currentRecord.isShown) {
+          order.push(currentRecord.public.data.id);
+        }
+
+        currentRecord.visited = currentRecord.child !== null;
+        currentRecord =
+          currentRecord.child || currentRecord.sibling || currentRecord.parent;
+      } else {
+        stage = CHILDREN_STAGE;
+      }
     } else {
       currentRecord.visited = false;
-      currentRecord = currentRecord.sibling ?? currentRecord.parent;
+      currentRecord = currentRecord.sibling || currentRecord.parent;
     }
   }
 
@@ -332,7 +349,7 @@ const updateExistingTree = <
 
     let currentRecord: NodeRecord<TNodePublicState> | null = ownerRecord;
 
-    while (currentRecord) {
+    while (currentRecord !== null) {
       if (!currentRecord.visited) {
         currentRecord.public.isOpen =
           currentRecord === ownerRecord ? open : currentRecord.public.isOpen;
@@ -350,13 +367,13 @@ const updateExistingTree = <
 
         currentRecord.visited = !!currentRecord.child;
         currentRecord =
-          currentRecord.child ?? currentRecord.sibling ?? currentRecord.parent;
+          currentRecord.child || currentRecord.sibling || currentRecord.parent;
       } else {
         currentRecord.visited = false;
         currentRecord =
           currentRecord === ownerRecord
             ? null
-            : currentRecord.sibling ?? currentRecord.parent;
+            : currentRecord.sibling || currentRecord.parent;
       }
     }
 
@@ -369,6 +386,7 @@ const updateExistingTree = <
     updateRequest: {},
   };
 };
+/* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
 
 export const createTreeComputer = <
   TData extends NodeData,
