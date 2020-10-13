@@ -283,6 +283,8 @@ const generateNewTree = <
   };
 };
 
+const MAX_FUNCTION_ARGUMENTS = 32768;
+
 // If we need to perform only the update, treeWalker won't be used. Update will
 // work internally, traversing only the subtree of elements that require
 // update through the opennessState option.
@@ -319,17 +321,41 @@ const updateExistingTree = <
 
     if (ownerRecord.isShown) {
       if (open && !ownerRecord.public.isOpen) {
-        const orderPart: Array<string | symbol> = [];
         const index = order!.indexOf(id);
+        const orderParts: Array<Array<number | string | symbol>> = [
+          [index + 1, 0],
+        ];
+        let orderPartsCursor = 0;
 
+        // Unfortunately, splice cannot work with big arrays. If array exceeds
+        // some length it may fire an exception. The length is specific for
+        // each engine; e.g., MDN says about 65536 for Webkit. So, to avoid this
+        // overflow, I split `order` parts to chunks by 32768 elements in each
+        // one. These chunks will be sent as arguments to the `splice` method.
+        //
+        // To avoid array concatenations which may cause Major GC, I set two
+        // first arguments as `splice`'s `start` and `deleteCount` arguments.
         update = (record: NodeRecord<TNodePublicState>) => {
           if (record.isShown) {
-            orderPart.push(record.public.data.id);
+            orderParts[orderPartsCursor].push(record.public.data.id);
+
+            if (
+              orderParts[orderPartsCursor].length === MAX_FUNCTION_ARGUMENTS
+            ) {
+              orderPartsCursor += 1;
+              orderParts.push([
+                index + 1 + orderPartsCursor * MAX_FUNCTION_ARGUMENTS,
+                0,
+              ]);
+            }
           }
         };
 
         apply = () => {
-          order!.splice(index + 1, 0, ...orderPart);
+          for (let i = 0; i < orderParts.length; i++) {
+            // @ts-expect-error: too generic for TS
+            order!.splice(...orderParts[i]);
+          }
         };
       } else if (!open && ownerRecord.public.isOpen) {
         const index = order!.indexOf(id);
