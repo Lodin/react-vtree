@@ -13,6 +13,7 @@
   },
   "rules": {
     "@typescript-eslint/promise-function-async": "off",
+    "@typescript-eslint/prefer-for-of": "off",
     "guard-for-in": "off"
   }
 }
