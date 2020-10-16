@@ -40,3 +40,42 @@ export const createBasicRecord = <
   sibling: null,
   visited: false,
 });
+
+export const visitRecord = <T extends NodeRecord<any>>(record: T): T | null => {
+  record.visited = record.child !== null;
+
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  return (record.child !== null
+    ? record.child
+    : record.sibling !== null
+    ? record.sibling
+    : record.parent) as T | null;
+};
+
+export const revisitRecord = <T extends NodeRecord<any>>(
+  record: T,
+): T | null => {
+  record.visited = false;
+
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  return (record.sibling !== null ? record.sibling : record.parent) as T | null;
+};
+
+export type RequestIdleCallbackHandle = any;
+
+export type RequestIdleCallbackOptions = {
+  timeout: number;
+};
+
+export type RequestIdleCallbackDeadline = {
+  readonly didTimeout: boolean;
+  timeRemaining: () => number;
+};
+
+declare global {
+  const requestIdleCallback: (
+    callback: (deadline: RequestIdleCallbackDeadline) => void,
+    opts?: RequestIdleCallbackOptions,
+  ) => RequestIdleCallbackHandle;
+  const cancelIdleCallback: (handle: RequestIdleCallbackHandle) => void;
+}

@@ -154,6 +154,18 @@ It receives the following props:
 - `Node`-specific props:
   - All fields of the [`FixedSizeNodePublicState`](#types) object.
   - `treeData: any` - any data provided via the `itemData` property of the `FixedSizeTree` component.
+  
+##### `buildingNode: ReactNode`
+
+This property receives any react node that will be displayed instead of a tree during the building process. This option should only be used if the tree building process requires too much time (which means you have a really giant amount of data, e.g. about a million nodes).
+
+Setting this option enables the [`requestIdleCallback`](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestIdleCallback) under the hood to avoid UI freezes.
+
+To see how it works, you can check the [BigData](./__stories__/BigData.story.tsx) story.
+
+##### `buildingTaskTimeout: number`
+
+This option works in tandem with the `buildingNode` option. With it, you can set the task timeout for the `requestIdleCallback`. The `buildingTaskTimeout` will be sent directly as the `requestIdleCallback`'s `timeout` option. 
 
 ##### `rowComponent: component`
 

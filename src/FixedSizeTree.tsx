@@ -68,12 +68,22 @@ export class FixedSizeTree<
   }
 
   public render(): ReactNode {
-    const {children, treeWalker, rowComponent, ...rest} = this.props;
+    const {
+      children,
+      buildingNode,
+      treeWalker,
+      rowComponent,
+      ...rest
+    } = this.props;
 
-    return (
+    const {order} = this.state;
+
+    return buildingNode && order!.length === 0 ? (
+      buildingNode
+    ) : (
       <FixedSizeList
         {...rest}
-        itemCount={this.state.order!.length}
+        itemCount={order!.length}
         itemData={this.getItemData()}
         ref={this.list}
       >

@@ -1,7 +1,7 @@
 /* eslint-disable max-depth */
 import {number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
-import React, {FC, useCallback, useEffect, useRef} from 'react';
+import React, {FC, useCallback, useRef} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   TreeWalker,
@@ -156,19 +156,12 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
     [itemSize],
   );
 
-  useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    tree.current?.recomputeTree({
-      refreshNodes: true,
-      useDefaultHeight: true,
-    });
-  }, [itemSize]);
-
   return (
     <AutoSizer disableWidth>
       {({height}) => (
         <VariableSizeTree
           ref={tree}
+          buildingNode="Building a tree..."
           itemData={itemSize}
           treeWalker={treeWalker}
           height={height}

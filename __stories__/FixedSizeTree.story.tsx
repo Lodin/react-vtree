@@ -123,22 +123,20 @@ type TreePresenterProps = Readonly<{
   itemSize: number;
 }>;
 
-const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
-  return (
-    <AutoSizer disableWidth>
-      {({height}) => (
-        <FixedSizeTree
-          treeWalker={treeWalker}
-          itemSize={itemSize}
-          height={height}
-          width="100%"
-        >
-          {Node}
-        </FixedSizeTree>
-      )}
-    </AutoSizer>
-  );
-};
+const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => (
+  <AutoSizer disableWidth>
+    {({height}) => (
+      <FixedSizeTree
+        treeWalker={treeWalker}
+        itemSize={itemSize}
+        height={height}
+        width="100%"
+      >
+        {Node}
+      </FixedSizeTree>
+    )}
+  </AutoSizer>
+);
 
 storiesOf('Tree', module)
   .addDecorator(withKnobs)

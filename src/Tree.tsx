@@ -4,6 +4,7 @@ import React, {
   PropsWithChildren,
   PureComponent,
   ReactElement,
+  ReactNode,
 } from 'react';
 import {
   Align,
@@ -12,7 +13,14 @@ import {
   ListProps,
   VariableSizeList,
 } from 'react-window';
-import {DefaultTreeProps, DefaultTreeState, noop} from './utils';
+import {
+  DefaultTreeProps,
+  DefaultTreeState,
+  noop,
+  RequestIdleCallbackDeadline,
+  revisitRecord,
+  visitRecord,
+} from './utils';
 
 export type NodeData = Readonly<{
   /**
@@ -92,6 +100,8 @@ export type TreeProps<
 > = Readonly<Omit<ListProps, 'children' | 'itemCount'>> &
   Readonly<{
     children: ComponentType<NodeComponentProps<TData, TNodePublicState>>;
+    buildingNode?: ReactNode;
+    buildingTaskTimeout?: number;
     rowComponent?: ComponentType<ListChildComponentProps>;
     treeWalker: TreeWalker<TData>;
   }>;
@@ -102,6 +112,7 @@ export type TreeState<
 > = Readonly<{
   order?: Array<string | symbol>;
   computeTree: TreeComputer<any, any, any, any>;
+  forceUpdate: () => void;
   records: ReadonlyMap<string | symbol, NodeRecord<TNodePublicState>>;
   recomputeTree: (
     options: OpennessState<TData, TNodePublicState>,
@@ -187,10 +198,6 @@ export type TreeComputer<
   | (Pick<TState, 'order' | 'records'> & Partial<Pick<TState, 'updateRequest'>>)
   | null;
 
-const ROOTS_STAGE = {};
-const TRANSITION_STAGE = {};
-const CHILDREN_STAGE = {};
-
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 // If refresh is required, we will run the TreeWalker. It will completely
 // update all requests and reset every state to default.
@@ -201,10 +208,14 @@ const generateNewTree = <
   TState extends TreeState<TData, TNodePublicState>
 >(
   {createRecord}: TreeCreatorOptions<TData, TNodePublicState, TState>,
-  {treeWalker}: TProps,
+  {buildingNode, buildingTaskTimeout, treeWalker}: TProps,
   state: TState,
 ): ReturnType<TreeComputer<TData, TNodePublicState, TProps, TState>> => {
+  const order: Array<string | symbol> = [];
   const records = new Map<string | symbol, NodeRecord<TNodePublicState>>();
+  const requestIdleCallbackOptions = buildingTaskTimeout
+    ? {timeout: buildingTaskTimeout}
+    : undefined;
 
   const meta = new WeakMap<
     NodeRecord<TNodePublicState>,
@@ -220,61 +231,72 @@ const generateNewTree = <
   records.set(rootRecord.public.data.id, rootRecord);
   meta.set(rootRecord, root!);
 
-  const order: Array<string | symbol> = [];
-
   let currentRecord: NodeRecord<TNodePublicState> | null = rootRecord;
-  let stage = ROOTS_STAGE;
+  let isTraversingRoot = true;
+  let tempRecord: NodeRecord<TNodePublicState> | null = rootRecord;
 
-  while (currentRecord !== null) {
-    if (!currentRecord.visited) {
-      let tempRecord: NodeRecord<TNodePublicState> | null = currentRecord;
+  const useIdleCallback =
+    buildingNode !== undefined && 'requestIdleCallback' in window;
+  const hasTime = useIdleCallback
+    ? (deadline: RequestIdleCallbackDeadline) => deadline.timeRemaining() > 0
+    : () => true;
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition,no-constant-condition
-      while (true) {
+  const task = (deadline?: RequestIdleCallbackDeadline) => {
+    while (currentRecord !== null) {
+      if (!hasTime(deadline!)) {
+        requestIdleCallback(task, requestIdleCallbackOptions);
+
+        return;
+      }
+
+      if (!currentRecord.visited) {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         const {value: child} = iter.next(meta.get(currentRecord)!);
 
         if (child === undefined) {
-          if (stage === ROOTS_STAGE) {
-            stage = TRANSITION_STAGE;
-          }
-          break;
-        }
+          if (isTraversingRoot) {
+            isTraversingRoot = false;
+          } else {
+            if (currentRecord.isShown) {
+              order.push(currentRecord.public.data.id);
+            }
 
-        const isChildrenStage = stage === CHILDREN_STAGE;
+            currentRecord = visitRecord(currentRecord);
+            tempRecord = currentRecord;
+          }
+          continue;
+        }
 
         const childRecord = createRecord(
           child.data,
           state,
-          isChildrenStage ? currentRecord : undefined,
+          isTraversingRoot ? undefined : currentRecord,
         );
         records.set(childRecord.public.data.id, childRecord);
         meta.set(childRecord, child);
 
-        if (isChildrenStage && tempRecord === currentRecord) {
+        if (!isTraversingRoot && tempRecord === currentRecord) {
           tempRecord.child = childRecord;
         } else {
-          tempRecord.sibling = childRecord;
+          tempRecord!.sibling = childRecord;
         }
 
         tempRecord = childRecord;
-      }
-
-      if (stage === CHILDREN_STAGE) {
-        if (currentRecord.isShown) {
-          order.push(currentRecord.public.data.id);
-        }
-
-        currentRecord.visited = currentRecord.child !== null;
-        currentRecord =
-          currentRecord.child || currentRecord.sibling || currentRecord.parent;
       } else {
-        stage = CHILDREN_STAGE;
+        currentRecord = revisitRecord(currentRecord);
+        tempRecord = currentRecord;
       }
-    } else {
-      currentRecord.visited = false;
-      currentRecord = currentRecord.sibling || currentRecord.parent;
     }
+
+    if (useIdleCallback) {
+      state.forceUpdate();
+    }
+  };
+
+  if (useIdleCallback) {
+    requestIdleCallback(task, requestIdleCallbackOptions);
+  } else {
+    task();
   }
 
   return {
@@ -391,9 +413,7 @@ const updateExistingTree = <
           update(currentRecord);
         }
 
-        currentRecord.visited = !!currentRecord.child;
-        currentRecord =
-          currentRecord.child || currentRecord.sibling || currentRecord.parent;
+        currentRecord = visitRecord(currentRecord);
       } else {
         currentRecord.visited = false;
         currentRecord =
@@ -461,6 +481,7 @@ class Tree<
     this.getRecordData = this.getRecordData.bind(this);
 
     this.state = {
+      forceUpdate: this.forceUpdate.bind(this),
       recomputeTree: this.recomputeTree.bind(this),
       treeWalker: props.treeWalker,
     } as TState;

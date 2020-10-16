@@ -102,12 +102,22 @@ export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
   }
 
   public render(): ReactNode {
-    const {children, itemSize, rowComponent, treeWalker, ...rest} = this.props;
+    const {
+      children,
+      buildingNode,
+      itemSize,
+      rowComponent,
+      treeWalker,
+      ...rest
+    } = this.props;
+    const {order} = this.state;
 
-    return (
+    return buildingNode && order!.length === 0 ? (
+      buildingNode
+    ) : (
       <VariableSizeList
         {...rest}
-        itemCount={this.state.order!.length}
+        itemCount={order!.length}
         itemData={this.getItemData()}
         // eslint-disable-next-line @typescript-eslint/unbound-method
         itemSize={itemSize ?? this.getItemSize}
