@@ -104,7 +104,7 @@ export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
   public render(): ReactNode {
     const {
       children,
-      buildingNode,
+      placeholder,
       itemSize,
       rowComponent,
       treeWalker,
@@ -112,8 +112,8 @@ export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
     } = this.props;
     const {order} = this.state;
 
-    return buildingNode && order!.length === 0 ? (
-      buildingNode
+    return placeholder && order!.length === 0 ? (
+      placeholder
     ) : (
       <VariableSizeList
         {...rest}

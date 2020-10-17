@@ -70,7 +70,7 @@ export class FixedSizeTree<
   public render(): ReactNode {
     const {
       children,
-      buildingNode,
+      placeholder,
       treeWalker,
       rowComponent,
       ...rest
@@ -78,8 +78,8 @@ export class FixedSizeTree<
 
     const {order} = this.state;
 
-    return buildingNode && order!.length === 0 ? (
-      buildingNode
+    return placeholder && order!.length === 0 ? (
+      placeholder
     ) : (
       <FixedSizeList
         {...rest}

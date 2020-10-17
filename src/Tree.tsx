@@ -99,9 +99,9 @@ export type TreeProps<
   TNodePublicState extends NodePublicState<TData>
 > = Readonly<Omit<ListProps, 'children' | 'itemCount'>> &
   Readonly<{
-    children: ComponentType<NodeComponentProps<TData, TNodePublicState>>;
-    buildingNode?: ReactNode;
     buildingTaskTimeout?: number;
+    children: ComponentType<NodeComponentProps<TData, TNodePublicState>>;
+    placeholder?: ReactNode;
     rowComponent?: ComponentType<ListChildComponentProps>;
     treeWalker: TreeWalker<TData>;
   }>;
@@ -208,7 +208,7 @@ const generateNewTree = <
   TState extends TreeState<TData, TNodePublicState>
 >(
   {createRecord}: TreeCreatorOptions<TData, TNodePublicState, TState>,
-  {buildingNode, buildingTaskTimeout, treeWalker}: TProps,
+  {placeholder, buildingTaskTimeout, treeWalker}: TProps,
   state: TState,
 ): ReturnType<TreeComputer<TData, TNodePublicState, TProps, TState>> => {
   const order: Array<string | symbol> = [];
@@ -236,7 +236,7 @@ const generateNewTree = <
   let tempRecord: NodeRecord<TNodePublicState> | null = rootRecord;
 
   const useIdleCallback =
-    buildingNode !== undefined && 'requestIdleCallback' in window;
+    placeholder !== undefined && 'requestIdleCallback' in window;
   const hasTime = useIdleCallback
     ? (deadline: RequestIdleCallbackDeadline) => deadline.timeRemaining() > 0
     : () => true;

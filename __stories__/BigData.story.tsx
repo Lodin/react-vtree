@@ -161,7 +161,7 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
       {({height}) => (
         <VariableSizeTree
           ref={tree}
-          buildingNode="Building a tree..."
+          placeholder="Building a tree..."
           itemData={itemSize}
           treeWalker={treeWalker}
           height={height}
