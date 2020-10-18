@@ -11,6 +11,31 @@ export type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
 };
 
+export type RequestIdleCallbackHandle = any;
+
+export type RequestIdleCallbackOptions = Readonly<{
+  timeout: number;
+}>;
+
+export type RequestIdleCallbackDeadline = Readonly<{
+  didTimeout: boolean;
+  timeRemaining: () => number;
+}>;
+
+declare global {
+  const requestIdleCallback: (
+    callback: (deadline: RequestIdleCallbackDeadline) => void,
+    opts?: RequestIdleCallbackOptions,
+  ) => RequestIdleCallbackHandle;
+  const cancelIdleCallback: (handle: RequestIdleCallbackHandle) => void;
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+  interface Window {
+    requestIdleCallback: typeof requestIdleCallback;
+    cancelIdleCallback: typeof cancelIdleCallback;
+  }
+}
+
 export type DefaultTreeProps = TreeProps<NodeData, NodePublicState<NodeData>>;
 
 export type DefaultTreeState = TreeState<NodeData, NodePublicState<NodeData>>;
@@ -60,22 +85,3 @@ export const revisitRecord = <T extends NodeRecord<any>>(
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   return (record.sibling !== null ? record.sibling : record.parent) as T | null;
 };
-
-export type RequestIdleCallbackHandle = any;
-
-export type RequestIdleCallbackOptions = {
-  timeout: number;
-};
-
-export type RequestIdleCallbackDeadline = {
-  readonly didTimeout: boolean;
-  timeRemaining: () => number;
-};
-
-declare global {
-  const requestIdleCallback: (
-    callback: (deadline: RequestIdleCallbackDeadline) => void,
-    opts?: RequestIdleCallbackOptions,
-  ) => RequestIdleCallbackHandle;
-  const cancelIdleCallback: (handle: RequestIdleCallbackHandle) => void;
-}

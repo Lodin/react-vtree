@@ -4,6 +4,7 @@ import {
   NodePublicState,
   TypedListChildComponentData,
 } from '../../src/Tree';
+import {RequestIdleCallbackDeadline} from '../../src/utils';
 
 export const extractReceivedRecords = <
   TListProps,
@@ -28,6 +29,32 @@ export const extractReceivedRecords = <
 
   return records;
 };
+
+export const mockRequestIdleCallback = (ms: number): (() => void) => {
+  const originalRIC = window.requestIdleCallback;
+
+  const deadline: RequestIdleCallbackDeadline = {
+    didTimeout: false,
+    timeRemaining: jest
+      .fn()
+      .mockReturnValue(1)
+      .mockReturnValueOnce(1)
+      .mockReturnValueOnce(0),
+  };
+  // eslint-disable-next-line @typescript-eslint/require-await
+  window.requestIdleCallback = jest.fn((task) =>
+    setTimeout(() => task(deadline), ms),
+  );
+
+  return () => {
+    window.requestIdleCallback = originalRIC;
+  };
+};
+
+export const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 export const defaultTree = {
   children: [

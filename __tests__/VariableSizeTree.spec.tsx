@@ -12,7 +12,12 @@ import {
   VariableSizeTreeState,
 } from '../src';
 import {NodeComponentProps} from '../src/Tree';
-import {defaultTree, extractReceivedRecords} from './utils/misc';
+import {
+  defaultTree,
+  extractReceivedRecords,
+  mockRequestIdleCallback,
+  sleep,
+} from './utils/misc';
 
 type TreeNode = Readonly<{
   children?: TreeNode[];
@@ -244,6 +249,50 @@ describe('VariableSizeTree', () => {
     });
 
     expect(treeWalkerSpy).not.toHaveBeenCalled();
+  });
+
+  describe('placeholder', () => {
+    const testRICTimeout = 16;
+    let unmockRIC: () => void;
+
+    beforeEach(() => {
+      unmockRIC = mockRequestIdleCallback(testRICTimeout);
+      component.unmount();
+    });
+
+    afterEach(() => {
+      unmockRIC();
+    });
+
+    it('uses requestIdleCallback if placeholder prop is set', async () => {
+      const placeholder = 'Waiting...';
+      component = mountComponent({
+        placeholder,
+      });
+
+      expect(component.text()).toBe(placeholder);
+
+      await sleep(testRICTimeout);
+      component.update();
+
+      expect(component.find(VariableSizeTree)).toHaveLength(1);
+      expect(window.requestIdleCallback).toHaveBeenCalledTimes(2);
+    });
+
+    it('allows setting timeout for requestIdleCallback', async () => {
+      const timeout = 16;
+      component = mountComponent({
+        buildingTaskTimeout: timeout,
+        placeholder: 'Waiting...',
+      });
+
+      await sleep(testRICTimeout);
+
+      expect(window.requestIdleCallback).toHaveBeenCalledWith(
+        expect.any(Function),
+        {timeout},
+      );
+    });
   });
 
   describe('component instance', () => {
