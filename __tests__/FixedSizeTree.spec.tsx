@@ -80,6 +80,21 @@ describe('FixedSizeTree', () => {
     }
   }
 
+  const mountComponent = (
+    overriddenProps: Partial<FixedSizeTreeProps<ExtendedData>> = {},
+  ): typeof component =>
+    mount(
+      <FixedSizeTree<ExtendedData>
+        itemSize={30}
+        treeWalker={treeWalkerSpy}
+        height={500}
+        width={500}
+        {...overriddenProps}
+      >
+        {Node}
+      </FixedSizeTree>,
+    );
+
   beforeEach(() => {
     tree = defaultTree;
 
@@ -87,16 +102,7 @@ describe('FixedSizeTree', () => {
 
     treeWalkerSpy = jest.fn(treeWalker);
 
-    component = mount(
-      <FixedSizeTree<ExtendedData>
-        itemSize={30}
-        treeWalker={treeWalkerSpy}
-        height={500}
-        width={500}
-      >
-        {Node}
-      </FixedSizeTree>,
-    );
+    component = mountComponent();
   });
 
   it('renders a component', () => {
@@ -194,9 +200,7 @@ describe('FixedSizeTree', () => {
 
   it('allows providing custom row component', () => {
     const rowComponent = () => null;
-    component = mount(
-      <FixedSizeTree {...component.props()} rowComponent={rowComponent} />,
-    );
+    component = mountComponent({rowComponent});
 
     expect(component.find(FixedSizeList).prop('children')).toBe(rowComponent);
   });

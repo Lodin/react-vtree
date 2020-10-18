@@ -81,6 +81,20 @@ describe('VariableSizeTree', () => {
     }
   }
 
+  const mountComponent = (
+    overriddenProps: Partial<VariableSizeTreeProps<ExtendedData>> = {},
+  ): typeof component =>
+    mount(
+      <VariableSizeTree<ExtendedData>
+        treeWalker={treeWalkerSpy}
+        height={500}
+        width={500}
+        {...overriddenProps}
+      >
+        {Node}
+      </VariableSizeTree>,
+    );
+
   beforeEach(() => {
     tree = defaultTree;
 
@@ -89,15 +103,7 @@ describe('VariableSizeTree', () => {
 
     treeWalkerSpy = jest.fn(treeWalker);
 
-    component = mount(
-      <VariableSizeTree<ExtendedData>
-        treeWalker={treeWalkerSpy}
-        height={500}
-        width={500}
-      >
-        {Node}
-      </VariableSizeTree>,
-    );
+    component = mountComponent();
   });
 
   it('renders a component', () => {
@@ -213,9 +219,7 @@ describe('VariableSizeTree', () => {
 
   it('allows providing custom row component', () => {
     const rowComponent = () => null;
-    component = mount(
-      <VariableSizeTree {...component.props()} rowComponent={rowComponent} />,
-    );
+    component = mountComponent({rowComponent});
 
     expect(component.find(VariableSizeList).prop('children')).toBe(
       rowComponent,
