@@ -230,6 +230,20 @@ describe('FixedSizeTree', () => {
     expect(treeWalkerSpy).not.toHaveBeenCalled();
   });
 
+  it('remembers a new treeWalker to avoid further re-computation if treeWalker is the same', () => {
+    treeWalkerSpy = jest.fn(treeWalker);
+
+    component.setProps({
+      treeWalker: treeWalkerSpy,
+    });
+
+    component.setProps({
+      treeWalker: treeWalkerSpy,
+    });
+
+    expect(treeWalkerSpy).toHaveBeenCalledTimes(1);
+  });
+
   describe('placeholder', () => {
     const testRICTimeout = 16;
     let unmockRIC: () => void;

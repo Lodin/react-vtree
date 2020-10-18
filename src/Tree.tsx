@@ -468,9 +468,12 @@ class Tree<
     const {treeWalker} = props;
     const {computeTree, order, treeWalker: oldTreeWalker} = state;
 
-    return treeWalker !== oldTreeWalker || !order
-      ? computeTree(props, state, {refresh: true})
-      : null;
+    return {
+      treeWalker,
+      ...(treeWalker !== oldTreeWalker || !order
+        ? computeTree(props, state, {refresh: true})
+        : null),
+    };
   }
 
   protected readonly list: React.RefObject<TListComponent> = React.createRef();
@@ -483,7 +486,6 @@ class Tree<
     this.state = {
       forceUpdate: this.forceUpdate.bind(this),
       recomputeTree: this.recomputeTree.bind(this),
-      treeWalker: props.treeWalker,
     } as TState;
   }
 
