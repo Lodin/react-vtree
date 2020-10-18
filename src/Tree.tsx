@@ -280,6 +280,7 @@ class Tree<
     return {
       component,
       treeData,
+      treeWalker,
       ...(treeWalker !== oldTreeWalker || !order
         ? computeTree(props, state, {refreshNodes: true})
         : null),
