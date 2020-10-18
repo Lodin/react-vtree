@@ -296,7 +296,6 @@ class Tree<
       component: props.children,
       recomputeTree: this.recomputeTree.bind(this),
       records: {},
-      treeWalker: props.treeWalker,
     } as TState;
   }
 
