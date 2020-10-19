@@ -44,12 +44,21 @@ const computeTree = createTreeComputer<
   VariableSizeTreeProps<VariableSizeNodeData>,
   VariableSizeTreeState<VariableSizeNodeData>
 >({
-  createRecord: (data, {recomputeTree, resetAfterId}, parent) => {
+  createRecord: (
+    data,
+    {recomputeTree, resetAfterId},
+    parent,
+    previousRecord,
+  ) => {
     const record = createBasicRecord(
       {
         data,
-        height: data.defaultHeight,
-        isOpen: data.isOpenByDefault,
+        height: previousRecord
+          ? previousRecord.public.height
+          : data.defaultHeight,
+        isOpen: previousRecord
+          ? previousRecord.public.isOpen
+          : data.isOpenByDefault,
         resize: (height: number, shouldForceUpdate?: boolean): void => {
           record.public.height = height;
           resetAfterId(record.public.data.id, shouldForceUpdate);

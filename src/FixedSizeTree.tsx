@@ -32,11 +32,13 @@ const computeTree = createTreeComputer<
   FixedSizeTreeProps<FixedSizeNodeData>,
   FixedSizeTreeState<FixedSizeNodeData>
 >({
-  createRecord(data, {recomputeTree}, parent) {
+  createRecord(data, {recomputeTree}, parent, previousRecord) {
     const record = createBasicRecord(
       {
         data,
-        isOpen: data.isOpenByDefault,
+        isOpen: previousRecord
+          ? previousRecord.public.isOpen
+          : data.isOpenByDefault,
         toggle: (): Promise<void> =>
           recomputeTree({
             [data.id]: !record.public.isOpen,

@@ -265,6 +265,34 @@ describe('VariableSizeTree', () => {
     expect(treeWalkerSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('allows preserving previous state on the new tree building', async () => {
+    const [, {toggle}]: ReadonlyArray<VariableSizeNodePublicState<
+      ExtendedData
+    >> = extractReceivedRecords(component.find(VariableSizeList));
+
+    await toggle();
+    component.update();
+
+    expect(
+      extractReceivedRecords(component.find(VariableSizeList)).map(
+        ({data: {id}}) => id,
+      ),
+    ).toEqual(['foo-1', 'foo-2', 'foo-5', 'foo-6', 'foo-7']);
+
+    treeWalkerSpy = jest.fn(treeWalker);
+
+    component.setProps({
+      preservePreviousState: true,
+      treeWalker: treeWalkerSpy,
+    });
+
+    expect(
+      extractReceivedRecords(component.find(VariableSizeList)).map(
+        ({data: {id}}) => id,
+      ),
+    ).toEqual(['foo-1', 'foo-2', 'foo-5', 'foo-6', 'foo-7']);
+  });
+
   describe('placeholder', () => {
     const testRICTimeout = 16;
     let unmockRIC: () => void;

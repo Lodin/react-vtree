@@ -24,15 +24,14 @@ import {
 
 export type NodeData = Readonly<{
   /**
-   * Unique ID of the current node. Will be used to identify the node to change
-   * its internal state.
+   * Unique ID of the current node.
    */
   id: string | symbol;
 
   /**
-   * Default node openness state. If the Tree component performs rendering at
-   * the first time or the "updateOpenness" property is provided, this value
-   * will be used to set the internal openness state of the node.
+   * Default node openness state. If the Tree component performs building a new
+   * Tree and the preservePreviousState prop is not set, this value will be used
+   * to set the openness state of the node.
    */
   isOpenByDefault: boolean;
 }>;
@@ -102,6 +101,7 @@ export type TreeProps<
     buildingTaskTimeout?: number;
     children: ComponentType<NodeComponentProps<TData, TNodePublicState>>;
     placeholder?: ReactNode;
+    preservePreviousState?: boolean;
     rowComponent?: ComponentType<ListChildComponentProps>;
     treeWalker: TreeWalker<TData>;
   }>;
@@ -174,6 +174,7 @@ export type TreeCreatorOptions<
     data: TData,
     state: TState,
     parent?: NodeRecord<TNodePublicState> | null,
+    previousRecord?: NodeRecord<TNodePublicState>,
   ) => NodeRecord<TNodePublicState>;
 }>;
 
@@ -208,9 +209,19 @@ const generateNewTree = <
   TState extends TreeState<TData, TNodePublicState>
 >(
   {createRecord}: TreeCreatorOptions<TData, TNodePublicState, TState>,
-  {placeholder, buildingTaskTimeout, treeWalker}: TProps,
+  {
+    buildingTaskTimeout,
+    placeholder,
+    preservePreviousState = false,
+    treeWalker,
+  }: TProps,
   state: TState,
 ): ReturnType<TreeComputer<TData, TNodePublicState, TProps, TState>> => {
+  const shouldPreservePreviousState =
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    preservePreviousState && state.records !== undefined;
+  const {records: previousRecords} = state;
+
   const order: Array<string | symbol> = [];
   const records = new Map<string | symbol, NodeRecord<TNodePublicState>>();
   const requestIdleCallbackOptions = buildingTaskTimeout
@@ -227,7 +238,14 @@ const generateNewTree = <
 
   // Each record has a link to a parent, the next sibling and the next child.
   // Having this info, we can perform a depth-first traverse.
-  const rootRecord = createRecord(root!.data, state);
+  const rootRecord = createRecord(
+    root!.data,
+    state,
+    undefined,
+    shouldPreservePreviousState
+      ? previousRecords.get(root!.data.id)
+      : undefined,
+  );
   records.set(rootRecord.public.data.id, rootRecord);
   meta.set(rootRecord, root!);
 
@@ -271,6 +289,9 @@ const generateNewTree = <
           child.data,
           state,
           isTraversingRoot ? undefined : currentRecord,
+          shouldPreservePreviousState
+            ? previousRecords.get(child.data.id)
+            : undefined,
         );
         records.set(childRecord.public.data.id, childRecord);
         meta.set(childRecord, child);
