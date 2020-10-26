@@ -1,7 +1,14 @@
-/* eslint-disable max-depth */
 import {number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
-import React, {FC, useCallback, useMemo, useRef, useState} from 'react';
+import React, {
+  DependencyList,
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   FixedSizeNodeData,
@@ -11,6 +18,7 @@ import {
   TreeWalkerValue,
 } from '../src';
 import {NodeComponentProps} from '../src/Tree';
+import {noop} from '../src/utils';
 import {AsyncTaskScheduler} from './utils';
 
 document.body.style.margin = '0';
@@ -53,11 +61,11 @@ const createNode = (
 
   nodeId += 1;
 
-  if (depth === 5) {
+  if (depth === 2) {
     return node;
   }
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 1000; i++) {
     node.children.push(createNode(downloadedIds, depth + 1));
   }
 
@@ -90,6 +98,19 @@ const getNodeData = (
   node,
 });
 
+const useBuildingPromise = (deps: DependencyList) => {
+  const resolve = useRef(noop);
+
+  useEffect(() => {
+    resolve.current();
+  }, deps);
+
+  return () =>
+    new Promise((r) => {
+      resolve.current = r;
+    });
+};
+
 const Node: FC<NodeComponentProps<
   TreeData,
   FixedSizeNodePublicState<TreeData>
@@ -100,6 +121,7 @@ const Node: FC<NodeComponentProps<
   toggle,
 }) => {
   const [isLoading, setLoading] = useState(false);
+  const createBuildingPromise = useBuildingPromise([download]);
 
   return (
     <div
@@ -114,16 +136,23 @@ const Node: FC<NodeComponentProps<
         <div>
           <button
             type="button"
-            onClick={async () => {
-              if (!downloaded) {
-                setLoading(true);
-                await download();
-                await toggle();
-                setLoading(false);
-              } else {
-                await toggle();
-              }
-            }}
+            onClick={
+              !isLoading
+                ? async () => {
+                    if (!downloaded) {
+                      setLoading(true);
+                      await Promise.all([
+                        download(),
+                        toggle(),
+                        createBuildingPromise(),
+                      ]);
+                      setLoading(false);
+                    } else {
+                      await toggle();
+                    }
+                  }
+                : undefined
+            }
             style={defaultButtonStyle}
           >
             {isLoading ? '⌛' : isOpen ? '-' : '+'}
@@ -189,6 +218,7 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
           treeWalker={treeWalker}
           itemSize={itemSize}
           height={height}
+          placeholder={null}
           preservePreviousState
           width="100%"
         >
@@ -201,6 +231,6 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
 
 storiesOf('Tree', module)
   .addDecorator(withKnobs)
-  .add('Async data', () => (
+  .add('Async data with placeholder', () => (
     <TreePresenter itemSize={number('Row height', 30)} />
   ));

@@ -161,6 +161,7 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
       {({height}) => (
         <VariableSizeTree
           ref={tree}
+          placeholder="Building a tree..."
           itemData={itemSize}
           treeWalker={treeWalker}
           height={height}
@@ -175,6 +176,6 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
 
 storiesOf('Tree', module)
   .addDecorator(withKnobs)
-  .add('Big data', () => (
+  .add('Big data with placeholder', () => (
     <TreePresenter itemSize={number('Default row height', 30)} />
   ));
