@@ -79,9 +79,12 @@ export const visitRecord = <T extends NodeRecord<any>>(record: T): T | null => {
 
 export const revisitRecord = <T extends NodeRecord<any>>(
   record: T,
+  ownerRecord?: T,
 ): T | null => {
   record.visited = false;
 
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-  return (record.sibling !== null ? record.sibling : record.parent) as T | null;
+  return ownerRecord !== undefined && record === ownerRecord
+    ? null
+    : ((record.sibling !== null ? record.sibling : record.parent) as T | null);
 };
