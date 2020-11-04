@@ -1,73 +1,90 @@
-import {
-  NodeComponentProps,
+import type {
   NodeData,
   NodeRecord,
   TreeCreatorOptions,
   TreeProps,
   TreeState,
-  UpdateOptions,
+  NodePublicState,
 } from './Tree';
 
-export type DefaultTreeProps = TreeProps<
-  NodeComponentProps<NodeData>,
-  NodeData
->;
+export type Mutable<T> = {
+  -readonly [P in keyof T]: T[P];
+};
 
-export type DefaultTreeState = TreeState<
-  NodeComponentProps<NodeData>,
-  NodeRecord<NodeData>,
-  UpdateOptions,
-  NodeData
->;
+export type RequestIdleCallbackHandle = any;
+
+export type RequestIdleCallbackOptions = Readonly<{
+  timeout: number;
+}>;
+
+export type RequestIdleCallbackDeadline = Readonly<{
+  didTimeout: boolean;
+  timeRemaining: () => number;
+}>;
+
+declare global {
+  const requestIdleCallback: (
+    callback: (deadline: RequestIdleCallbackDeadline) => void,
+    opts?: RequestIdleCallbackOptions,
+  ) => RequestIdleCallbackHandle;
+  const cancelIdleCallback: (handle: RequestIdleCallbackHandle) => void;
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+  interface Window {
+    requestIdleCallback: typeof requestIdleCallback;
+    cancelIdleCallback: typeof cancelIdleCallback;
+  }
+}
+
+export type DefaultTreeProps = TreeProps<NodeData, NodePublicState<NodeData>>;
+
+export type DefaultTreeState = TreeState<NodeData, NodePublicState<NodeData>>;
 
 export type DefaultTreeCreatorOptions = TreeCreatorOptions<
-  NodeComponentProps<NodeData>,
-  NodeRecord<NodeData>,
-  UpdateOptions,
   NodeData,
+  NodePublicState<NodeData>,
   DefaultTreeState
 >;
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+export const noop = (): void => {};
+
 export const identity = <T>(value: T): T => value;
 
-export const createRecord: DefaultTreeCreatorOptions['createRecord'] = (
-  data,
-  {opennessState},
-  {recomputeTree},
-) => {
-  const record = {
-    data,
-    isOpen: opennessState?.[data.id as string] ?? data.isOpenByDefault,
-    toggle(): Promise<void> {
-      record.isOpen = !record.isOpen;
+export const createBasicRecord = <
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
+>(
+  pub: TNodePublicState,
+  parent: NodeRecord<TNodePublicState> | null = null,
+): NodeRecord<TNodePublicState> => ({
+  child: null,
+  isShown: parent ? parent.public.isOpen : true,
+  parent,
+  public: pub,
+  sibling: null,
+  visited: false,
+});
 
-      return recomputeTree({refreshNodes: record.isOpen});
-    },
-  };
+export const visitRecord = <T extends NodeRecord<any>>(record: T): T | null => {
+  record.visited = record.child !== null;
 
-  return record;
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  return (record.child !== null
+    ? record.child
+    : record.sibling !== null
+    ? record.sibling
+    : record.parent) as T | null;
 };
 
-export const shouldUpdateRecords: DefaultTreeCreatorOptions['shouldUpdateRecords'] = ({
-  opennessState,
-  useDefaultOpenness = false,
-}) => !!opennessState || useDefaultOpenness;
+export const revisitRecord = <T extends NodeRecord<any>>(
+  record: T,
+  ownerRecord?: T,
+): T | null => {
+  record.visited = false;
 
-export const updateRecord: DefaultTreeCreatorOptions['updateRecord'] = (
-  record,
-  recordId,
-  {opennessState, useDefaultOpenness = false},
-) => {
-  record.isOpen = useDefaultOpenness
-    ? record.data.isOpenByDefault
-    : opennessState?.[recordId as string] ?? record.isOpen;
-};
-
-export const updateRecordOnNewData: DefaultTreeCreatorOptions['updateRecordOnNewData'] = (
-  record,
-  {useDefaultOpenness = false},
-) => {
-  if (useDefaultOpenness) {
-    record.isOpen = record.data.isOpenByDefault;
-  }
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  return ownerRecord !== undefined && record === ownerRecord
+    ? null
+    : ((record.sibling !== null ? record.sibling : record.parent) as T | null);
 };

@@ -2,67 +2,65 @@ import React, {ReactNode} from 'react';
 import {FixedSizeList, FixedSizeListProps} from 'react-window';
 import Tree, {
   createTreeComputer,
-  NodeComponentProps,
   NodeData,
-  NodeRecord,
   TreeProps,
   TreeState,
-  UpdateOptions,
+  NodePublicState,
 } from './Tree';
-import {
-  createRecord,
-  shouldUpdateRecords,
-  updateRecord,
-  updateRecordOnNewData,
-} from './utils';
+import {createBasicRecord} from './utils';
 
 export type FixedSizeNodeData = NodeData;
 
-export type FixedSizeNodeComponentProps<
-  T extends FixedSizeNodeData
-> = NodeComponentProps<T>;
+export type FixedSizeNodePublicState<
+  TData extends FixedSizeNodeData
+> = NodePublicState<TData>;
 
-export type FixedSizeNodeRecord<T extends FixedSizeNodeData> = NodeRecord<T>;
-
-export type FixedSizeUpdateOptions = UpdateOptions;
-
-export type FixedSizeTreeProps<T extends FixedSizeNodeData> = TreeProps<
-  FixedSizeNodeComponentProps<T>,
-  T
+export type FixedSizeTreeProps<TData extends FixedSizeNodeData> = TreeProps<
+  TData,
+  FixedSizeNodePublicState<TData>
 > &
   Readonly<Pick<FixedSizeListProps, 'itemSize'>>;
 
-export type FixedSizeTreeState<T extends FixedSizeNodeData> = TreeState<
-  FixedSizeNodeComponentProps<T>,
-  FixedSizeNodeRecord<T>,
-  FixedSizeUpdateOptions,
-  T
+export type FixedSizeTreeState<TData extends FixedSizeNodeData> = TreeState<
+  TData,
+  FixedSizeNodePublicState<TData>
 >;
 
 const computeTree = createTreeComputer<
-  FixedSizeNodeComponentProps<FixedSizeNodeData>,
-  FixedSizeNodeRecord<FixedSizeNodeData>,
-  FixedSizeUpdateOptions,
   FixedSizeNodeData,
+  FixedSizeNodePublicState<FixedSizeNodeData>,
   FixedSizeTreeProps<FixedSizeNodeData>,
   FixedSizeTreeState<FixedSizeNodeData>
 >({
-  createRecord,
-  shouldUpdateRecords,
-  updateRecord,
-  updateRecordOnNewData,
+  createRecord(data, {recomputeTree}, parent, previousRecord) {
+    const record = createBasicRecord(
+      {
+        data,
+        isOpen: previousRecord
+          ? previousRecord.public.isOpen
+          : data.isOpenByDefault,
+        toggle: (): Promise<void> =>
+          recomputeTree({
+            [data.id]: !record.public.isOpen,
+          }),
+      },
+      parent,
+    );
+
+    return record;
+  },
 });
 
-export class FixedSizeTree<T extends FixedSizeNodeData = NodeData> extends Tree<
-  FixedSizeNodeComponentProps<T>,
-  FixedSizeNodeRecord<T>,
-  FixedSizeUpdateOptions,
-  T,
-  FixedSizeTreeProps<T>,
-  FixedSizeTreeState<T>,
+export class FixedSizeTree<
+  TData extends FixedSizeNodeData = FixedSizeNodeData
+> extends Tree<
+  TData,
+  FixedSizeNodePublicState<TData>,
+  FixedSizeTreeProps<TData>,
+  FixedSizeTreeState<TData>,
   FixedSizeList
 > {
-  public constructor(props: FixedSizeTreeProps<T>, context: any) {
+  public constructor(props: FixedSizeTreeProps<TData>, context: any) {
     super(props, context);
 
     this.state = {
@@ -72,13 +70,23 @@ export class FixedSizeTree<T extends FixedSizeNodeData = NodeData> extends Tree<
   }
 
   public render(): ReactNode {
-    const {children, treeWalker, rowComponent, ...rest} = this.props;
+    const {
+      children,
+      placeholder,
+      treeWalker,
+      rowComponent,
+      ...rest
+    } = this.props;
 
-    return (
+    const {order} = this.state;
+
+    return placeholder && order!.length === 0 ? (
+      placeholder
+    ) : (
       <FixedSizeList
         {...rest}
-        itemCount={this.state.order!.length}
-        itemData={this.state}
+        itemCount={order!.length}
+        itemData={this.getItemData()}
         ref={this.list}
       >
         {rowComponent!}

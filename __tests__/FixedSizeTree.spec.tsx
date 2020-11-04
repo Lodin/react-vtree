@@ -2,24 +2,32 @@ import {mount, ReactWrapper} from 'enzyme';
 import React, {FC} from 'react';
 import {FixedSizeList} from 'react-window';
 import {
-  FixedSizeNodeComponentProps,
   FixedSizeNodeData,
-  FixedSizeNodeRecord,
+  FixedSizeNodePublicState,
   FixedSizeTree,
   FixedSizeTreeProps,
   FixedSizeTreeState,
   Row,
+  TreeWalker,
+  TreeWalkerValue,
 } from '../src';
+import {NodeComponentProps} from '../src/Tree';
+import {
+  defaultTree,
+  extractReceivedRecords,
+  mockRequestIdleCallback,
+  sleep,
+} from './utils/misc';
 
-type DataNode = Readonly<{
-  children?: DataNode[];
+type TreeNode = Readonly<{
+  children?: TreeNode[];
   id: string;
   name: string;
 }>;
 
-type StackElement = Readonly<{
+type NodeMeta = Readonly<{
   nestingLevel: number;
-  node: DataNode;
+  node: TreeNode;
 }>;
 
 type ExtendedData = FixedSizeNodeData &
@@ -29,74 +37,71 @@ type ExtendedData = FixedSizeNodeData &
   }>;
 
 describe('FixedSizeTree', () => {
-  const Node: FC<FixedSizeNodeComponentProps<ExtendedData>> = () => null;
+  const Node: FC<NodeComponentProps<
+    ExtendedData,
+    FixedSizeNodePublicState<ExtendedData>
+  >> = jest.fn(() => null);
 
   let component: ReactWrapper<
     FixedSizeTreeProps<ExtendedData>,
     FixedSizeTreeState<ExtendedData>,
     FixedSizeTree<ExtendedData>
   >;
-  let tree: DataNode;
+  let tree: TreeNode;
   let treeWalkerSpy: jest.Mock;
   let isOpenByDefault: boolean;
 
-  function* treeWalker(
-    refresh: boolean,
-  ): Generator<ExtendedData | string | symbol, void, boolean> {
-    const stack: StackElement[] = [];
+  const getNodeData = (
+    node: TreeNode,
+    nestingLevel: number,
+  ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
+    data: {
+      id: node.id.toString(),
+      isOpenByDefault,
+      name: node.name,
+      nestingLevel,
+    },
+    nestingLevel,
+    node,
+  });
 
-    stack.push({
-      nestingLevel: 0,
-      node: tree,
-    });
+  function* treeWalker(): ReturnType<TreeWalker<ExtendedData, NodeMeta>> {
+    yield getNodeData(tree, 0);
 
-    while (stack.length !== 0) {
-      const {node, nestingLevel} = stack.pop()!;
-      const id = node.id.toString();
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    while (true) {
+      const parentMeta = yield;
 
-      const childrenCount = node.children ? node.children.length : 0;
-
-      const isOpened = yield refresh
-        ? {
-            id,
-            isOpenByDefault,
-            name: node.name,
-            nestingLevel,
-          }
-        : id;
-
-      if (childrenCount && isOpened) {
-        for (let i = childrenCount - 1; i >= 0; i--) {
-          stack.push({
-            nestingLevel: nestingLevel + 1,
-            node: node.children![i],
-          });
+      // eslint-disable-next-line @typescript-eslint/prefer-for-of
+      if (parentMeta.node.children) {
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
+        for (let i = 0; i < parentMeta.node.children.length; i++) {
+          yield getNodeData(
+            parentMeta.node.children[i],
+            parentMeta.nestingLevel + 1,
+          );
         }
       }
     }
   }
 
-  const mountComponent = (): typeof component =>
+  const mountComponent = (
+    overriddenProps: Partial<FixedSizeTreeProps<ExtendedData>> = {},
+  ): typeof component =>
     mount(
       <FixedSizeTree<ExtendedData>
         itemSize={30}
         treeWalker={treeWalkerSpy}
         height={500}
         width={500}
+        {...overriddenProps}
       >
         {Node}
       </FixedSizeTree>,
     );
 
   beforeEach(() => {
-    tree = {
-      children: [
-        {id: 'foo-2', name: 'Foo #2'},
-        {id: 'foo-3', name: 'Foo #3'},
-      ],
-      id: 'foo-1',
-      name: 'Foo #1',
-    };
+    tree = defaultTree;
 
     isOpenByDefault = true;
 
@@ -114,52 +119,93 @@ describe('FixedSizeTree', () => {
     expect(list).toHaveLength(1);
     expect(list.props()).toMatchObject({
       children: Row,
-      itemCount: 3,
-      itemData: {
-        component: Node,
-        order: ['foo-1', 'foo-2', 'foo-3'],
-        records: {
-          'foo-1': {
-            data: {
-              id: 'foo-1',
-              isOpenByDefault: true,
-              name: 'Foo #1',
-              nestingLevel: 0,
-            },
-            isOpen: true,
-            toggle: expect.any(Function),
-          },
-          'foo-2': {
-            data: {
-              id: 'foo-2',
-              isOpenByDefault: true,
-              name: 'Foo #2',
-              nestingLevel: 1,
-            },
-            isOpen: true,
-            toggle: expect.any(Function),
-          },
-          'foo-3': {
-            data: {
-              id: 'foo-3',
-              isOpenByDefault: true,
-              name: 'Foo #3',
-              nestingLevel: 1,
-            },
-            isOpen: true,
-            toggle: expect.any(Function),
-          },
-        },
-      },
+      itemCount: 7,
+      itemData: expect.any(Object),
       itemSize: 30,
     });
+
+    expect(list.prop('itemData')).toMatchObject({
+      component: Node,
+      getRecordData: expect.any(Function),
+    });
+
+    expect(extractReceivedRecords(list)).toEqual([
+      {
+        data: {
+          id: 'foo-1',
+          isOpenByDefault: true,
+          name: 'Foo #1',
+          nestingLevel: 0,
+        },
+        isOpen: true,
+        toggle: expect.any(Function),
+      },
+      {
+        data: {
+          id: 'foo-2',
+          isOpenByDefault: true,
+          name: 'Foo #2',
+          nestingLevel: 1,
+        },
+        isOpen: true,
+        toggle: expect.any(Function),
+      },
+      {
+        data: {
+          id: 'foo-3',
+          isOpenByDefault: true,
+          name: 'Foo #3',
+          nestingLevel: 2,
+        },
+        isOpen: true,
+        toggle: expect.any(Function),
+      },
+      {
+        data: {
+          id: 'foo-4',
+          isOpenByDefault: true,
+          name: 'Foo #4',
+          nestingLevel: 2,
+        },
+        isOpen: true,
+        toggle: expect.any(Function),
+      },
+      {
+        data: {
+          id: 'foo-5',
+          isOpenByDefault: true,
+          name: 'Foo #5',
+          nestingLevel: 1,
+        },
+        isOpen: true,
+        toggle: expect.any(Function),
+      },
+      {
+        data: {
+          id: 'foo-6',
+          isOpenByDefault: true,
+          name: 'Foo #6',
+          nestingLevel: 2,
+        },
+        isOpen: true,
+        toggle: expect.any(Function),
+      },
+      {
+        data: {
+          id: 'foo-7',
+          isOpenByDefault: true,
+          name: 'Foo #7',
+          nestingLevel: 2,
+        },
+        isOpen: true,
+        toggle: expect.any(Function),
+      },
+    ]);
   });
 
   it('allows providing custom row component', () => {
     const rowComponent = () => null;
-    component = mount(
-      <FixedSizeTree {...component.props()} rowComponent={rowComponent} />,
-    );
+    component = mountComponent({rowComponent});
 
     expect(component.find(FixedSizeList).prop('children')).toBe(rowComponent);
   });
@@ -171,7 +217,7 @@ describe('FixedSizeTree', () => {
       treeWalker: treeWalkerSpy,
     });
 
-    expect(treeWalkerSpy).toHaveBeenCalledWith(true);
+    expect(treeWalkerSpy).toHaveBeenCalledWith();
   });
 
   it('does not recompute if treeWalker is the same', () => {
@@ -196,6 +242,97 @@ describe('FixedSizeTree', () => {
     });
 
     expect(treeWalkerSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows preserving previous state on the new tree building', async () => {
+    const [, {toggle}]: ReadonlyArray<FixedSizeNodePublicState<
+      ExtendedData
+    >> = extractReceivedRecords(component.find(FixedSizeList));
+
+    await toggle();
+    component.update();
+
+    expect(
+      extractReceivedRecords(component.find(FixedSizeList)).map(
+        ({data: {id}}) => id,
+      ),
+    ).toEqual(['foo-1', 'foo-2', 'foo-5', 'foo-6', 'foo-7']);
+
+    treeWalkerSpy = jest.fn(treeWalker);
+
+    component.setProps({
+      async: true,
+      treeWalker: treeWalkerSpy,
+    });
+
+    expect(
+      extractReceivedRecords(component.find(FixedSizeList)).map(
+        ({data: {id}}) => id,
+      ),
+    ).toEqual(['foo-1', 'foo-2', 'foo-5', 'foo-6', 'foo-7']);
+  });
+
+  describe('placeholder', () => {
+    const testRICTimeout = 16;
+    let unmockRIC: () => void;
+
+    beforeEach(() => {
+      unmockRIC = mockRequestIdleCallback(testRICTimeout);
+      component.unmount();
+      (Node as jest.Mock).mockClear();
+    });
+
+    afterEach(() => {
+      unmockRIC();
+    });
+
+    it('uses requestIdleCallback if placeholder prop is set', async () => {
+      const placeholder = 'Waiting...';
+      component = mountComponent({
+        placeholder,
+      });
+
+      expect(component.text()).toBe(placeholder);
+
+      await sleep(testRICTimeout);
+      component.update();
+
+      expect(component.find(FixedSizeTree)).toHaveLength(1);
+      expect(window.requestIdleCallback).toHaveBeenCalledTimes(2);
+    });
+
+    it('allows setting timeout for requestIdleCallback', async () => {
+      const timeout = 16;
+      component = mountComponent({
+        buildingTaskTimeout: timeout,
+        placeholder: 'Waiting...',
+      });
+
+      await sleep(testRICTimeout);
+
+      expect(window.requestIdleCallback).toHaveBeenCalledWith(
+        expect.any(Function),
+        {timeout},
+      );
+    });
+
+    it('allows skipping first render but enable requestIdleCallback after', async () => {
+      component = mountComponent({
+        placeholder: null,
+      });
+
+      expect(window.requestIdleCallback).not.toHaveBeenCalled();
+
+      treeWalkerSpy = jest.fn(treeWalker);
+
+      component.setProps({
+        treeWalker: treeWalkerSpy,
+      });
+
+      await sleep(testRICTimeout);
+
+      expect(window.requestIdleCallback).toHaveBeenCalled();
+    });
   });
 
   describe('component instance', () => {
@@ -228,316 +365,185 @@ describe('FixedSizeTree', () => {
     });
 
     describe('recomputeTree', () => {
-      it('updates tree order', async () => {
-        tree = {
-          children: [
-            {id: 'foo-3', name: 'Foo #3'},
-            {id: 'foo-2', name: 'Foo #2'},
-          ],
-          id: 'foo-1',
-          name: 'Foo #1',
-        };
-
-        await treeInstance.recomputeTree();
+      it('changes the node openness state', async () => {
+        await treeInstance.recomputeTree({'foo-1': false});
         component.update(); // Update the wrapper to get the latest changes
 
-        expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
-          component: Node,
-          order: ['foo-1', 'foo-3', 'foo-2'],
-          records: {
-            'foo-1': {
-              data: {
-                id: 'foo-1',
-                isOpenByDefault: true,
-                name: 'Foo #1',
-                nestingLevel: 0,
-              },
-              isOpen: true,
-              toggle: expect.any(Function),
+        expect(component.find(FixedSizeList).prop('itemCount')).toBe(1);
+
+        const receivedRecords = extractReceivedRecords(
+          component.find(FixedSizeList),
+        );
+
+        expect(receivedRecords).toEqual([
+          {
+            data: {
+              id: 'foo-1',
+              isOpenByDefault: true,
+              name: 'Foo #1',
+              nestingLevel: 0,
             },
-            'foo-2': {
-              data: {
-                id: 'foo-2',
-                isOpenByDefault: true,
-                name: 'Foo #2',
-                nestingLevel: 1,
-              },
-              isOpen: true,
-              toggle: expect.any(Function),
-            },
-            'foo-3': {
-              data: {
-                id: 'foo-3',
-                isOpenByDefault: true,
-                name: 'Foo #3',
-                nestingLevel: 1,
-              },
-              isOpen: true,
-              toggle: expect.any(Function),
-            },
+            isOpen: false,
+            toggle: expect.any(Function),
           },
-          treeData: undefined,
-        });
-      });
-
-      it('updates tree nodes metadata', async () => {
-        tree = {
-          children: [
-            {id: 'foo-3', name: 'Foo #3 Bar'},
-            {id: 'foo-2', name: 'Foo #2 Bar'},
-          ],
-          id: 'foo-1',
-          name: 'Foo #1 Bar',
-        };
-
-        await treeInstance.recomputeTree({refreshNodes: true});
-        component.update(); // Update the wrapper to get the latest changes
-
-        expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
-          component: Node,
-          order: ['foo-1', 'foo-3', 'foo-2'],
-          records: {
-            'foo-1': {
-              data: {
-                id: 'foo-1',
-                isOpenByDefault: true,
-                name: 'Foo #1 Bar',
-                nestingLevel: 0,
-              },
-              isOpen: true,
-              toggle: expect.any(Function),
-            },
-            'foo-2': {
-              data: {
-                id: 'foo-2',
-                isOpenByDefault: true,
-                name: 'Foo #2 Bar',
-                nestingLevel: 1,
-              },
-              isOpen: true,
-              toggle: expect.any(Function),
-            },
-            'foo-3': {
-              data: {
-                id: 'foo-3',
-                isOpenByDefault: true,
-                name: 'Foo #3 Bar',
-                nestingLevel: 1,
-              },
-              isOpen: true,
-              toggle: expect.any(Function),
-            },
-          },
-          treeData: undefined,
-        });
-      });
-
-      it('resets current openness to default', async () => {
-        const records = component.state('records');
-
-        for (const id in records) {
-          records[id]!.isOpen = false;
-        }
-
-        // Imitate closing the foo-1 node
-        component.setState({
-          order: ['foo-1'],
-          records,
-        });
-
-        await treeInstance.recomputeTree({useDefaultOpenness: true});
-        component.update(); // Update the wrapper to get the latest changes
-
-        // foo-1 node is open again
-        expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
-          component: Node,
-          order: ['foo-1', 'foo-2', 'foo-3'],
-          records: {
-            'foo-1': {
-              data: {
-                id: 'foo-1',
-                isOpenByDefault: true,
-                name: 'Foo #1',
-                nestingLevel: 0,
-              },
-              isOpen: true,
-              toggle: expect.any(Function),
-            },
-            'foo-2': {
-              data: {
-                id: 'foo-2',
-                isOpenByDefault: true,
-                name: 'Foo #2',
-                nestingLevel: 1,
-              },
-              isOpen: true,
-              toggle: expect.any(Function),
-            },
-            'foo-3': {
-              data: {
-                id: 'foo-3',
-                isOpenByDefault: true,
-                name: 'Foo #3',
-                nestingLevel: 1,
-              },
-              isOpen: true,
-              toggle: expect.any(Function),
-            },
-          },
-          treeData: undefined,
-        });
-      });
-
-      it('resets current openness to the new default provided by the node refreshing', async () => {
-        isOpenByDefault = false;
-
-        await treeInstance.recomputeTree({
-          refreshNodes: true,
-          useDefaultOpenness: true,
-        });
-        component.update(); // Update the wrapper to get the latest changes
-
-        expect(component.find(FixedSizeList).prop('itemData')).toMatchObject({
-          component: Node,
-          order: ['foo-1'],
-          records: {
-            'foo-1': {
-              data: {
-                id: 'foo-1',
-                isOpenByDefault: false,
-                name: 'Foo #1',
-                nestingLevel: 0,
-              },
-              isOpen: false,
-              toggle: expect.any(Function),
-            },
-            // Child nodes of the closed one are omitted
-            'foo-2': {
-              data: {
-                id: 'foo-2',
-                isOpenByDefault: true,
-                name: 'Foo #2',
-                nestingLevel: 1,
-              },
-              isOpen: true,
-              toggle: expect.any(Function),
-            },
-            'foo-3': {
-              data: {
-                id: 'foo-3',
-                isOpenByDefault: true,
-                name: 'Foo #3',
-                nestingLevel: 1,
-              },
-              isOpen: true,
-              toggle: expect.any(Function),
-            },
-          },
-          treeData: undefined,
-        });
-      });
-
-      it('opens and closes nodes as specified in opennessState', async () => {
-        await treeInstance.recomputeTree({
-          opennessState: {
-            'foo-2': false,
-          },
-        });
-
-        component.update(); // Update the wrapper to get the latest changes
-
-        let {
-          order,
-          records: {'foo-1': foo1, 'foo-2': foo2, 'foo-3': foo3},
-        }: FixedSizeTreeState<FixedSizeNodeData> = component
-          .find(FixedSizeList)
-          .prop('itemData');
-
-        expect(order).toEqual(['foo-1', 'foo-2', 'foo-3']);
-        expect(foo1!.isOpen).toBeTruthy();
-        expect(foo2!.isOpen).not.toBeTruthy();
-        expect(foo3!.isOpen).toBeTruthy();
-
-        await treeInstance.recomputeTree({
-          opennessState: {
-            'foo-2': true,
-            'foo-3': false,
-          },
-        });
-
-        component.update(); // Update the wrapper to get the latest changes
-
-        ({
-          order,
-          records: {'foo-1': foo1, 'foo-2': foo2, 'foo-3': foo3},
-        } = component.find(FixedSizeList).prop('itemData'));
-
-        expect(order).toEqual(['foo-1', 'foo-2', 'foo-3']);
-        expect(foo1!.isOpen).toBeTruthy();
-        expect(foo2!.isOpen).toBeTruthy();
-        expect(foo3!.isOpen).not.toBeTruthy();
-      });
-
-      it('opennessState is overridden by useDefaultOpenness', async () => {
-        await treeInstance.recomputeTree({
-          opennessState: {
-            'foo-2': false,
-          },
-          useDefaultOpenness: true,
-        });
-        component.update(); // Update the wrapper to get the latest changes
-
-        const {
-          records: {'foo-1': foo1, 'foo-2': foo2, 'foo-3': foo3},
-        }: FixedSizeTreeState<FixedSizeNodeData> = component
-          .find(FixedSizeList)
-          .prop('itemData');
-
-        expect(foo1!.isOpen).toBeTruthy();
-        expect(foo2!.isOpen).toBeTruthy();
-        expect(foo3!.isOpen).toBeTruthy();
-      });
-
-      it('opennessState works when node is created during update', async () => {
-        component.unmount();
-        isOpenByDefault = false;
-        component = mountComponent();
-        treeInstance = component.instance();
-
-        await treeInstance.recomputeTree({
-          opennessState: {
-            'foo-1': true,
-            'foo-2': true,
-            'foo-3': true,
-          },
-          refreshNodes: true,
-        });
-        component.update();
-
-        const {records} = component.find(FixedSizeList).prop('itemData') as {
-          records: Record<string, FixedSizeNodeRecord<ExtendedData>>;
-        };
-
-        expect(Object.keys(records).map((key) => records[key].isOpen)).toEqual([
-          true,
-          true,
-          true,
         ]);
+      });
+
+      it('changes the nested node openness state', async () => {
+        await treeInstance.recomputeTree({'foo-5': false});
+        component.update(); // Update the wrapper to get the latest changes
+
+        expect(component.find(FixedSizeList).prop('itemCount')).toBe(5);
+
+        const receivedRecords = extractReceivedRecords(
+          component.find(FixedSizeList),
+        );
+
+        expect(receivedRecords.map(({data: {id}}) => id)).toEqual([
+          'foo-1',
+          'foo-2',
+          'foo-3',
+          'foo-4',
+          'foo-5',
+        ]);
+      });
+
+      it("changes several nodes at once regardless of parent's openness", async () => {
+        await treeInstance.recomputeTree({
+          'foo-1': false,
+          'foo-2': false,
+          'foo-5': false,
+        });
+        component.update(); // Update the wrapper to get the latest changes
+
+        expect(component.find(FixedSizeList).prop('itemCount')).toBe(1);
+
+        await treeInstance.recomputeTree({
+          'foo-1': true,
+          'foo-5': true,
+        });
+        component.update(); // Update the wrapper to get the latest changes
+
+        expect(component.find(FixedSizeList).prop('itemCount')).toBe(5);
+
+        const receivedRecords = extractReceivedRecords(
+          component.find(FixedSizeList),
+        );
+
+        expect(receivedRecords.map(({data: {id}}) => id)).toEqual([
+          'foo-1',
+          'foo-2',
+          'foo-5',
+          'foo-6',
+          'foo-7',
+        ]);
+      });
+
+      it('applies subtreeCallback for each element in the recomputed subtree', async () => {
+        await treeInstance.recomputeTree({
+          'foo-5': {
+            open: true,
+            // This function will close all tree nodes that are descendants of
+            // `foo-5`
+            subtreeCallback(node, root) {
+              if (node !== root) {
+                node.isOpen = false;
+              }
+            },
+          },
+        });
+        component.update(); // Update the wrapper to get the latest changes
+
+        const receivedRecords = extractReceivedRecords(
+          component.find(FixedSizeList),
+        );
+
+        expect(receivedRecords.length).toBe(7);
+        expect(receivedRecords.map(({isOpen}) => isOpen)).toEqual([
+          true,
+          true,
+          true,
+          true,
+          // `foo-5` is open by { open: true }
+          true,
+          // `foo-5`'s children are closed by subtreeCallback
+          false,
+          false,
+        ]);
+      });
+
+      it('allows overriding in definition order', async () => {
+        await treeInstance.recomputeTree({
+          // That will be overridden by `foo-1` subtreeCallback
+          'foo-7': true,
+          // eslint-disable-next-line sort-keys
+          'foo-1': {
+            open: true,
+            subtreeCallback(node, root) {
+              if (node !== root) {
+                node.isOpen = false;
+              }
+            },
+          },
+          'foo-5': true,
+          'foo-6': true,
+        });
+
+        const receivedRecords = extractReceivedRecords(
+          component.find(FixedSizeList),
+        );
+
+        expect(receivedRecords.map(({isOpen}) => isOpen)).toEqual([
+          true,
+          false,
+          false,
+          false,
+          // The `foo-5` and `foo-6` nodes are opened manually in recomputeTree
+          true,
+          true,
+          false,
+        ]);
+      });
+
+      it('does nothing if opennessState is not an object', async () => {
+        const originalRecords = extractReceivedRecords(
+          component.find(FixedSizeList),
+        );
+
+        // @ts-expect-error: Test for non-typescript code.
+        await treeInstance.recomputeTree('4');
+
+        expect(extractReceivedRecords(component.find(FixedSizeList))).toEqual(
+          originalRecords,
+        );
+      });
+
+      it('does nothing if record ID does not exist', async () => {
+        const originalRecords = extractReceivedRecords(
+          component.find(FixedSizeList),
+        );
+
+        await treeInstance.recomputeTree({
+          'foo-42': false,
+        });
+
+        expect(extractReceivedRecords(component.find(FixedSizeList))).toEqual(
+          originalRecords,
+        );
       });
     });
 
     it('provides a toggle function that changes openness state of the specific node', async () => {
-      const foo1 = component.state('records')['foo-1']!;
+      const [{toggle}] = extractReceivedRecords(component.find(FixedSizeList));
 
-      treeWalkerSpy.mockClear();
-
-      // Imitate the behavior of Node component where toggle is sent without
-      // context
-      const {toggle} = foo1;
       await toggle();
+      component.update(); // Update the wrapper to get the latest changes
 
-      expect(treeWalkerSpy).toHaveBeenCalledWith(false);
-      expect(foo1.isOpen).toBeFalsy();
+      const list = component.find(FixedSizeList);
+      expect(list.prop('itemCount')).toBe(1);
+      expect(extractReceivedRecords(list).map(({data: {id}}) => id)).toEqual([
+        'foo-1',
+      ]);
     });
   });
 });

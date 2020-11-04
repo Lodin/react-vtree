@@ -1,9 +1,11 @@
-/* eslint-disable react/no-unused-state,@typescript-eslint/consistent-type-assertions */
+/* eslint-disable react/no-unused-state,@typescript-eslint/consistent-type-assertions,no-labels,max-depth,complexity */
 import React, {
+  Component,
   ComponentType,
   PropsWithChildren,
   PureComponent,
   ReactElement,
+  ReactNode,
 } from 'react';
 import {
   Align,
@@ -12,258 +14,516 @@ import {
   ListProps,
   VariableSizeList,
 } from 'react-window';
-import {DefaultTreeProps, DefaultTreeState} from './utils';
+import {
+  DefaultTreeProps,
+  DefaultTreeState,
+  noop,
+  RequestIdleCallbackDeadline,
+  revisitRecord,
+  visitRecord,
+} from './utils';
 
 export type NodeData = Readonly<{
   /**
-   * Unique ID of the current node. Will be used to identify the node to change
-   * its internal state.
+   * Unique ID of the current node.
    */
   id: string | symbol;
 
   /**
-   * Default node openness state. If the Tree component performs rendering at
-   * the first time or the "updateOpenness" property is provided, this value
-   * will be used to set the internal openness state of the node.
+   * Default node openness state. If the Tree component performs building a new
+   * Tree and the preservePreviousState prop is not set, this value will be used
+   * to set the openness state of the node.
    */
   isOpenByDefault: boolean;
 }>;
 
-export type UpdateOptions = Readonly<{
-  opennessState?: Readonly<Record<string, boolean>>;
-  refreshNodes?: boolean;
-  useDefaultOpenness?: boolean;
+export type TreeWalkerValue<TData extends NodeData, TMeta = {}> = Readonly<
+  {data: TData} & TMeta
+>;
+
+export type OpennessStateUpdateRules<
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
+> = Readonly<{
+  open: boolean;
+  subtreeCallback?: (
+    node: TNodePublicState,
+    ownerNode: TNodePublicState,
+  ) => void;
 }>;
 
-export type NodeRecord<TData extends NodeData> = {
+export type NodePublicState<TData extends NodeData> = Readonly<{
   data: TData;
+  toggle: () => Promise<void>;
+}> & {
   isOpen: boolean;
-  readonly toggle: () => Promise<void>;
 };
 
-export type NodeComponentProps<TData extends NodeData> = Readonly<
-  Omit<ListChildComponentProps, 'data' | 'index'>
-> &
-  Readonly<{
-    data: TData;
-    isOpen: boolean;
-    toggle: () => void;
-    treeData?: any;
-  }>;
+export type NodeRecord<
+  TNodePublicState extends NodePublicState<any>
+> = Readonly<{
+  public: TNodePublicState;
+}> & {
+  child: NodeRecord<TNodePublicState> | null;
+  isShown: boolean;
+  parent: NodeRecord<TNodePublicState> | null;
+  sibling: NodeRecord<TNodePublicState> | null;
+  visited: boolean;
+};
 
-export type TreeWalker<T> = (
-  refresh: boolean,
-) => Generator<T | string | symbol, void, boolean>;
+export type NodeComponentProps<
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
+> = Readonly<
+  Omit<ListChildComponentProps, 'data' | 'index'> &
+    TNodePublicState & {
+      /**
+       * The data provided by user via `itemData` Tree component property.
+       */
+      treeData?: any;
+    }
+>;
+
+export type TreeWalker<TData extends NodeData, TMeta = {}> = () => Generator<
+  TreeWalkerValue<TData, TMeta> | undefined,
+  undefined,
+  TreeWalkerValue<TData, TMeta>
+>;
+
+export type OpennessState<
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
+> = Readonly<
+  Record<string, OpennessStateUpdateRules<TData, TNodePublicState> | boolean>
+>;
 
 export type TreeProps<
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TData extends NodeData
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
 > = Readonly<Omit<ListProps, 'children' | 'itemCount'>> &
   Readonly<{
-    children: ComponentType<TNodeComponentProps>;
+    buildingTaskTimeout?: number;
+    children: ComponentType<NodeComponentProps<TData, TNodePublicState>>;
+    placeholder?: ReactNode;
+    async?: boolean;
     rowComponent?: ComponentType<ListChildComponentProps>;
     treeWalker: TreeWalker<TData>;
   }>;
 
 export type TreeState<
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecord extends NodeRecord<TData>,
-  TUpdateOptions extends UpdateOptions,
-  TData extends NodeData
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
 > = Readonly<{
-  component: ComponentType<TNodeComponentProps>;
-  order?: ReadonlyArray<string | symbol>;
-  computeTree: TreeComputer<
-    TNodeComponentProps,
-    TNodeRecord,
-    TUpdateOptions,
-    TData,
-    any,
-    any
-  >;
-  records: Readonly<Record<string, TNodeRecord | undefined>>;
-  treeData?: any;
-  recomputeTree: (options?: TUpdateOptions) => Promise<void>;
+  order?: Array<string | symbol>;
+  computeTree: TreeComputer<any, any, any, any>;
+  records: ReadonlyMap<string | symbol, NodeRecord<TNodePublicState>>;
+  recomputeTree: (
+    options: OpennessState<TData, TNodePublicState>,
+  ) => Promise<void>;
+  setState: Component<any, TreeState<TData, TNodePublicState>>['setState'];
   treeWalker: TreeWalker<TData>;
+
+  // A simple hack to get over the PureComponent shallow comparison
+  updateRequest: object;
 }>;
 
-export type TypedListChildComponentProps<TData extends NodeData> = Readonly<
+export type TypedListChildComponentData<
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
+> = Readonly<{
+  /**
+   * The Node component provided by the user.
+   */
+  component: ComponentType<NodeComponentProps<TData, TNodePublicState>>;
+
+  /**
+   * The function that returns public data from visible records by index.
+   *
+   * @param index
+   */
+  getRecordData: (index: number) => TNodePublicState;
+
+  /**
+   * @see NodeComponentProps#treeData
+   */
+  treeData: any;
+}>;
+
+export type TypedListChildComponentProps<
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
+> = Readonly<
   Omit<ListChildComponentProps, 'data'> & {
-    data: Pick<
-      TreeState<
-        NodeComponentProps<TData>,
-        NodeRecord<TData>,
-        UpdateOptions,
-        TData
-      >,
-      'component' | 'order' | 'records' | 'treeData'
-    >;
+    data: TypedListChildComponentData<TData, TNodePublicState>;
   }
 >;
 
 // eslint-disable-next-line @typescript-eslint/naming-convention,@typescript-eslint/prefer-readonly-parameter-types
-export const Row = <TData extends NodeData>({
+export const Row = <
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
+>({
   index,
-  data: {component: Node, treeData, order, records},
+  data: {component: Node, getRecordData, treeData},
   style,
   isScrolling,
 }: PropsWithChildren<
-  TypedListChildComponentProps<TData>
->): ReactElement | null => (
-  <Node
-    {...records[order![index] as string]!}
-    style={style}
-    isScrolling={isScrolling}
-    treeData={treeData}
-  />
-);
+  TypedListChildComponentProps<TData, TNodePublicState>
+>): ReactElement | null => {
+  const data = getRecordData(index);
+
+  return (
+    <Node
+      isScrolling={isScrolling}
+      style={style}
+      treeData={treeData}
+      {...data}
+    />
+  );
+};
 
 export type TreeCreatorOptions<
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecord extends NodeRecord<TData>,
-  TUpdateOptions extends UpdateOptions,
   TData extends NodeData,
-  TState extends TreeState<
-    TNodeComponentProps,
-    TNodeRecord,
-    TUpdateOptions,
-    TData
-  >
+  TNodePublicState extends NodePublicState<TData>,
+  TState extends TreeState<TData, TNodePublicState>
 > = Readonly<{
   createRecord: (
     data: TData,
-    options: TUpdateOptions,
     state: TState,
-  ) => TNodeRecord;
-  shouldUpdateRecords: (options: TUpdateOptions) => boolean;
-  updateRecord: (
-    record: TNodeRecord,
-    recordId: string | symbol,
-    options: TUpdateOptions,
-  ) => void;
-  updateRecordOnNewData: (record: TNodeRecord, options: TUpdateOptions) => void;
+    parent?: NodeRecord<TNodePublicState> | null,
+    previousRecord?: NodeRecord<TNodePublicState>,
+  ) => NodeRecord<TNodePublicState>;
+}>;
+
+export type TreeComputerOptions<
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
+> = Readonly<{
+  opennessState?: OpennessState<TData, TNodePublicState>;
+  refresh?: boolean;
 }>;
 
 export type TreeComputer<
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecord extends NodeRecord<TData>,
-  TUpdateOptions extends UpdateOptions,
   TData extends NodeData,
-  TProps extends TreeProps<TNodeComponentProps, TData>,
-  TState extends TreeState<
-    TNodeComponentProps,
-    TNodeRecord,
-    TUpdateOptions,
-    TData
-  >
+  TNodePublicState extends NodePublicState<TData>,
+  TProps extends TreeProps<TData, TNodePublicState>,
+  TState extends TreeState<TData, TNodePublicState>
 > = (
   props: TProps,
   state: TState,
-  options?: TUpdateOptions,
-) => Pick<TState, 'order' | 'records'>;
+  options: TreeComputerOptions<TData, TNodePublicState>,
+) =>
+  | (Pick<TState, 'order' | 'records'> & Partial<Pick<TState, 'updateRequest'>>)
+  | null;
 
-export const createTreeComputer = <
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecord extends NodeRecord<TData>,
-  TUpdateOptions extends UpdateOptions,
+// If refresh is required, we will run the TreeWalker. It will completely
+// update all requests and reset every state to default.
+const generateNewTree = <
   TData extends NodeData,
-  TProps extends TreeProps<TNodeComponentProps, TData>,
-  TState extends TreeState<
-    TNodeComponentProps,
-    TNodeRecord,
-    TUpdateOptions,
-    TData
-  >
->({
-  createRecord,
-  shouldUpdateRecords,
-  updateRecord,
-  updateRecordOnNewData,
-}: TreeCreatorOptions<
-  TNodeComponentProps,
-  TNodeRecord,
-  TUpdateOptions,
-  TData,
-  TState
->): TreeComputer<
-  TNodeComponentProps,
-  TNodeRecord,
-  TUpdateOptions,
-  TData,
-  TProps,
-  TState
-> => (
-  {treeWalker},
-  state,
-  options = {} as TUpdateOptions,
-): Pick<TreeState<any, any, any, any>, 'order' | 'records'> => {
+  TNodePublicState extends NodePublicState<TData>,
+  TProps extends TreeProps<TData, TNodePublicState>,
+  TState extends TreeState<TData, TNodePublicState>
+>(
+  {createRecord}: TreeCreatorOptions<TData, TNodePublicState, TState>,
+  {buildingTaskTimeout, placeholder, async = false, treeWalker}: TProps,
+  state: TState,
+): ReturnType<TreeComputer<TData, TNodePublicState, TProps, TState>> => {
+  const shouldPreservePreviousState =
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    async && state.records !== undefined;
+  const {records: previousRecords} = state;
+
   const order: Array<string | symbol> = [];
-  const records = {...state.records};
-  const iter = treeWalker(options.refreshNodes ?? false);
+  const records = new Map<string | symbol, NodeRecord<TNodePublicState>>();
+  const requestIdleCallbackOptions = buildingTaskTimeout
+    ? {timeout: buildingTaskTimeout}
+    : undefined;
 
-  // Here we are updating all records to the provided openness state described
-  // in UpdateOptions. It should be done before the tree re-calculation
-  // because tree walker omits closed nodes while update is required for all
-  // of them.
-  if (shouldUpdateRecords(options)) {
-    for (const id in records) {
-      updateRecord(records[id]!, id, options);
-    }
-  }
+  const meta = new WeakMap<
+    NodeRecord<TNodePublicState>,
+    TreeWalkerValue<TData>
+  >();
 
-  let isPreviousOpened = false;
+  const iter = treeWalker();
+  const {value: root} = iter.next();
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition,no-constant-condition
-  while (true) {
-    const {done, value} = iter.next(isPreviousOpened);
+  // Each record has a link to a parent, the next sibling and the next child.
+  // Having this info, we can perform a depth-first traverse.
+  const rootRecord = createRecord(
+    root!.data,
+    state,
+    undefined,
+    shouldPreservePreviousState
+      ? previousRecords.get(root!.data.id)
+      : undefined,
+  );
+  records.set(rootRecord.public.data.id, rootRecord);
+  meta.set(rootRecord, root!);
 
-    if (done || !value) {
-      break;
-    }
+  let currentRecord: NodeRecord<TNodePublicState> | null = rootRecord;
+  let isTraversingRoot = true;
+  let tempRecord: NodeRecord<TNodePublicState> | null = rootRecord;
 
-    let id: string | symbol;
+  const useIdleCallback =
+    'requestIdleCallback' in window &&
+    placeholder !== undefined &&
+    // If placeholder is set to null and this is the first build, idle callback
+    // won't be used. It is necessary for trees with async data which can be
+    // extremely complex but the first build is quite easy. During the following
+    // idle callbacks the old tree will be shown.
+    !(placeholder === null && !state.order);
+  const hasTime = useIdleCallback
+    ? (deadline: RequestIdleCallbackDeadline) => deadline.timeRemaining() > 0
+    : () => true;
 
-    if (typeof value === 'string' || typeof value === 'symbol') {
-      id = value;
-    } else {
-      ({id} = value);
-      const record = records[id as string];
+  const task = (deadline?: RequestIdleCallbackDeadline) => {
+    while (currentRecord !== null) {
+      if (!hasTime(deadline!)) {
+        requestIdleCallback(task, requestIdleCallbackOptions);
 
-      if (!record) {
-        records[id as string] = createRecord(value, options, state);
+        return;
+      }
+
+      if (!currentRecord.visited) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        const {value: child} = iter.next(meta.get(currentRecord)!);
+
+        // When the generator returns the undefined value we consider that all
+        // children are already sent and we need to select the new parent
+        // element to get its children.
+        if (child === undefined) {
+          if (isTraversingRoot) {
+            isTraversingRoot = false;
+          } else {
+            if (currentRecord.isShown) {
+              order.push(currentRecord.public.data.id);
+            }
+
+            currentRecord = visitRecord(currentRecord);
+            tempRecord = currentRecord;
+          }
+          continue;
+        }
+
+        const childRecord = createRecord(
+          child.data,
+          state,
+          isTraversingRoot ? undefined : currentRecord,
+          shouldPreservePreviousState
+            ? previousRecords.get(child.data.id)
+            : undefined,
+        );
+        records.set(childRecord.public.data.id, childRecord);
+        meta.set(childRecord, child);
+
+        if (!isTraversingRoot && tempRecord === currentRecord) {
+          tempRecord.child = childRecord;
+        } else {
+          tempRecord!.sibling = childRecord;
+        }
+
+        tempRecord = childRecord;
       } else {
-        record.data = value;
-        updateRecordOnNewData(record, options);
+        currentRecord = revisitRecord(currentRecord);
+        tempRecord = currentRecord;
       }
     }
 
-    if (records[id as string]) {
-      order.push(id);
-      isPreviousOpened = records[id as string]!.isOpen;
-    } else if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.error(`No record with id ${String(id)} found.`);
+    if (useIdleCallback) {
+      state.setState({
+        order,
+        records,
+        updateRequest: {},
+      });
     }
+  };
+
+  if (useIdleCallback) {
+    requestIdleCallback(task, requestIdleCallbackOptions);
+  } else {
+    task();
+  }
+
+  // If we want to preserve the previous state and use the requestIdleCallback,
+  // we need to return the old state.
+  return placeholder !== undefined && async && state.order
+    ? state
+    : {order, records};
+};
+
+const updateRecordVisibility = <
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
+>(
+  record: NodeRecord<TNodePublicState>,
+): void => {
+  const {parent} = record;
+  record.isShown = parent ? parent.public.isOpen && parent.isShown : true;
+};
+
+const MAX_FUNCTION_ARGUMENTS = 32768;
+
+// If we need to perform only the update, treeWalker won't be used. Update will
+// work internally, traversing only the subtree of elements that require
+// update through the opennessState option.
+const updateExistingTree = <
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>,
+  TProps extends TreeProps<TData, TNodePublicState>,
+  TState extends TreeState<TData, TNodePublicState>
+>(
+  {order, records}: TState,
+  {opennessState}: TreeComputerOptions<TData, TNodePublicState>,
+): ReturnType<TreeComputer<TData, TNodePublicState, TProps, TState>> => {
+  if (typeof opennessState !== 'object') {
+    return null;
+  }
+
+  for (const id in opennessState) {
+    if (!records.has(id)) {
+      continue;
+    }
+
+    const opts = opennessState[id];
+    const ownerRecord = records.get(id)!;
+
+    // Here we unify the shape of openness state options
+    const {
+      open,
+      subtreeCallback = noop,
+    }: OpennessStateUpdateRules<TData, TNodePublicState> =
+      typeof opts === 'boolean' ? {open: opts} : opts;
+
+    let update: (record: NodeRecord<TNodePublicState>) => void = noop;
+    let apply: () => void = noop;
+
+    if (ownerRecord.isShown) {
+      if (open && !ownerRecord.public.isOpen) {
+        // If received rules require us to open the subtree that is not currently
+        // open, we have to add new ids to the order list.
+
+        const index = order!.indexOf(id);
+        const orderParts: Array<Array<number | string | symbol>> = [
+          [index + 1, 0],
+        ];
+        let orderPartsCursor = 0;
+
+        // Unfortunately, splice cannot work with big arrays. If array exceeds
+        // some length it may fire an exception. The length is specific for
+        // each engine; e.g., MDN says about 65536 for Webkit. So, to avoid this
+        // overflow, I split `order` parts to chunks by 32768 elements in each
+        // one. These chunks will be sent as arguments to the `splice` method.
+        //
+        // To avoid array concatenations which may cause Major GC, I set two
+        // first arguments as `splice`'s `start` and `deleteCount` arguments.
+        update = (record: NodeRecord<TNodePublicState>) => {
+          // We have to consider only the newly shown elements that are not in
+          // the order list yet. We should do it AFTER the visibility update
+          // happens because otherwise we won't be able to distinguish if the
+          // element should be included in the order list.
+          updateRecordVisibility(record);
+
+          if (record.isShown) {
+            orderParts[orderPartsCursor].push(record.public.data.id);
+
+            if (
+              orderParts[orderPartsCursor].length === MAX_FUNCTION_ARGUMENTS
+            ) {
+              orderPartsCursor += 1;
+              orderParts.push([
+                index + 1 + orderPartsCursor * MAX_FUNCTION_ARGUMENTS,
+                0,
+              ]);
+            }
+          }
+        };
+
+        apply = () => {
+          for (let i = 0; i < orderParts.length; i++) {
+            // @ts-expect-error: too generic for TS
+            order!.splice(...orderParts[i]);
+          }
+        };
+      } else if (!open && ownerRecord.public.isOpen) {
+        // If received rules require us to close the subtree, we have to remove
+        // all subtree ids from the order list.
+
+        const index = order!.indexOf(id);
+
+        let count = 0;
+
+        update = (record) => {
+          // We have to consider only currently visible subtree nodes BEFORE
+          // their visibility is updated. Otherwise we will have incorrect
+          // number of items to remove: we cannot remove elements that are not
+          // in the order list.
+          //
+          // If we do it after the visibility update, we will be unable to
+          // understand if the element is still in the order list.
+          if (record.isShown) {
+            count += 1;
+          }
+
+          updateRecordVisibility(record);
+        };
+
+        apply = () => {
+          // Remove data after element with index
+          order!.splice(index + 1, count);
+        };
+      }
+    }
+
+    let currentRecord: NodeRecord<TNodePublicState> | null = ownerRecord;
+
+    while (currentRecord !== null) {
+      if (!currentRecord.visited) {
+        currentRecord.public.isOpen =
+          currentRecord === ownerRecord ? open : currentRecord.public.isOpen;
+
+        subtreeCallback(currentRecord.public, ownerRecord.public);
+
+        if (currentRecord !== ownerRecord) {
+          update(currentRecord);
+        }
+
+        currentRecord = visitRecord(currentRecord);
+      } else {
+        currentRecord = revisitRecord(currentRecord, ownerRecord);
+      }
+    }
+
+    apply();
   }
 
   return {
     order,
     records,
+    updateRequest: {},
   };
 };
 
-class Tree<
-  TNodeComponentProps extends NodeComponentProps<TData>,
-  TNodeRecord extends NodeRecord<TData>,
-  TUpdateOptions extends UpdateOptions,
+export const createTreeComputer = <
   TData extends NodeData,
-  TProps extends TreeProps<TNodeComponentProps, TData>,
-  TState extends TreeState<
-    TNodeComponentProps,
-    TNodeRecord,
-    TUpdateOptions,
-    TData
-  >,
+  TNodePublicState extends NodePublicState<TData>,
+  TProps extends TreeProps<TData, TNodePublicState>,
+  TState extends TreeState<TData, TNodePublicState>
+>(
+  creatorOptions: TreeCreatorOptions<TData, TNodePublicState, TState>,
+): TreeComputer<TData, TNodePublicState, TProps, TState> => (
+  props,
+  state,
+  options,
+) =>
+  options.refresh
+    ? generateNewTree(creatorOptions, props, state)
+    : updateExistingTree(state, options);
+
+class Tree<
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>,
+  TProps extends TreeProps<TData, TNodePublicState>,
+  TState extends TreeState<TData, TNodePublicState>,
   TListComponent extends FixedSizeList | VariableSizeList
 > extends PureComponent<TProps, TState> {
   public static defaultProps: Partial<DefaultTreeProps> = {
@@ -273,17 +533,15 @@ class Tree<
   public static getDerivedStateFromProps(
     props: DefaultTreeProps,
     state: DefaultTreeState,
-  ): Partial<DefaultTreeState> {
-    const {children: component, itemData: treeData, treeWalker} = props;
+  ): Partial<DefaultTreeState> | null {
+    const {treeWalker} = props;
     const {computeTree, order, treeWalker: oldTreeWalker} = state;
 
     return {
-      component,
-      treeData,
-      treeWalker,
       ...(treeWalker !== oldTreeWalker || !order
-        ? computeTree(props, state, {refreshNodes: true})
+        ? computeTree(props, state, {refresh: true})
         : null),
+      treeWalker,
     };
   }
 
@@ -292,17 +550,43 @@ class Tree<
   public constructor(props: TProps, context: any) {
     super(props, context);
 
+    this.getRecordData = this.getRecordData.bind(this);
+
     this.state = {
-      component: props.children,
       recomputeTree: this.recomputeTree.bind(this),
-      records: {},
+      setState: this.setState.bind(this),
     } as TState;
   }
 
-  public recomputeTree(options?: TUpdateOptions): Promise<void> {
+  protected getItemData(): TypedListChildComponentData<
+    TData,
+    TNodePublicState
+  > {
+    const {children: component, itemData: treeData} = this.props;
+
+    return {
+      component,
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      getRecordData: this.getRecordData,
+      treeData,
+    };
+  }
+
+  protected getRecordData(index: number): TNodePublicState {
+    const {order, records} = this.state;
+
+    return records.get(order![index])!.public;
+  }
+
+  public recomputeTree(
+    state: OpennessState<TData, TNodePublicState>,
+  ): Promise<void> {
     return new Promise((resolve) => {
       this.setState<never>(
-        (prevState) => prevState.computeTree(this.props, prevState, options),
+        (prevState) =>
+          prevState.computeTree(this.props, prevState, {
+            opennessState: state,
+          }),
         resolve,
       );
     });

@@ -1,7 +1,7 @@
 /* eslint-disable max-depth */
-import {number, withKnobs} from '@storybook/addon-knobs';
+import {number, text, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
-import React, {FC, useCallback, useEffect, useRef} from 'react';
+import React, {FC, useCallback, useRef} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
   TreeWalker,
@@ -49,11 +49,11 @@ const createNode = (depth: number = 0) => {
 
   nodeId += 1;
 
-  if (depth === 5) {
+  if (depth === 2) {
     return node;
   }
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 1000; i++) {
     node.children.push(createNode(depth + 1));
   }
 
@@ -111,10 +111,6 @@ const Node: FC<NodeComponentProps<
   );
 };
 
-type TreePresenterProps = Readonly<{
-  itemSize: number;
-}>;
-
 const getNodeData = (
   node: TreeNode,
   nestingLevel: number,
@@ -132,7 +128,12 @@ const getNodeData = (
   node,
 });
 
-const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
+type TreePresenterProps = Readonly<{
+  itemSize: number;
+  placeholder: string;
+}>;
+
+const TreePresenter: FC<TreePresenterProps> = ({itemSize, placeholder}) => {
   const tree = useRef<VariableSizeTree<ExtendedData>>(null);
 
   const treeWalker = useCallback(
@@ -153,25 +154,18 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
         }
       }
     },
-    [itemSize],
+    [itemSize, placeholder],
   );
-
-  useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    tree.current?.recomputeTree({
-      refreshNodes: true,
-      useDefaultHeight: true,
-    });
-  }, [itemSize]);
 
   return (
     <AutoSizer disableWidth>
       {({height}) => (
         <VariableSizeTree
-          ref={tree}
-          itemData={itemSize}
-          treeWalker={treeWalker}
           height={height}
+          itemData={itemSize}
+          placeholder={placeholder.length > 0 ? placeholder : undefined}
+          ref={tree}
+          treeWalker={treeWalker}
           width="100%"
         >
           {Node}
@@ -183,6 +177,9 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
 
 storiesOf('Tree', module)
   .addDecorator(withKnobs)
-  .add('VariableSizeTree', () => (
-    <TreePresenter itemSize={number('Default row height', 30)} />
+  .add('Big data (with placeholder)', () => (
+    <TreePresenter
+      itemSize={number('Default row height', 30)}
+      placeholder={text('Placeholder', 'Building a tree...')}
+    />
   ));

@@ -80,7 +80,10 @@ const getNodeData = (
 });
 
 function* treeWalker(): ReturnType<TreeWalker<TreeData, NodeMeta>> {
-  yield getNodeData(rootNode, 0);
+  // eslint-disable-next-line @typescript-eslint/prefer-for-of
+  for (let i = 0; i < rootNode.children.length; i++) {
+    yield getNodeData(rootNode.children[i], 0);
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
@@ -123,23 +126,25 @@ type TreePresenterProps = Readonly<{
   itemSize: number;
 }>;
 
-const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => (
-  <AutoSizer disableWidth>
-    {({height}) => (
-      <FixedSizeTree
-        treeWalker={treeWalker}
-        itemSize={itemSize}
-        height={height}
-        width="100%"
-      >
-        {Node}
-      </FixedSizeTree>
-    )}
-  </AutoSizer>
-);
+const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
+  return (
+    <AutoSizer disableWidth>
+      {({height}) => (
+        <FixedSizeTree
+          treeWalker={treeWalker}
+          itemSize={itemSize}
+          height={height}
+          width="100%"
+        >
+          {Node}
+        </FixedSizeTree>
+      )}
+    </AutoSizer>
+  );
+};
 
 storiesOf('Tree', module)
   .addDecorator(withKnobs)
-  .add('FixedSizeTree', () => (
+  .add('Multiple Tree roots', () => (
     <TreePresenter itemSize={number('Row height', 30)} />
   ));
