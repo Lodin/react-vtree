@@ -17,7 +17,8 @@ export class AsyncTaskScheduler<T> {
 
   public finalize(): void {
     this.tasks.forEach((task) => task());
-    this.finalizeCallback([...this.tasks.keys()]);
+
+    this.finalizeCallback(Array.from(this.tasks.keys()));
   }
 
   private dropOthers(): void {
