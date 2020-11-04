@@ -315,6 +315,24 @@ describe('FixedSizeTree', () => {
         {timeout},
       );
     });
+
+    it('allows skipping first render but enable requestIdleCallback after', async () => {
+      component = mountComponent({
+        placeholder: null,
+      });
+
+      expect(window.requestIdleCallback).not.toHaveBeenCalled();
+
+      treeWalkerSpy = jest.fn(treeWalker);
+
+      component.setProps({
+        treeWalker: treeWalkerSpy,
+      });
+
+      await sleep(testRICTimeout);
+
+      expect(window.requestIdleCallback).toHaveBeenCalled();
+    });
   });
 
   describe('component instance', () => {
