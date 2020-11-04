@@ -142,7 +142,17 @@ You can read more about these properties in the [`FixedSizeList` documentation](
 - `useIsScrolling: boolean = false`
 - `width: number | string`
 
-##### `children`
+##### `async: boolean`
+
+This option allows making the tree asynchronous; e.g. you will be able to load the branch data on the node opening. All it does under the hood is preserving the tree state between tree buildings on `treeWalker` update, so the user does not see the tree resetting to the default state when the async action is performed.
+
+To see how it works you can check the [`AsyncData`](./__stories__/AsyncData.story.tsx) story. You can use the `disableAsync` to see what will happen on the async action if the `async` prop is `false`.
+
+If it is combined with the `placeholder` option, the tree re-building won't be interrupted by showing the placeholder; it will be shown only at the first time the tree is building.
+
+To see how two options interact with each other see the [`AsyncDataIdle`](./__stories__/AsyncDataIdle.story.tsx) story.
+
+##### `children: component`
 
 The `Node` component responsible for rendering each node.
 
@@ -152,9 +162,10 @@ It receives the following props:
   - `style: object`
   - `isScrolling: boolean` - if `useIsScrolling` is enabled.
 - `Node`-specific props:
+
   - All fields of the [`FixedSizeNodePublicState`](#types) object.
   - `treeData: any` - any data provided via the `itemData` property of the `FixedSizeTree` component.
-  
+
 ##### `placeholder: ReactNode`
 
 This property receives any react node that will be displayed instead of a tree during the building process. This option should only be used if the tree building process requires too much time (which means you have a really giant amount of data, e.g. about a million nodes).
@@ -163,11 +174,11 @@ Setting this option enables the [`requestIdleCallback`](https://developer.mozill
 
 Using this feature allows avoiding UI freezes; however, it may slightly increase the time spent for the building process.
 
-To see how it works, you can check the [BigData](./__stories__/BigData.story.tsx) story.
+To see how it works, you can check the [BigData](./__stories__/BigData.story.tsx) story. Use `placeholder` tool to add and remove placeholder.
 
 ##### `buildingTaskTimeout: number`
 
-This option works in tandem with the `placeholder` option. With it, you can set the task timeout for the `requestIdleCallback`. The `buildingTaskTimeout` will be sent directly as the `requestIdleCallback`'s `timeout` option. 
+This option works in tandem with the `placeholder` option. With it, you can set the task timeout for the `requestIdleCallback`. The `buildingTaskTimeout` will be sent directly as the `requestIdleCallback`'s `timeout` option.
 
 ##### `rowComponent: component`
 
