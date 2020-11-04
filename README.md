@@ -9,9 +9,9 @@
 
 This package provides a lightweight and flexible solution for rendering large tree structures. It is built on top of the [react-window](https://github.com/bvaughn/react-window) library.
 
-**NOTE**: This is documentation for version `3.x.x`. For version `2.x.x` see [this branch](https://github.com/Lodin/react-vtree/tree/version/2).
-
 **Attention!** This library is entirely rewritten to work with the `react-window`. If you are looking for the tree view solution for the [react-virtualized](https://github.com/bvaughn/react-virtualized), take a look at [react-virtualized-tree](https://github.com/diogofcunha/react-virtualized-tree).
+
+**NOTE**: This is the documentation for version `3.x.x`. For version `2.x.x` see [this branch](https://github.com/Lodin/react-vtree/tree/version/2).
 
 ## Installation
 
@@ -480,7 +480,7 @@ function* treeWalker() {
 }
 ```
 
-## Migrating v2 -> v3
+## Migrating `2.x.x` -> `3.x.x`
 
 If you use `react-vtree` of version 2, it is preferable migrate to the version 3. The third version is quite different under the hood and provides way more optimized approach to the initial tree building and tree openness state change. The most obvious it becomes if you have a giant tree (with about 1 million of nodes).
 
