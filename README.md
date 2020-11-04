@@ -9,7 +9,7 @@
 
 This package provides a lightweight and flexible solution for rendering large tree structures. It is built on top of the [react-window](https://github.com/bvaughn/react-window) library.
 
-**NOTE**: This is documentation for the `react-vtree` v3. For v2 see [this branch](https://github.com/Lodin/react-vtree/tree/version/2).
+**NOTE**: This is documentation for `v3`. For `v2` see [this branch](https://github.com/Lodin/react-vtree/tree/version/2).
 
 **Attention!** This library is entirely rewritten to work with the `react-window`. If you are looking for the tree view solution for the [react-virtualized](https://github.com/bvaughn/react-virtualized), take a look at [react-virtualized-tree](https://github.com/diogofcunha/react-virtualized-tree).
 
