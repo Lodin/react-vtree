@@ -111,10 +111,6 @@ const Node: FC<NodeComponentProps<
   );
 };
 
-type TreePresenterProps = Readonly<{
-  itemSize: number;
-}>;
-
 const getNodeData = (
   node: TreeNode,
   nestingLevel: number,
@@ -132,7 +128,12 @@ const getNodeData = (
   node,
 });
 
-const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
+type TreePresenterProps = Readonly<{
+  itemSize: number;
+  placeholder: string;
+}>;
+
+const TreePresenter: FC<TreePresenterProps> = ({itemSize, placeholder}) => {
   const tree = useRef<VariableSizeTree<ExtendedData>>(null);
 
   const treeWalker = useCallback(
@@ -160,10 +161,11 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
     <AutoSizer disableWidth>
       {({height}) => (
         <VariableSizeTree
-          ref={tree}
-          itemData={itemSize}
-          treeWalker={treeWalker}
           height={height}
+          itemData={itemSize}
+          placeholder={placeholder.length > 0 ? placeholder : undefined}
+          ref={tree}
+          treeWalker={treeWalker}
           width="100%"
         >
           {Node}
@@ -175,6 +177,9 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
 
 storiesOf('Tree', module)
   .addDecorator(withKnobs)
-  .add('Big data', () => (
-    <TreePresenter itemSize={number('Default row height', 30)} />
+  .add('Big data (with placeholder)', () => (
+    <TreePresenter
+      itemSize={number('Default row height', 30)}
+      placeholder="Building a tree..."
+    />
   ));

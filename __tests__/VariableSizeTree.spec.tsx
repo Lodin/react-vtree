@@ -282,7 +282,7 @@ describe('VariableSizeTree', () => {
     treeWalkerSpy = jest.fn(treeWalker);
 
     component.setProps({
-      preservePreviousState: true,
+      async: true,
       treeWalker: treeWalkerSpy,
     });
 

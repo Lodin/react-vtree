@@ -105,7 +105,7 @@ export type TreeProps<
     buildingTaskTimeout?: number;
     children: ComponentType<NodeComponentProps<TData, TNodePublicState>>;
     placeholder?: ReactNode;
-    preservePreviousState?: boolean;
+    async?: boolean;
     rowComponent?: ComponentType<ListChildComponentProps>;
     treeWalker: TreeWalker<TData>;
   }>;
@@ -225,17 +225,12 @@ const generateNewTree = <
   TState extends TreeState<TData, TNodePublicState>
 >(
   {createRecord}: TreeCreatorOptions<TData, TNodePublicState, TState>,
-  {
-    buildingTaskTimeout,
-    placeholder,
-    preservePreviousState = false,
-    treeWalker,
-  }: TProps,
+  {buildingTaskTimeout, placeholder, async = false, treeWalker}: TProps,
   state: TState,
 ): ReturnType<TreeComputer<TData, TNodePublicState, TProps, TState>> => {
   const shouldPreservePreviousState =
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    preservePreviousState && state.records !== undefined;
+    async && state.records !== undefined;
   const {records: previousRecords} = state;
 
   const order: Array<string | symbol> = [];
@@ -351,7 +346,7 @@ const generateNewTree = <
 
   // If we want to preserve the previous state and use the requestIdleCallback,
   // we need to return the old state.
-  return placeholder !== undefined && preservePreviousState && state.order
+  return placeholder !== undefined && async && state.order
     ? state
     : {order, records};
 };

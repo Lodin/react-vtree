@@ -1,5 +1,5 @@
 /* eslint-disable max-depth */
-import {number, withKnobs} from '@storybook/addon-knobs';
+import {boolean, number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import React, {FC, useCallback, useMemo, useRef, useState} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -136,13 +136,16 @@ const Node: FC<NodeComponentProps<
 };
 
 type TreePresenterProps = Readonly<{
+  disableAsync: boolean;
   itemSize: number;
 }>;
 
-const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
+const TreePresenter: FC<TreePresenterProps> = ({disableAsync, itemSize}) => {
   const [downloadedIds, setDownloadedIds] = useState<readonly number[]>([]);
   const scheduler = useRef<AsyncTaskScheduler<number>>(
-    new AsyncTaskScheduler(setDownloadedIds),
+    new AsyncTaskScheduler((ids) => {
+      setDownloadedIds(ids);
+    }),
   );
   const rootNode = useMemo(() => {
     nodeId = 0;
@@ -189,7 +192,7 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
           treeWalker={treeWalker}
           itemSize={itemSize}
           height={height}
-          preservePreviousState
+          async={!disableAsync}
           width="100%"
         >
           {Node}
@@ -202,5 +205,8 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
 storiesOf('Tree', module)
   .addDecorator(withKnobs)
   .add('Async data', () => (
-    <TreePresenter itemSize={number('Row height', 30)} />
+    <TreePresenter
+      disableAsync={boolean('Disable async', false)}
+      itemSize={number('Row height', 30)}
+    />
   ));

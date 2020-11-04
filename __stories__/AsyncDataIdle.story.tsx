@@ -1,4 +1,4 @@
-import {number, withKnobs} from '@storybook/addon-knobs';
+import {boolean, number, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import React, {
   DependencyList,
@@ -165,10 +165,11 @@ const Node: FC<NodeComponentProps<
 };
 
 type TreePresenterProps = Readonly<{
+  disableAsync: boolean;
   itemSize: number;
 }>;
 
-const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
+const TreePresenter: FC<TreePresenterProps> = ({disableAsync, itemSize}) => {
   const [downloadedIds, setDownloadedIds] = useState<readonly number[]>([]);
   const scheduler = useRef<AsyncTaskScheduler<number>>(
     new AsyncTaskScheduler(setDownloadedIds),
@@ -219,7 +220,7 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
           itemSize={itemSize}
           height={height}
           placeholder={null}
-          preservePreviousState
+          async={!disableAsync}
           width="100%"
         >
           {Node}
@@ -232,5 +233,8 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
 storiesOf('Tree', module)
   .addDecorator(withKnobs)
   .add('Async data with placeholder', () => (
-    <TreePresenter itemSize={number('Row height', 30)} />
+    <TreePresenter
+      disableAsync={boolean('Disable async', false)}
+      itemSize={number('Row height', 30)}
+    />
   ));

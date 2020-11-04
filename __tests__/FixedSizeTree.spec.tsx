@@ -40,7 +40,7 @@ describe('FixedSizeTree', () => {
   const Node: FC<NodeComponentProps<
     ExtendedData,
     FixedSizeNodePublicState<ExtendedData>
-  >> = () => null;
+  >> = jest.fn(() => null);
 
   let component: ReactWrapper<
     FixedSizeTreeProps<ExtendedData>,
@@ -261,7 +261,7 @@ describe('FixedSizeTree', () => {
     treeWalkerSpy = jest.fn(treeWalker);
 
     component.setProps({
-      preservePreviousState: true,
+      async: true,
       treeWalker: treeWalkerSpy,
     });
 
@@ -279,6 +279,7 @@ describe('FixedSizeTree', () => {
     beforeEach(() => {
       unmockRIC = mockRequestIdleCallback(testRICTimeout);
       component.unmount();
+      (Node as jest.Mock).mockClear();
     });
 
     afterEach(() => {
