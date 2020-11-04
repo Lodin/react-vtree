@@ -166,7 +166,7 @@ It receives the following props:
   - All fields of the [`FixedSizeNodePublicState`](#types) object.
   - `treeData: any` - any data provided via the `itemData` property of the `FixedSizeTree` component.
 
-##### `placeholder: ReactNode`
+##### `placeholder: ReactNode | null`
 
 This property receives any react node that will be displayed instead of a tree during the building process. This option should only be used if the tree building process requires too much time (which means you have a really giant amount of data, e.g. about a million nodes).
 
@@ -175,6 +175,10 @@ Setting this option enables the [`requestIdleCallback`](https://developer.mozill
 Using this feature allows avoiding UI freezes; however, it may slightly increase the time spent for the building process.
 
 To see how it works, you can check the [BigData](./__stories__/BigData.story.tsx) story. Use `placeholder` tool to add and remove placeholder.
+
+If you have an asynchronous giant tree and want to use profits of `requestIdleCallback` but don't want placeholder to be shown on the first render (that is probably quite small because all other data will be loaded asynchronously), set `placeholder` to `null`. No placeholder will be shown on the first render but the `requestIdleCallback` building will be enabled and allow avoiding freezes on tree re-building when tree becomes bigger.
+
+To see how it works you can check the [AsyncDataIdle](./__stories__/AsyncDataIdle.story.tsx) story. It uses the `null` placeholder, so no text is shown for the first build but async requests don't block the UI.
 
 ##### `buildingTaskTimeout: number`
 
