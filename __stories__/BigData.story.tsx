@@ -1,5 +1,5 @@
 /* eslint-disable max-depth */
-import {number, withKnobs} from '@storybook/addon-knobs';
+import {number, text, withKnobs} from '@storybook/addon-knobs';
 import {storiesOf} from '@storybook/react';
 import React, {FC, useCallback, useRef} from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -154,7 +154,7 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize, placeholder}) => {
         }
       }
     },
-    [itemSize],
+    [itemSize, placeholder],
   );
 
   return (
@@ -180,6 +180,6 @@ storiesOf('Tree', module)
   .add('Big data (with placeholder)', () => (
     <TreePresenter
       itemSize={number('Default row height', 30)}
-      placeholder="Building a tree..."
+      placeholder={text('Placeholder', 'Building a tree...')}
     />
   ));
