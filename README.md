@@ -38,25 +38,31 @@ import {FixedSizeTree as Tree} from 'react-vtree';
 // Tree component can work with any possible tree structure because it uses an
 // iterator function that the user provides. Structure, approach, and iterator
 // function below is just one of many possible variants.
-const tree = {
-  name: 'Root #1',
-  id: 'root-1',
-  children: [
-    {
-      children: [
-        {id: 'child-2', name: 'Child #2'},
-        {id: 'child-3', name: 'Child #3'},
-      ],
-      id: 'child-1',
-      name: 'Child #1',
-    },
-    {
-      children: [{id: 'child-5', name: 'Child #5'}],
-      id: 'child-4',
-      name: 'Child #4',
-    },
-  ],
-};
+const treeNodes = [
+  {
+    name: 'Root #1',
+    id: 'root-1',
+    children: [
+      {
+        children: [
+          {id: 'child-2', name: 'Child #2'},
+          {id: 'child-3', name: 'Child #3'},
+        ],
+        id: 'child-1',
+        name: 'Child #1',
+      },
+      {
+        children: [{id: 'child-5', name: 'Child #5'}],
+        id: 'child-4',
+        name: 'Child #4',
+      },
+    ],
+  },
+  {
+    name: 'Root #2',
+    id: 'root-2',
+  },
+];
 
 // This helper function constructs the object that will be sent back at the step
 // [2] during the treeWalker function work. Except for the mandatory `data`
@@ -76,8 +82,11 @@ const getNodeData = (node, nestingLevel) => ({
 // The `treeWalker` function runs only on tree re-build which is performed
 // whenever the `treeWalker` prop is changed.
 function* treeWalker() {
-  // Step [1]: Define the root node of our tree.
-  yield getNodeData(rootNode, 0);
+  // Step [1]: Define the root node of our tree. There can be one or
+  // multiple nodes.
+  for (let i = 0; i < treeNodes.length; i++) {
+    yield getNodeData(treeNodes[i], 0);
+  }
 
   while (true) {
     // Step [2]: Get the parent component back. It will be the object
@@ -230,7 +239,7 @@ The rules object has the following shape:
 - `open: boolean` - this rule changes the openness state for the owner node only (subtree nodes are not affected).
 - `subtreeCallback(node: object, ownerNode: object): void` - this callback runs against each node in the subtree of the owner node (including the owner node as well). It receives the subtree node and the owner node. Changing any property of the subtree node will affect the node state and how it will be displayed (e.g. if you change the node openness state it will be displayed according to the changed state).
 
-The order of rules matters. If you specify the child node rules before the parent node rules, and that rules affect the same property, the parent node subtreeWalker will override that property. So if you want to override parent's rules, place children rules after the parent's.
+The order of rules matters. If you specify the child node rules before the parent node rules, and that rules affect the same property, the parent node `subtreeWalker` will override that property. So if you want to override parent's rules, place children rules after the parent's.
 
 The type of the node objects received by `subtreeCallback` is `FixedSizeNodePublicState`. See the [types description](#types) below.
 
@@ -344,8 +353,9 @@ const getNodeData = (node, nestingLevel) => ({
 // The `treeWalker` function runs only on tree re-build which is performed
 // whenever the `treeWalker` prop is changed.
 function* treeWalker() {
-  // Step [1]: Define the root node of our tree.
-  yield getNodeData(rootNode, 0);
+  // Step [1]: Define the root node of our tree. There can be yielded one or
+  // multiple nodes.
+  yield getNodeData(tree, 0);
 
   while (true) {
     // Step [2]: Get the parent component back. It will be the object
@@ -436,9 +446,9 @@ All types in this section are the extended variants of [`FixedSizeTree` types](#
 
 The `treeWalker` algorithm works in the following way. During the execution, the `treeWalker` function sends a bunch of objects to the tree component which builds an internal representation of the tree. However, for it, the specific order of yieldings should be performed.
 
-1. The first yielding is always the root node. It will be the foundation of the whole tree.
+1. The first yielding is always root nodes. They will be the foundation of the whole tree.
 2. Now start a loop where you will receive the parent node and yield all the children of it.
-3. The first yielding of loop iteration should yield an `undefined`. In exchange, you will receive a node for which you should yield all the children in the same way you've done with the root.
+3. The first yielding of loop iteration should yield an `undefined`. In exchange, you will receive a node for which you should yield all the children in the same way you've done with the root ones.
 4. When all the children are yielded, and the new iteration of loop is started, you yield `undefined` again and in exchange receive the next node. It may be:
    - a child node if the previous node has children;
    - a sibling node if it has siblings;
@@ -466,4 +476,139 @@ function* treeWalker() {
     }
   }
 }
+```
+
+## Migrating v2 -> v3
+
+If you use `react-vtree` of version 2, it is preferable migrate to the version 3. The third version is quite different under the hood and provides way more optimized approach to the initial tree building and tree openness state change. The most obvious it becomes if you have a giant tree (with about 1 million of nodes).
+
+To migrate to the new version, you have to do the following steps.
+
+### 1. Migrate `treeWalker`
+
+The `treeWalker` was and is the heart of the `react-vtree`. However, now it looks a bit different.
+
+Old `treeWalker` worked for both initial tree building and changing node openness state:
+
+```js
+function* treeWalker(  refresh
+) {
+  const stack = [];
+
+  stack.push({
+    nestingLevel: 0,
+    node: rootNode,
+  });
+
+  // Go through all the nodes adding children to the stack and removing them
+  // when they are processed.
+  while (stack.length !== 0) {
+    const {node, nestingLevel} = stack.pop();
+    const id = node.id.toString();
+
+    // Receive the openness state of the node we are working with
+    const isOpened = yield refresh
+      ? {
+          id,
+          isLeaf: node.children.length === 0,
+          isOpenByDefault: true,
+          name: node.name,
+          nestingLevel,
+        }
+      : id;
+
+    if (node.children.length !== 0 && isOpened) {
+      for (let i = node.children.length - 1; i >= 0; i--) {
+        stack.push({
+          nestingLevel: nestingLevel + 1,
+          node: node.children[i],
+        });
+      }
+    }
+  }
+}
+```
+
+The new `treeWalker` is only for the tree building. The `Tree` component builds and preserves the tree structure internally. See the full description [above](#treewalker-algorithm).
+
+```js
+// This function prepares an object for yielding. We can yield an object
+// that has `data` object with `id` and `isOpenByDefault` fields.
+// We can also add any other data here.
+const getNodeData = (node, nestingLevel) => ({
+  data: {
+    id: node.id.toString(),
+    isLeaf: node.children.length === 0,
+    isOpenByDefault: true,
+    name: node.name,
+    nestingLevel,
+  },
+  nestingLevel,
+  node,
+});
+
+function* treeWalker() {
+  // Here we send root nodes to the component.
+  for (let i = 0; i < rootNodes.length; i++) {
+    yield getNodeData(rootNodes[i], 0);
+  }
+
+  while (true) {
+    // Here we receive an object we created via getNodeData function
+    // and yielded before. All we need here is to describe its children
+    // in the same way we described the root nodes.
+    const parentMeta = yield;
+
+    for (let i = 0; i < parentMeta.node.children.length; i++) {
+      yield getNodeData(
+        parentMeta.node.children[i],
+        parentMeta.nestingLevel + 1,
+      );
+    }
+  }
+}
+```
+
+### 2. Migrate tree components
+
+Components haven't been changed a lot but you may want to add new features like:
+
+- [`async`](#async-boolean)
+- [`placeholder`](#placeholder-reactnode--null)
+- [`buildingTaskTimeout`](#buildingtasktimeout-number).
+
+### 3. Migrate `recomputeTree` method
+
+The `recomputeTree` method now receives a list of nodes to change (previously, it was an `opennessState` object). See the full description [above](#async-recomputetreestate-void).
+
+The most important change is the introduction of the `subtreeCallback`. It is a function that will be applied to each node in the subtree of the specified node. Among other useful things it also allows imitating the behavior of old `useDefaultOpenness` and `useDefaultHeight` options.
+
+Old `recomputeTree`:
+```js
+treeInstance.recomputeTree({
+  opennessState: {
+    'node-1': true,
+    'node-2': true,
+    'node-3': false,
+  },
+  refreshNodes: true,
+  useDefaultOpenness: false
+});
+```
+
+New `recomputeTree`:
+
+```js
+treeInstance.recomputeTree({
+  'node-1': true,
+  'node-2': {
+    open: true,
+    subtreeCallback(node, ownerNode) {
+      if (node !== ownerNode) {
+        node.isOpen = false;
+      }
+    }
+  },
+  'node-3': false,
+});
 ```
