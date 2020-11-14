@@ -300,8 +300,9 @@ const generateNewTree = <
             }
 
             currentRecord = visitRecord(currentRecord);
-            tempRecord = currentRecord;
           }
+
+          tempRecord = currentRecord;
           continue;
         }
 
