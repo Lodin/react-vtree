@@ -135,7 +135,7 @@ describe('Multiroot tree', () => {
           nestingLevel: 0,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -145,7 +145,7 @@ describe('Multiroot tree', () => {
           nestingLevel: 1,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -155,7 +155,7 @@ describe('Multiroot tree', () => {
           nestingLevel: 1,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -165,7 +165,7 @@ describe('Multiroot tree', () => {
           nestingLevel: 0,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -175,7 +175,7 @@ describe('Multiroot tree', () => {
           nestingLevel: 1,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -185,7 +185,7 @@ describe('Multiroot tree', () => {
           nestingLevel: 1,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
     ]);
   });

@@ -97,7 +97,7 @@ const Node: FC<NodeComponentProps<
   data: {download, downloaded, isLeaf, name, nestingLevel},
   isOpen,
   style,
-  toggle,
+  setOpen,
 }) => {
   const [isLoading, setLoading] = useState(false);
 
@@ -118,10 +118,10 @@ const Node: FC<NodeComponentProps<
               if (!downloaded) {
                 setLoading(true);
                 await download();
-                await toggle();
+                await setOpen(!isOpen);
                 setLoading(false);
               } else {
-                await toggle();
+                await setOpen(!isOpen);
               }
             }}
             style={defaultButtonStyle}

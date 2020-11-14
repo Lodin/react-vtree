@@ -105,11 +105,11 @@ function* treeWalker() {
 
 // Node component receives all the data we created in the `treeWalker` +
 // internal openness state (`isOpen`), function to change internal openness
-// state (`toggle`) and `style` parameter that should be added to the root div.
-const Node = ({data: {isLeaf, name}, isOpen, style, toggle}) => (
+// state (`setOpen`) and `style` parameter that should be added to the root div.
+const Node = ({data: {isLeaf, name}, isOpen, style, setOpen}) => (
   <div style={style}>
     {!isLeaf && (
-      <button type="button" onClick={toggle}>
+      <button type="button" onClick={() => setOpen(!isOpen)}>
         {isOpen ? '-' : '+'}
       </button>
     )}
@@ -297,7 +297,7 @@ tree.recomputeTree({
 - `FixedSizeNodePublicState<TData extends FixedSizeNodeData>` - the node state available for the `Node` component and `recomputeTree`'s `subtreeCallback` function. It has the following shape:
   - `data: FixedSizeNodeData`.
   - `isOpen: boolean` - a current openness status of the node.
-  - `toggle: function` - a function to change the openness state of the node. It receives no arguments and can be provided directly as an `onClick` handler.
+  - `setOpen(state: boolean): function` - a function to change the openness state of the node. It receives the new openness state as a `boolean` and opens/closes the node accordingly.
 - `FixedSizeTreeProps<TData extends FixedSizeNodeData>` - props that `FixedSizeTree` component receives. Described in the [Props](#props) section.
 - `FixedSizeTreeState<TData extends FixedSizeNodeData>` - state that `FixedSizeTree` component has.
 
@@ -373,10 +373,10 @@ function* treeWalker() {
 }
 
 // Node component receives current node height as a prop
-const Node = ({data: {isLeaf, name}, height, isOpen, style, toggle}) => (
+const Node = ({data: {isLeaf, name}, height, isOpen, style, setOpen}) => (
   <div style={style}>
     {!isLeaf && (
-      <button type="button" onClick={toggle}>
+      <button type="button" onClick={() => setOpen(!isOpen)}>
         {isOpen ? '-' : '+'}
       </button>
     )}
@@ -493,8 +493,7 @@ The `treeWalker` was and is the heart of the `react-vtree`. However, now it look
 Old `treeWalker` worked for both initial tree building and changing node openness state:
 
 ```js
-function* treeWalker(  refresh
-) {
+function* treeWalker(refresh) {
   const stack = [];
 
   stack.push({
@@ -586,6 +585,7 @@ The `recomputeTree` method now receives a list of nodes to change (previously, i
 The most important change is the introduction of the `subtreeCallback`. It is a function that will be applied to each node in the subtree of the specified node. Among other useful things it also allows imitating the behavior of old `useDefaultOpenness` and `useDefaultHeight` options.
 
 Old `recomputeTree`:
+
 ```js
 treeInstance.recomputeTree({
   opennessState: {
@@ -594,7 +594,7 @@ treeInstance.recomputeTree({
     'node-3': false,
   },
   refreshNodes: true,
-  useDefaultOpenness: false
+  useDefaultOpenness: false,
 });
 ```
 
@@ -609,8 +609,42 @@ treeInstance.recomputeTree({
       if (node !== ownerNode) {
         node.isOpen = false;
       }
-    }
+    },
   },
   'node-3': false,
 });
+```
+
+### 4. Migrate all your `toggle()` calls to `setOpen(boolean)`
+
+In the `3.x.x` version node provides a `setOpen` function instead of `toggle` that allows more fine-grained control over the openness state.
+
+Old `toggle`:
+
+```javascript
+const Node = ({data: {isLeaf, name}, isOpen, style, toggle}) => (
+  <div style={style}>
+    {!isLeaf && (
+      <div>
+        <button onClick={toggle}>{isOpen ? '-' : '+'}</button>
+      </div>
+    )}
+    <div>{name}</div>
+  </div>
+);
+```
+
+New `setOpen`:
+```javascript
+const Node = ({data: {isLeaf, name}, isOpen, style, setOpen}) => (
+  <div style={style}>
+    {!isLeaf && (
+      <div>
+        // Imitating the old `toggle` function behavior
+        <button onClick={() => setOpen(!isOpen)}>{isOpen ? '-' : '+'}</button>
+      </div>
+    )}
+    <div>{name}</div>
+  </div>
+);
 ```

@@ -39,9 +39,9 @@ const computeTree = createTreeComputer<
         isOpen: previousRecord
           ? previousRecord.public.isOpen
           : data.isOpenByDefault,
-        toggle: (): Promise<void> =>
+        setOpen: (state): Promise<void> =>
           recomputeTree({
-            [data.id]: !record.public.isOpen,
+            [data.id]: state,
           }),
       },
       parent,

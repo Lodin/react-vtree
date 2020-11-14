@@ -73,7 +73,7 @@ const Node: FC<NodeComponentProps<
   isOpen,
   resize,
   style,
-  toggle,
+  setOpen,
   treeData: itemSize,
 }) => {
   const canOpen = height <= itemSize;
@@ -96,7 +96,11 @@ const Node: FC<NodeComponentProps<
     >
       {!isLeaf && (
         <div>
-          <button type="button" onClick={toggle} style={defaultButtonStyle}>
+          <button
+            type="button"
+            onClick={() => setOpen(!isOpen)}
+            style={defaultButtonStyle}
+          >
             {isOpen ? '-' : '+'}
           </button>
         </div>

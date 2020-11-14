@@ -139,7 +139,7 @@ describe('VariableSizeTree', () => {
         height: 30,
         isOpen: true,
         resize: expect.any(Function),
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -152,7 +152,7 @@ describe('VariableSizeTree', () => {
         height: 30,
         isOpen: true,
         resize: expect.any(Function),
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -165,7 +165,7 @@ describe('VariableSizeTree', () => {
         height: 30,
         isOpen: true,
         resize: expect.any(Function),
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -178,7 +178,7 @@ describe('VariableSizeTree', () => {
         height: 30,
         isOpen: true,
         resize: expect.any(Function),
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -191,7 +191,7 @@ describe('VariableSizeTree', () => {
         height: 30,
         isOpen: true,
         resize: expect.any(Function),
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -204,7 +204,7 @@ describe('VariableSizeTree', () => {
         height: 30,
         isOpen: true,
         resize: expect.any(Function),
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -217,7 +217,7 @@ describe('VariableSizeTree', () => {
         height: 30,
         isOpen: true,
         resize: expect.any(Function),
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
     ]);
   });
@@ -266,11 +266,11 @@ describe('VariableSizeTree', () => {
   });
 
   it('allows preserving previous state on the new tree building', async () => {
-    const [, {toggle}]: ReadonlyArray<VariableSizeNodePublicState<
+    const [, {setOpen}]: ReadonlyArray<VariableSizeNodePublicState<
       ExtendedData
     >> = extractReceivedRecords(component.find(VariableSizeList));
 
-    await toggle();
+    await setOpen(false);
     component.update();
 
     expect(
@@ -413,7 +413,7 @@ describe('VariableSizeTree', () => {
             height: 30,
             isOpen: false,
             resize: expect.any(Function),
-            toggle: expect.any(Function),
+            setOpen: expect.any(Function),
           },
         ]);
       });
@@ -562,19 +562,25 @@ describe('VariableSizeTree', () => {
       });
     });
 
-    it('provides a toggle function that changes openness state of the specific node', async () => {
-      const [{toggle}] = extractReceivedRecords(
+    it('provides a setOpen function that changes openness state of the specific node', async () => {
+      const [{setOpen}] = extractReceivedRecords(
         component.find(VariableSizeList),
       );
 
-      await toggle();
+      await setOpen(false);
       component.update(); // Update the wrapper to get the latest changes
 
-      const list = component.find(VariableSizeList);
+      let list = component.find(VariableSizeList);
       expect(list.prop('itemCount')).toBe(1);
       expect(extractReceivedRecords(list).map(({data: {id}}) => id)).toEqual([
         'foo-1',
       ]);
+
+      await setOpen(true);
+      component.update(); // Update the wrapper to get the latest changes
+
+      list = component.find(VariableSizeList);
+      expect(list.prop('itemCount')).toBe(7);
     });
 
     it('provides a resize function that changes height of the specific node', () => {

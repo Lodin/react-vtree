@@ -99,7 +99,7 @@ function* treeWalker(): ReturnType<TreeWalker<TreeData, NodeMeta>> {
 const Node: FC<NodeComponentProps<
   TreeData,
   FixedSizeNodePublicState<TreeData>
->> = ({data: {isLeaf, name, nestingLevel}, isOpen, style, toggle}) => (
+>> = ({data: {isLeaf, name, nestingLevel}, isOpen, style, setOpen}) => (
   <div
     style={{
       ...style,
@@ -110,7 +110,11 @@ const Node: FC<NodeComponentProps<
   >
     {!isLeaf && (
       <div>
-        <button type="button" onClick={toggle} style={defaultButtonStyle}>
+        <button
+          type="button"
+          onClick={() => setOpen(!isOpen)}
+          style={defaultButtonStyle}
+        >
           {isOpen ? '-' : '+'}
         </button>
       </div>

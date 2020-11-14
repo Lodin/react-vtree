@@ -118,7 +118,7 @@ const Node: FC<NodeComponentProps<
   data: {download, downloaded, isLeaf, name, nestingLevel},
   isOpen,
   style,
-  toggle,
+  setOpen,
 }) => {
   const [isLoading, setLoading] = useState(false);
   const createBuildingPromise = useBuildingPromise([download]);
@@ -143,12 +143,12 @@ const Node: FC<NodeComponentProps<
                       setLoading(true);
                       await Promise.all([
                         download(),
-                        toggle(),
+                        setOpen(!isOpen),
                         createBuildingPromise(),
                       ]);
                       setLoading(false);
                     } else {
-                      await toggle();
+                      await setOpen(!isOpen);
                     }
                   }
                 : undefined
