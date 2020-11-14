@@ -54,7 +54,7 @@ export type OpennessStateUpdateRules<
 
 export type NodePublicState<TData extends NodeData> = Readonly<{
   data: TData;
-  toggle: () => Promise<void>;
+  setOpen: (state: boolean) => Promise<void>;
 }> & {
   isOpen: boolean;
 };

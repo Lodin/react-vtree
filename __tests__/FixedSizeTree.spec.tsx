@@ -138,7 +138,7 @@ describe('FixedSizeTree', () => {
           nestingLevel: 0,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -148,7 +148,7 @@ describe('FixedSizeTree', () => {
           nestingLevel: 1,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -158,7 +158,7 @@ describe('FixedSizeTree', () => {
           nestingLevel: 2,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -168,7 +168,7 @@ describe('FixedSizeTree', () => {
           nestingLevel: 2,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -178,7 +178,7 @@ describe('FixedSizeTree', () => {
           nestingLevel: 1,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -188,7 +188,7 @@ describe('FixedSizeTree', () => {
           nestingLevel: 2,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
       {
         data: {
@@ -198,7 +198,7 @@ describe('FixedSizeTree', () => {
           nestingLevel: 2,
         },
         isOpen: true,
-        toggle: expect.any(Function),
+        setOpen: expect.any(Function),
       },
     ]);
   });
@@ -245,11 +245,11 @@ describe('FixedSizeTree', () => {
   });
 
   it('allows preserving previous state on the new tree building', async () => {
-    const [, {toggle}]: ReadonlyArray<FixedSizeNodePublicState<
+    const [, {setOpen}]: ReadonlyArray<FixedSizeNodePublicState<
       ExtendedData
     >> = extractReceivedRecords(component.find(FixedSizeList));
 
-    await toggle();
+    await setOpen(false);
     component.update();
 
     expect(
@@ -384,7 +384,7 @@ describe('FixedSizeTree', () => {
               nestingLevel: 0,
             },
             isOpen: false,
-            toggle: expect.any(Function),
+            setOpen: expect.any(Function),
           },
         ]);
       });
@@ -533,17 +533,23 @@ describe('FixedSizeTree', () => {
       });
     });
 
-    it('provides a toggle function that changes openness state of the specific node', async () => {
-      const [{toggle}] = extractReceivedRecords(component.find(FixedSizeList));
+    it('provides a setOpen function that changes openness state of the specific node', async () => {
+      const [{setOpen}] = extractReceivedRecords(component.find(FixedSizeList));
 
-      await toggle();
+      await setOpen(false);
       component.update(); // Update the wrapper to get the latest changes
 
-      const list = component.find(FixedSizeList);
+      let list = component.find(FixedSizeList);
       expect(list.prop('itemCount')).toBe(1);
       expect(extractReceivedRecords(list).map(({data: {id}}) => id)).toEqual([
         'foo-1',
       ]);
+
+      await setOpen(true);
+      component.update(); // Update the wrapper to get the latest changes
+
+      list = component.find(FixedSizeList);
+      expect(list.prop('itemCount')).toBe(7);
     });
   });
 });

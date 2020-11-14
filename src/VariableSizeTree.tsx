@@ -63,9 +63,9 @@ const computeTree = createTreeComputer<
           record.public.height = height;
           resetAfterId(record.public.data.id, shouldForceUpdate);
         },
-        toggle: (): Promise<void> =>
+        setOpen: (state): Promise<void> =>
           recomputeTree({
-            [data.id]: !record.public.isOpen,
+            [data.id]: state,
           }),
       },
       parent,
