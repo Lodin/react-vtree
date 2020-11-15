@@ -534,7 +534,7 @@ describe('VariableSizeTree', () => {
           // children. But it sill will set `isOpen` to true.
           'foo-6': true,
         });
-        component.update();
+        component.update(); // Update the wrapper to get the latest changes
 
         const receivedRecords = extractReceivedRecords(
           component.find(VariableSizeList),
@@ -567,6 +567,7 @@ describe('VariableSizeTree', () => {
 
         // @ts-expect-error: Test for non-typescript code.
         await treeInstance.recomputeTree('4');
+        component.update(); // Update the wrapper to get the latest changes
 
         expect(
           extractReceivedRecords(component.find(VariableSizeList)),
@@ -581,6 +582,7 @@ describe('VariableSizeTree', () => {
         await treeInstance.recomputeTree({
           'foo-42': false,
         });
+        component.update(); // Update the wrapper to get the latest changes
 
         expect(
           extractReceivedRecords(component.find(VariableSizeList)),
