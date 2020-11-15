@@ -272,6 +272,21 @@ describe('FixedSizeTree', () => {
     ).toEqual(['foo-1', 'foo-2', 'foo-5', 'foo-6', 'foo-7']);
   });
 
+  it('provides a itemKey function to FixedSizeList', () => {
+    const itemKey = component.find(FixedSizeList).prop('itemKey');
+    expect(itemKey).not.toBeUndefined();
+
+    expect(component.find(Row).map((node) => node.key())).toEqual([
+      'foo-1',
+      'foo-2',
+      'foo-3',
+      'foo-4',
+      'foo-5',
+      'foo-6',
+      'foo-7',
+    ]);
+  });
+
   describe('placeholder', () => {
     const testRICTimeout = 16;
     let unmockRIC: () => void;
@@ -486,23 +501,34 @@ describe('FixedSizeTree', () => {
             },
           },
           'foo-5': true,
+          // This action means nothing because "foo-6" is leaf and has no
+          // children. But it sill will set `isOpen` to true.
           'foo-6': true,
         });
+        component.update();
 
         const receivedRecords = extractReceivedRecords(
           component.find(FixedSizeList),
         );
+        expect(
+          receivedRecords.reduce<Record<string, boolean>>(
+            (acc, {data: {id}, isOpen}) => {
+              acc[id] = isOpen;
 
-        expect(receivedRecords.map(({isOpen}) => isOpen)).toEqual([
-          true,
-          false,
-          false,
-          false,
+              return acc;
+            },
+            {},
+          ),
+        ).toEqual({
+          'foo-1': true,
+          // Since `foo-2` is closed, `foo-3` and `foo-4` do not even appear in
+          // the list of received records.
+          'foo-2': false,
           // The `foo-5` and `foo-6` nodes are opened manually in recomputeTree
-          true,
-          true,
-          false,
-        ]);
+          'foo-5': true,
+          'foo-6': true,
+          'foo-7': false,
+        });
       });
 
       it('does nothing if opennessState is not an object', async () => {

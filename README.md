@@ -648,3 +648,7 @@ const Node = ({data: {isLeaf, name}, isOpen, style, setOpen}) => (
   </div>
 );
 ```
+
+### 5. Migrate all your IDs to string
+
+Using node IDs as keys should improve React rendering performance. However, it means that you won't be able to use `Symbol` as IDs anymore. You should move all your IDs to be strings instead of symbols.
