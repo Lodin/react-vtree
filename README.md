@@ -195,6 +195,10 @@ To see how it works you can check the [AsyncDataIdle](./__stories__/AsyncDataIdl
 
 This option works in tandem with the `placeholder` option. With it, you can set the task timeout for the `requestIdleCallback`. The `buildingTaskTimeout` will be sent directly as the `requestIdleCallback`'s `timeout` option.
 
+##### `listRef: Ref<FixedSizeList>`
+
+This option allows you to get the instance of the internal `react-window` list. It is usually unnecessary because all necessary methods are already provided but still can be useful for edge cases.
+
 ##### `rowComponent: component`
 
 This property receives a custom `Row` component for the `FixedSizeList` that will override the default one. It can be used for adding new functionality.
@@ -405,6 +409,10 @@ Since `VariableSizeList` in general inherits properties from the `FixedSizeList`
 ##### `children`
 
 The `Node` component. It is the same as the [`FixedSizeTree`](#fixedsizetree)'s one but receives properties from the [`VariableSizeNodePublicState`](#types-1) object.
+
+##### `listRef: Ref<VariableSizeList>`
+
+Same as [`listRef`](#listref-reffixedsizelist) of `FixedSizeTree`.
 
 ##### `rowComponent: component`
 
