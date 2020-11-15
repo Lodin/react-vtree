@@ -1,3 +1,4 @@
+import {FixedSizeList} from 'react-window';
 import type {
   NodeData,
   NodePublicState,
@@ -37,9 +38,17 @@ declare global {
   }
 }
 
-export type DefaultTreeProps = TreeProps<NodeData, NodePublicState<NodeData>>;
+export type DefaultTreeProps = TreeProps<
+  NodeData,
+  NodePublicState<NodeData>,
+  FixedSizeList
+>;
 
-export type DefaultTreeState = TreeState<NodeData, NodePublicState<NodeData>>;
+export type DefaultTreeState = TreeState<
+  NodeData,
+  NodePublicState<NodeData>,
+  FixedSizeList
+>;
 
 export type DefaultTreeCreatorOptions = TreeCreatorOptions<
   NodeData,

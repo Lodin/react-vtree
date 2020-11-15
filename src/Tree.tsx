@@ -2,11 +2,16 @@
 import React, {
   Component,
   ComponentType,
+  createRef,
   PropsWithChildren,
   PureComponent,
   ReactElement,
   ReactNode,
+  Ref,
+  RefCallback,
+  RefObject,
 } from 'react';
+import mergeRefs from 'react-merge-refs';
 import {
   Align,
   FixedSizeList,
@@ -95,35 +100,53 @@ export type OpennessState<
   Record<string, OpennessStateUpdateRules<TData, TNodePublicState> | boolean>
 >;
 
-export type TreeProps<
-  TData extends NodeData,
-  TNodePublicState extends NodePublicState<TData>
-> = Readonly<Omit<ListProps, 'children' | 'itemCount' | 'itemKey'>> &
-  Readonly<{
-    buildingTaskTimeout?: number;
-    children: ComponentType<NodeComponentProps<TData, TNodePublicState>>;
-    placeholder?: ReactNode;
-    async?: boolean;
-    rowComponent?: ComponentType<ListChildComponentProps>;
-    treeWalker: TreeWalker<TData>;
-  }>;
+export type TreeComputerProps<TData extends NodeData> = Readonly<{
+  async?: boolean;
+  buildingTaskTimeout?: number;
+  placeholder?: ReactNode;
+  treeWalker: TreeWalker<TData>;
+}>;
 
-export type TreeState<
+export type TreeComputerState<
   TData extends NodeData,
   TNodePublicState extends NodePublicState<TData>
 > = Readonly<{
   order?: string[];
-  computeTree: TreeComputer<any, any, any, any>;
   records: ReadonlyMap<string | symbol, NodeRecord<TNodePublicState>>;
-  recomputeTree: (
-    options: OpennessState<TData, TNodePublicState>,
-  ) => Promise<void>;
-  setState: Component<any, TreeState<TData, TNodePublicState>>['setState'];
-  treeWalker: TreeWalker<TData>;
-
+  setState: Component<
+    any,
+    TreeComputerState<TData, TNodePublicState>
+  >['setState'];
   // A simple hack to get over the PureComponent shallow comparison
   updateRequest: object;
 }>;
+
+export type TreeProps<
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>,
+  TListComponent extends FixedSizeList | VariableSizeList
+> = Readonly<Omit<ListProps, 'children' | 'itemCount' | 'itemKey'>> &
+  TreeComputerProps<TData> &
+  Readonly<{
+    children: ComponentType<NodeComponentProps<TData, TNodePublicState>>;
+    listRef?: Ref<TListComponent>;
+    rowComponent?: ComponentType<ListChildComponentProps>;
+  }>;
+
+export type TreeState<
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>,
+  TListComponent extends FixedSizeList | VariableSizeList
+> = TreeComputerState<TData, TNodePublicState> &
+  Readonly<{
+    attachRefs: RefCallback<TListComponent>;
+    computeTree: TreeComputer<any, any, any, any>;
+    list: RefObject<TListComponent>;
+    recomputeTree: (
+      options: OpennessState<TData, TNodePublicState>,
+    ) => Promise<void>;
+    treeWalker: TreeWalker<TData>;
+  }>;
 
 export type TypedListChildComponentData<
   TData extends NodeData,
@@ -183,7 +206,7 @@ export const Row = <
 export type TreeCreatorOptions<
   TData extends NodeData,
   TNodePublicState extends NodePublicState<TData>,
-  TState extends TreeState<TData, TNodePublicState>
+  TState extends TreeComputerState<TData, TNodePublicState>
 > = Readonly<{
   createRecord: (
     data: TData,
@@ -204,8 +227,8 @@ export type TreeComputerOptions<
 export type TreeComputer<
   TData extends NodeData,
   TNodePublicState extends NodePublicState<TData>,
-  TProps extends TreeProps<TData, TNodePublicState>,
-  TState extends TreeState<TData, TNodePublicState>
+  TProps extends TreeComputerProps<TData>,
+  TState extends TreeComputerState<TData, TNodePublicState>
 > = (
   props: TProps,
   state: TState,
@@ -219,8 +242,8 @@ export type TreeComputer<
 const generateNewTree = <
   TData extends NodeData,
   TNodePublicState extends NodePublicState<TData>,
-  TProps extends TreeProps<TData, TNodePublicState>,
-  TState extends TreeState<TData, TNodePublicState>
+  TProps extends TreeComputerProps<TData>,
+  TState extends TreeComputerState<TData, TNodePublicState>
 >(
   {createRecord}: TreeCreatorOptions<TData, TNodePublicState, TState>,
   {buildingTaskTimeout, placeholder, async = false, treeWalker}: TProps,
@@ -379,8 +402,8 @@ const MAX_FUNCTION_ARGUMENTS = 32768;
 const updateExistingTree = <
   TData extends NodeData,
   TNodePublicState extends NodePublicState<TData>,
-  TProps extends TreeProps<TData, TNodePublicState>,
-  TState extends TreeState<TData, TNodePublicState>
+  TProps extends TreeComputerProps<TData>,
+  TState extends TreeComputerState<TData, TNodePublicState>
 >(
   {order, records}: TState,
   {opennessState}: TreeComputerOptions<TData, TNodePublicState>,
@@ -564,8 +587,8 @@ const updateExistingTree = <
 export const createTreeComputer = <
   TData extends NodeData,
   TNodePublicState extends NodePublicState<TData>,
-  TProps extends TreeProps<TData, TNodePublicState>,
-  TState extends TreeState<TData, TNodePublicState>
+  TProps extends TreeComputerProps<TData>,
+  TState extends TreeComputerState<TData, TNodePublicState>
 >(
   creatorOptions: TreeCreatorOptions<TData, TNodePublicState, TState>,
 ): TreeComputer<TData, TNodePublicState, TProps, TState> => (
@@ -580,8 +603,8 @@ export const createTreeComputer = <
 class Tree<
   TData extends NodeData,
   TNodePublicState extends NodePublicState<TData>,
-  TProps extends TreeProps<TData, TNodePublicState>,
-  TState extends TreeState<TData, TNodePublicState>,
+  TProps extends TreeProps<TData, TNodePublicState, TListComponent>,
+  TState extends TreeState<TData, TNodePublicState, TListComponent>,
   TListComponent extends FixedSizeList | VariableSizeList
 > extends PureComponent<TProps, TState> {
   public static defaultProps: Partial<DefaultTreeProps> = {
@@ -592,18 +615,17 @@ class Tree<
     props: DefaultTreeProps,
     state: DefaultTreeState,
   ): Partial<DefaultTreeState> | null {
-    const {treeWalker} = props;
-    const {computeTree, order, treeWalker: oldTreeWalker} = state;
+    const {listRef = null, treeWalker} = props;
+    const {computeTree, list, order, treeWalker: oldTreeWalker} = state;
 
     return {
+      attachRefs: mergeRefs([list, listRef]),
       ...(treeWalker !== oldTreeWalker || !order
         ? computeTree(props, state, {refresh: true})
         : null),
       treeWalker,
     };
   }
-
-  protected readonly list: React.RefObject<TListComponent> = React.createRef();
 
   public constructor(props: TProps, context: any) {
     super(props, context);
@@ -612,6 +634,7 @@ class Tree<
 
     /* eslint-disable react/no-unused-state,@typescript-eslint/consistent-type-assertions */
     this.state = {
+      list: createRef(),
       recomputeTree: this.recomputeTree.bind(this),
       setState: this.setState.bind(this),
     } as TState;
@@ -653,12 +676,13 @@ class Tree<
   }
 
   public scrollTo(scrollOffset: number): void {
-    this.list.current?.scrollTo(scrollOffset);
+    // eslint-disable-next-line react/destructuring-assignment
+    this.state.list.current?.scrollTo(scrollOffset);
   }
 
   public scrollToItem(id: string, align?: Align): void {
     // eslint-disable-next-line react/destructuring-assignment
-    this.list.current?.scrollToItem(this.state.order!.indexOf(id), align);
+    this.state.list.current?.scrollToItem(this.state.order!.indexOf(id), align);
   }
 }
 

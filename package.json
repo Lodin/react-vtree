@@ -103,6 +103,7 @@
     "react-window": "^1.8.5"
   },
   "dependencies": {
-    "@babel/runtime": "^7.11.0"
+    "@babel/runtime": "^7.11.0",
+    "react-merge-refs": "^1.1.0"
   }
 }
