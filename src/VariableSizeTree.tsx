@@ -25,14 +25,15 @@ export type VariableSizeNodePublicState<
 
 export type VariableSizeTreeProps<
   TData extends VariableSizeNodeData
-> = TreeProps<TData, VariableSizeNodePublicState<TData>> &
+> = TreeProps<TData, VariableSizeNodePublicState<TData>, VariableSizeList> &
   Readonly<{
     itemSize?: VariableSizeListProps['itemSize'];
   }>;
 
 export type VariableSizeTreeState<T extends VariableSizeNodeData> = TreeState<
   T,
-  VariableSizeNodePublicState<T>
+  VariableSizeNodePublicState<T>,
+  VariableSizeList
 > &
   Readonly<{
     resetAfterId: (id: string, shouldForceUpdate?: boolean) => void;
@@ -93,17 +94,15 @@ export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
   }
 
   public resetAfterId(id: string, shouldForceUpdate: boolean = false): void {
-    this.list.current?.resetAfterIndex(
-      this.state.order!.indexOf(id),
-      shouldForceUpdate,
-    );
+    const {list, order} = this.state;
+    list.current?.resetAfterIndex(order!.indexOf(id), shouldForceUpdate);
   }
 
   public recomputeTree(
     state: OpennessState<TData, VariableSizeNodePublicState<TData>>,
   ): Promise<void> {
     return super.recomputeTree(state).then(() => {
-      this.list.current?.resetAfterIndex(0, true);
+      this.state.list.current?.resetAfterIndex(0, true);
     });
   }
 
@@ -116,7 +115,7 @@ export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
       treeWalker,
       ...rest
     } = this.props;
-    const {order} = this.state;
+    const {attachRefs, order} = this.state;
 
     return placeholder && order!.length === 0 ? (
       placeholder
@@ -129,7 +128,8 @@ export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
         itemKey={getIdByIndex}
         // eslint-disable-next-line @typescript-eslint/unbound-method
         itemSize={itemSize ?? this.getItemSize}
-        ref={this.list}
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        ref={attachRefs}
       >
         {rowComponent!}
       </VariableSizeList>

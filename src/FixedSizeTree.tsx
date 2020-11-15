@@ -3,9 +3,9 @@ import {FixedSizeList, FixedSizeListProps} from 'react-window';
 import Tree, {
   createTreeComputer,
   NodeData,
+  NodePublicState,
   TreeProps,
   TreeState,
-  NodePublicState,
 } from './Tree';
 import {createBasicRecord, getIdByIndex} from './utils';
 
@@ -17,13 +17,15 @@ export type FixedSizeNodePublicState<
 
 export type FixedSizeTreeProps<TData extends FixedSizeNodeData> = TreeProps<
   TData,
-  FixedSizeNodePublicState<TData>
+  FixedSizeNodePublicState<TData>,
+  FixedSizeList
 > &
   Readonly<Pick<FixedSizeListProps, 'itemSize'>>;
 
 export type FixedSizeTreeState<TData extends FixedSizeNodeData> = TreeState<
   TData,
-  FixedSizeNodePublicState<TData>
+  FixedSizeNodePublicState<TData>,
+  FixedSizeList
 >;
 
 const computeTree = createTreeComputer<
@@ -69,13 +71,14 @@ export class FixedSizeTree<
   public render(): ReactNode {
     const {
       children,
+      listRef,
       placeholder,
       treeWalker,
       rowComponent,
       ...rest
     } = this.props;
 
-    const {order} = this.state;
+    const {attachRefs, order} = this.state;
 
     return placeholder && order!.length === 0 ? (
       placeholder
@@ -84,9 +87,10 @@ export class FixedSizeTree<
         {...rest}
         itemCount={order!.length}
         itemData={this.getItemData()}
-        ref={this.list}
         // eslint-disable-next-line @typescript-eslint/unbound-method
         itemKey={getIdByIndex}
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        ref={attachRefs}
       >
         {rowComponent!}
       </FixedSizeList>

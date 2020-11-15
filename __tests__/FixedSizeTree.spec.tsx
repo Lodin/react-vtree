@@ -1,5 +1,5 @@
 import {mount, ReactWrapper} from 'enzyme';
-import React, {FC} from 'react';
+import React, {createRef, FC} from 'react';
 import {FixedSizeList} from 'react-window';
 import {
   FixedSizeNodeData,
@@ -285,6 +285,23 @@ describe('FixedSizeTree', () => {
       'foo-6',
       'foo-7',
     ]);
+  });
+
+  it('allows providing a listRef prop', () => {
+    const refObject = createRef<FixedSizeList>();
+    const refCallback = jest.fn();
+
+    const instance = component.find(FixedSizeList).instance();
+
+    component.setProps({listRef: refObject});
+
+    expect(refObject.current).toBe(instance);
+
+    component.setProps({
+      listRef: refCallback,
+    });
+
+    expect(refCallback).toHaveBeenCalledWith(instance);
   });
 
   describe('placeholder', () => {
