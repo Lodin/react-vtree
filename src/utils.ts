@@ -1,10 +1,11 @@
 import type {
   NodeData,
+  NodePublicState,
   NodeRecord,
   TreeCreatorOptions,
   TreeProps,
   TreeState,
-  NodePublicState,
+  TypedListChildComponentData,
 } from './Tree';
 
 export type Mutable<T> = {
@@ -66,25 +67,16 @@ export const createBasicRecord = <
   visited: false,
 });
 
-export const visitRecord = <T extends NodeRecord<any>>(record: T): T | null => {
-  record.visited = record.child !== null;
+export const getIdByIndex = <
+  TData extends NodeData,
+  TNodePublicState extends NodePublicState<TData>
+>(
+  index: number,
+  {getRecordData}: TypedListChildComponentData<TData, TNodePublicState>,
+): string => {
+  const {
+    data: {id},
+  } = getRecordData(index);
 
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-  return (record.child !== null
-    ? record.child
-    : record.sibling !== null
-    ? record.sibling
-    : record.parent) as T | null;
-};
-
-export const revisitRecord = <T extends NodeRecord<any>>(
-  record: T,
-  ownerRecord?: T,
-): T | null => {
-  record.visited = false;
-
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-  return ownerRecord !== undefined && record === ownerRecord
-    ? null
-    : ((record.sibling !== null ? record.sibling : record.parent) as T | null);
+  return id;
 };

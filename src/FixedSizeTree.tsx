@@ -7,7 +7,7 @@ import Tree, {
   TreeState,
   NodePublicState,
 } from './Tree';
-import {createBasicRecord} from './utils';
+import {createBasicRecord, getIdByIndex} from './utils';
 
 export type FixedSizeNodeData = NodeData;
 
@@ -32,8 +32,8 @@ const computeTree = createTreeComputer<
   FixedSizeTreeProps<FixedSizeNodeData>,
   FixedSizeTreeState<FixedSizeNodeData>
 >({
-  createRecord(data, {recomputeTree}, parent, previousRecord) {
-    const record = createBasicRecord(
+  createRecord: (data, {recomputeTree}, parent, previousRecord) =>
+    createBasicRecord(
       {
         data,
         isOpen: previousRecord
@@ -45,10 +45,7 @@ const computeTree = createTreeComputer<
           }),
       },
       parent,
-    );
-
-    return record;
-  },
+    ),
 });
 
 export class FixedSizeTree<
@@ -88,6 +85,8 @@ export class FixedSizeTree<
         itemCount={order!.length}
         itemData={this.getItemData()}
         ref={this.list}
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        itemKey={getIdByIndex}
       >
         {rowComponent!}
       </FixedSizeList>

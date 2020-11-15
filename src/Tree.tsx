@@ -1,4 +1,4 @@
-/* eslint-disable react/no-unused-state,@typescript-eslint/consistent-type-assertions,no-labels,max-depth,complexity */
+/* eslint-disable no-labels,max-depth,complexity */
 import React, {
   Component,
   ComponentType,
@@ -19,15 +19,13 @@ import {
   DefaultTreeState,
   noop,
   RequestIdleCallbackDeadline,
-  revisitRecord,
-  visitRecord,
 } from './utils';
 
 export type NodeData = Readonly<{
   /**
    * Unique ID of the current node.
    */
-  id: string | symbol;
+  id: string;
 
   /**
    * Default node openness state. If the Tree component performs building a new
@@ -100,7 +98,7 @@ export type OpennessState<
 export type TreeProps<
   TData extends NodeData,
   TNodePublicState extends NodePublicState<TData>
-> = Readonly<Omit<ListProps, 'children' | 'itemCount'>> &
+> = Readonly<Omit<ListProps, 'children' | 'itemCount' | 'itemKey'>> &
   Readonly<{
     buildingTaskTimeout?: number;
     children: ComponentType<NodeComponentProps<TData, TNodePublicState>>;
@@ -114,7 +112,7 @@ export type TreeState<
   TData extends NodeData,
   TNodePublicState extends NodePublicState<TData>
 > = Readonly<{
-  order?: Array<string | symbol>;
+  order?: string[];
   computeTree: TreeComputer<any, any, any, any>;
   records: ReadonlyMap<string | symbol, NodeRecord<TNodePublicState>>;
   recomputeTree: (
@@ -233,7 +231,7 @@ const generateNewTree = <
     async && state.records !== undefined;
   const {records: previousRecords} = state;
 
-  const order: Array<string | symbol> = [];
+  const order: string[] = [];
   const records = new Map<string | symbol, NodeRecord<TNodePublicState>>();
   const requestIdleCallbackOptions = buildingTaskTimeout
     ? {timeout: buildingTaskTimeout}
@@ -299,7 +297,14 @@ const generateNewTree = <
               order.push(currentRecord.public.data.id);
             }
 
-            currentRecord = visitRecord(currentRecord);
+            currentRecord.visited = currentRecord.child !== null;
+
+            currentRecord =
+              currentRecord.child !== null
+                ? currentRecord.child
+                : currentRecord.sibling !== null
+                ? currentRecord.sibling
+                : currentRecord.parent;
           }
 
           tempRecord = currentRecord;
@@ -325,7 +330,11 @@ const generateNewTree = <
 
         tempRecord = childRecord;
       } else {
-        currentRecord = revisitRecord(currentRecord);
+        currentRecord.visited = false;
+        currentRecord =
+          currentRecord.sibling !== null
+            ? currentRecord.sibling
+            : currentRecord.parent;
         tempRecord = currentRecord;
       }
     }
@@ -399,14 +408,40 @@ const updateExistingTree = <
     let apply: () => void = noop;
 
     if (ownerRecord.isShown) {
-      if (open && !ownerRecord.public.isOpen) {
-        // If received rules require us to open the subtree that is not currently
-        // open, we have to add new ids to the order list.
+      if (open) {
+        // If received rules require us to open the subtree, we have 2 cases:
+        // 1. The node is not opened yet. In this case we simply have to
+        // calculate and add new ids.
+        // 2. The node is opened already. In this case we have to remove all
+        // existing ids and replace them with new ids.
 
         const index = order!.indexOf(id);
+
+        // Here we calculate a count of visible subtree nodes to remove from
+        // `order`. Then we will replace the gap with the updated list of
+        // subtree nodes.
+        let recordNextToSubtree: NodeRecord<
+          TNodePublicState
+        > | null = ownerRecord;
+
+        while (recordNextToSubtree !== null) {
+          if (recordNextToSubtree.sibling !== null) {
+            recordNextToSubtree = recordNextToSubtree.sibling;
+            break;
+          }
+
+          recordNextToSubtree = recordNextToSubtree.parent;
+        }
+
+        const countToRemove =
+          recordNextToSubtree === null
+            ? order!.length - 1 - index
+            : order!.indexOf(recordNextToSubtree.public.data.id) - 1 - index;
+
         const orderParts: Array<Array<number | string | symbol>> = [
-          [index + 1, 0],
+          [index + 1, countToRemove],
         ];
+
         let orderPartsCursor = 0;
 
         // Unfortunately, splice cannot work with big arrays. If array exceeds
@@ -445,7 +480,7 @@ const updateExistingTree = <
             order!.splice(...orderParts[i]);
           }
         };
-      } else if (!open && ownerRecord.public.isOpen) {
+      } else if (ownerRecord.public.isOpen) {
         // If received rules require us to close the subtree, we have to remove
         // all subtree ids from the order list.
 
@@ -488,9 +523,31 @@ const updateExistingTree = <
           update(currentRecord);
         }
 
-        currentRecord = visitRecord(currentRecord);
+        currentRecord.visited = currentRecord.child !== null;
+
+        // This algorithm is a bit different from the visit algorithm in the
+        // tree generator. We are restricted with the bounds of a subtree and
+        // shouldn't go over it. So we cannot search for the ownerRecord's
+        // parent or sibling because it will lead us out of the subtree.
+        currentRecord =
+          // Look for child in any case
+          currentRecord.child !== null
+            ? currentRecord.child
+            : // Stop looking for next element if currentRecord is root.
+            currentRecord === ownerRecord
+            ? null
+            : // Otherwise, look for sibling or parent
+            currentRecord.sibling !== null
+            ? currentRecord.sibling
+            : currentRecord.parent;
       } else {
-        currentRecord = revisitRecord(currentRecord, ownerRecord);
+        currentRecord.visited = false;
+        currentRecord =
+          currentRecord === ownerRecord
+            ? null
+            : currentRecord.sibling !== null
+            ? currentRecord.sibling
+            : currentRecord.parent;
       }
     }
 
@@ -553,10 +610,12 @@ class Tree<
 
     this.getRecordData = this.getRecordData.bind(this);
 
+    /* eslint-disable react/no-unused-state,@typescript-eslint/consistent-type-assertions */
     this.state = {
       recomputeTree: this.recomputeTree.bind(this),
       setState: this.setState.bind(this),
     } as TState;
+    /* eslint-enable react/no-unused-state,@typescript-eslint/consistent-type-assertions */
   }
 
   protected getItemData(): TypedListChildComponentData<
@@ -597,7 +656,7 @@ class Tree<
     this.list.current?.scrollTo(scrollOffset);
   }
 
-  public scrollToItem(id: string | symbol, align?: Align): void {
+  public scrollToItem(id: string, align?: Align): void {
     // eslint-disable-next-line react/destructuring-assignment
     this.list.current?.scrollToItem(this.state.order!.indexOf(id), align);
   }

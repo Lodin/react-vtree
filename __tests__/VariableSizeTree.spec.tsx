@@ -293,6 +293,21 @@ describe('VariableSizeTree', () => {
     ).toEqual(['foo-1', 'foo-2', 'foo-5', 'foo-6', 'foo-7']);
   });
 
+  it('provides a itemKey function to VariableSizeList', () => {
+    const itemKey = component.find(VariableSizeList).prop('itemKey');
+    expect(itemKey).not.toBeUndefined();
+
+    expect(component.find(Row).map((node) => node.key())).toEqual([
+      'foo-1',
+      'foo-2',
+      'foo-3',
+      'foo-4',
+      'foo-5',
+      'foo-6',
+      'foo-7',
+    ]);
+  });
+
   describe('placeholder', () => {
     const testRICTimeout = 16;
     let unmockRIC: () => void;
@@ -515,23 +530,34 @@ describe('VariableSizeTree', () => {
             },
           },
           'foo-5': true,
+          // This action means nothing because "foo-6" is leaf and has no
+          // children. But it sill will set `isOpen` to true.
           'foo-6': true,
         });
+        component.update(); // Update the wrapper to get the latest changes
 
         const receivedRecords = extractReceivedRecords(
           component.find(VariableSizeList),
         );
+        expect(
+          receivedRecords.reduce<Record<string, boolean>>(
+            (acc, {data: {id}, isOpen}) => {
+              acc[id] = isOpen;
 
-        expect(receivedRecords.map(({isOpen}) => isOpen)).toEqual([
-          true,
-          false,
-          false,
-          false,
+              return acc;
+            },
+            {},
+          ),
+        ).toEqual({
+          'foo-1': true,
+          // Since `foo-2` is closed, `foo-3` and `foo-4` do not even appear in
+          // the list of received records.
+          'foo-2': false,
           // The `foo-5` and `foo-6` nodes are opened manually in recomputeTree
-          true,
-          true,
-          false,
-        ]);
+          'foo-5': true,
+          'foo-6': true,
+          'foo-7': false,
+        });
       });
 
       it('does nothing if opennessState is not an object', async () => {
@@ -541,6 +567,7 @@ describe('VariableSizeTree', () => {
 
         // @ts-expect-error: Test for non-typescript code.
         await treeInstance.recomputeTree('4');
+        component.update(); // Update the wrapper to get the latest changes
 
         expect(
           extractReceivedRecords(component.find(VariableSizeList)),
@@ -555,6 +582,7 @@ describe('VariableSizeTree', () => {
         await treeInstance.recomputeTree({
           'foo-42': false,
         });
+        component.update(); // Update the wrapper to get the latest changes
 
         expect(
           extractReceivedRecords(component.find(VariableSizeList)),

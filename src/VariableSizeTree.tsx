@@ -8,7 +8,7 @@ import Tree, {
   TreeProps,
   TreeState,
 } from './Tree';
-import {createBasicRecord} from './utils';
+import {createBasicRecord, getIdByIndex} from './utils';
 
 export type VariableSizeNodeData = Readonly<{
   /** Default node height. Can be used only with VariableSizeTree */
@@ -35,7 +35,7 @@ export type VariableSizeTreeState<T extends VariableSizeNodeData> = TreeState<
   VariableSizeNodePublicState<T>
 > &
   Readonly<{
-    resetAfterId: (id: string | symbol, shouldForceUpdate?: boolean) => void;
+    resetAfterId: (id: string, shouldForceUpdate?: boolean) => void;
   }>;
 
 const computeTree = createTreeComputer<
@@ -92,10 +92,7 @@ export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
     };
   }
 
-  public resetAfterId(
-    id: string | symbol,
-    shouldForceUpdate: boolean = false,
-  ): void {
+  public resetAfterId(id: string, shouldForceUpdate: boolean = false): void {
     this.list.current?.resetAfterIndex(
       this.state.order!.indexOf(id),
       shouldForceUpdate,
@@ -128,6 +125,8 @@ export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
         {...rest}
         itemCount={order!.length}
         itemData={this.getItemData()}
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        itemKey={getIdByIndex}
         // eslint-disable-next-line @typescript-eslint/unbound-method
         itemSize={itemSize ?? this.getItemSize}
         ref={this.list}
