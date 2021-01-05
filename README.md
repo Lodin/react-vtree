@@ -245,7 +245,7 @@ The rules object has the following shape:
 - `open: boolean` - this rule changes the openness state for the owner node only (subtree nodes are not affected).
 - `subtreeCallback(node: object, ownerNode: object): void` - this callback runs against each node in the subtree of the owner node (including the owner node as well). It receives the subtree node and the owner node. Changing any property of the subtree node will affect the node state and how it will be displayed (e.g. if you change the node openness state it will be displayed according to the changed state).
 
-The order of rules matters. If you specify the child node rules before the parent node rules, and that rules affect the same property, the parent node `subtreeWalker` will override that property. So if you want to override parent's rules, place children rules after the parent's.
+The order of rules matters. If you specify the child node rules before the parent node rules, and that rules affect the same property, the parent node `subtreeCallback` will override that property. So if you want to override parent's rules, place children rules after the parent's.
 
 The type of the node objects received by `subtreeCallback` is `FixedSizeNodePublicState`. See the [types description](#types) below.
 
@@ -279,7 +279,7 @@ tree.recomputeTree({
   'root-1': {
     open: false,
     subtreeCallback(node, ownerNode) {
-      // Since subtreeWalker affects the ownerNode as well, we can check if the
+      // Since subtreeCallback affects the ownerNode as well, we can check if the
       // nodes are the same, and run the action only if they aren't
       if (node !== ownerNode) {
         // All nodes of the tree will be closed
