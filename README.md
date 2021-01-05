@@ -278,7 +278,7 @@ const tree = {
 tree.recomputeTree({
   'root-1': {
     open: false,
-    subtreeWalker(node, ownerNode) {
+    subtreeCallback(node, ownerNode) {
       // Since subtreeWalker affects the ownerNode as well, we can check if the
       // nodes are the same, and run the action only if they aren't
       if (node !== ownerNode) {
