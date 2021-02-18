@@ -316,7 +316,8 @@ const generateNewTree = <
           if (isTraversingRoot) {
             isTraversingRoot = false;
           } else {
-            if (currentRecord.isShown) {
+            //If I'm shown verify I don't have a parent or that my parent is also showing
+            if (currentRecord.isShown && (!currentRecord.parent || currentRecord.parent.isShown)) {
               order.push(currentRecord.public.data.id);
             }
 
