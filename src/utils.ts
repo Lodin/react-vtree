@@ -69,7 +69,7 @@ export const createBasicRecord = <
   parent: NodeRecord<TNodePublicState> | null = null,
 ): NodeRecord<TNodePublicState> => ({
   child: null,
-  isShown: parent ? parent.public.isOpen : true,
+  isShown: parent ? parent.public.isOpen && parent.isShown : true,
   parent,
   public: pub,
   sibling: null,
