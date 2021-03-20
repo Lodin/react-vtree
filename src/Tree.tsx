@@ -293,6 +293,7 @@ const generateNewTree = <
     // extremely complex but the first build is quite easy. During the following
     // idle callbacks the old tree will be shown.
     !(placeholder === null && !state.order);
+
   const hasTime = useIdleCallback
     ? (deadline: RequestIdleCallbackDeadline) => deadline.timeRemaining() > 0
     : () => true;
@@ -384,16 +385,6 @@ const generateNewTree = <
     : {order, records};
 };
 
-const updateRecordVisibility = <
-  TData extends NodeData,
-  TNodePublicState extends NodePublicState<TData>
->(
-  record: NodeRecord<TNodePublicState>,
-): void => {
-  const {parent} = record;
-  record.isShown = parent ? parent.public.isOpen && parent.isShown : true;
-};
-
 const MAX_FUNCTION_ARGUMENTS = 32768;
 
 // If we need to perform only the update, treeWalker won't be used. Update will
@@ -480,7 +471,11 @@ const updateExistingTree = <
           // the order list yet. We should do it AFTER the visibility update
           // happens because otherwise we won't be able to distinguish if the
           // element should be included in the order list.
-          updateRecordVisibility(record);
+
+          // Update record visibility
+          record.isShown = record.parent
+            ? record.parent.public.isOpen && record.parent.isShown
+            : true;
 
           if (record.isShown) {
             orderParts[orderPartsCursor].push(record.public.data.id);
@@ -523,7 +518,10 @@ const updateExistingTree = <
             count += 1;
           }
 
-          updateRecordVisibility(record);
+          // Update record visibility
+          record.isShown = record.parent
+            ? record.parent.public.isOpen && record.parent.isShown
+            : true;
         };
 
         apply = () => {
