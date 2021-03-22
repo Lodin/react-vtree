@@ -386,6 +386,7 @@ const generateNewTree = <
 };
 
 const MAX_FUNCTION_ARGUMENTS = 32768;
+const SPLICE_DEFAULT_ARGUMENTS_NUMBER = 2;
 
 // If we need to perform only the update, treeWalker won't be used. Update will
 // work internally, traversing only the subtree of elements that require
@@ -484,8 +485,13 @@ const updateExistingTree = <
               orderParts[orderPartsCursor].length === MAX_FUNCTION_ARGUMENTS
             ) {
               orderPartsCursor += 1;
+              // Every chunk contains 2 arguments (start and delete) that are not records
+              // we have to account for them when setting the start point of a new chunk.
               orderParts.push([
-                index + 1 + orderPartsCursor * MAX_FUNCTION_ARGUMENTS,
+                index +
+                  1 +
+                  orderPartsCursor * MAX_FUNCTION_ARGUMENTS -
+                  orderPartsCursor * SPLICE_DEFAULT_ARGUMENTS_NUMBER,
                 0,
               ]);
             }

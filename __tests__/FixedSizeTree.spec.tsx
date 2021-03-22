@@ -11,9 +11,10 @@ import {
   TreeWalker,
   TreeWalkerValue,
 } from '../src';
-import {NodeComponentProps} from '../src/Tree';
+import {NodeComponentProps, NodePublicState} from '../src/Tree';
 import {
   defaultTree,
+  treeWithLargeNode,
   extractReceivedRecords,
   mockRequestIdleCallback,
   sleep,
@@ -49,7 +50,7 @@ describe('FixedSizeTree', () => {
   >;
   let tree: TreeNode;
   let treeWalkerSpy: jest.Mock;
-  let isOpenByDefault: boolean;
+  let isOpenByDefault: (node: TreeNode) => boolean;
 
   const getNodeData = (
     node: TreeNode,
@@ -57,7 +58,7 @@ describe('FixedSizeTree', () => {
   ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
     data: {
       id: node.id.toString(),
-      isOpenByDefault,
+      isOpenByDefault: isOpenByDefault(node),
       name: node.name,
       nestingLevel,
     },
@@ -103,7 +104,7 @@ describe('FixedSizeTree', () => {
   beforeEach(() => {
     tree = defaultTree;
 
-    isOpenByDefault = true;
+    isOpenByDefault = () => true;
 
     treeWalkerSpy = jest.fn(treeWalker);
 
@@ -595,6 +596,116 @@ describe('FixedSizeTree', () => {
 
       list = component.find(FixedSizeList);
       expect(list.prop('itemCount')).toBe(7);
+    });
+
+    it('correctly collapses node with 100.000 children', async () => {
+      tree = treeWithLargeNode;
+      component = mountComponent();
+
+      const records = extractReceivedRecords(component.find(FixedSizeList));
+      const {setOpen} = records.find(
+        (record) => record.data.id === 'largeNode-1',
+      ) as NodePublicState<ExtendedData>;
+
+      await setOpen(false);
+      component.update(); // Update the wrapper to get the latest changes
+
+      const updatedRecords = extractReceivedRecords(
+        component.find(FixedSizeList),
+      );
+      expect(updatedRecords).toEqual([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'root-1',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'smallNode-1',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'smallNodeChild-1',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'smallNodeChild-2',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'largeNode-1',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'smallNode-2',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'smallNodeChild-3',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'smallNodeChild-4',
+          }),
+        }),
+      ]);
+    });
+
+    it('correctly expands node with 100.000 children', async () => {
+      tree = treeWithLargeNode;
+      isOpenByDefault = (node) => {
+        if (node.id === 'largeNode-1') {
+          return false;
+        }
+        return true;
+      };
+      component = mountComponent();
+
+      const records = extractReceivedRecords(component.find(FixedSizeList));
+      const {setOpen} = records.find(
+        (record) => record.data.id === 'largeNode-1',
+      ) as NodePublicState<ExtendedData>;
+
+      await setOpen(true);
+      component.update(); // Update the wrapper to get the latest changes
+
+      const updatedRecords = extractReceivedRecords(
+        component.find(FixedSizeList),
+      );
+
+      expect(updatedRecords.slice(-5)).toEqual([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'largeNodeChild-99999',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'largeNodeChild-100000',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'smallNode-2',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'smallNodeChild-3',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'smallNodeChild-4',
+          }),
+        }),
+      ]);
     });
   });
 });

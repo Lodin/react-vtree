@@ -78,3 +78,44 @@ export const defaultTree = {
   id: 'foo-1',
   name: 'Foo #1',
 };
+
+const getLargeSetOfChildren = () => {
+  const children = [];
+
+  for (let i = 0; i < 100000; i++) {
+    children.push({
+      id: `largeNodeChild-${i + 1}`,
+      name: `Large Node Child #${i + 1}`,
+    });
+  }
+
+  return children;
+};
+
+export const treeWithLargeNode = {
+  children: [
+    {
+      children: [
+        {id: 'smallNodeChild-1', name: 'Small Node Child #1'},
+        {id: 'smallNodeChild-2', name: 'Small Node Child #2'},
+      ],
+      id: 'smallNode-1',
+      name: 'Small Node #1',
+    },
+    {
+      children: getLargeSetOfChildren(),
+      id: 'largeNode-1',
+      name: 'Large Node #1',
+    },
+    {
+      children: [
+        {id: 'smallNodeChild-3', name: 'Small Node Child #3'},
+        {id: 'smallNodeChild-4', name: 'Small Node Child #4'},
+      ],
+      id: 'smallNode-2',
+      name: 'Small Node #2',
+    },
+  ],
+  id: 'root-1',
+  name: 'Root #1',
+};
