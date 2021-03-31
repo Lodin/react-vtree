@@ -97,10 +97,9 @@
     "webpack": "^4.44.1"
   },
   "peerDependencies": {
-    "@types/react-window": "^1.8.2",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
-    "react-window": "^1.8.5"
+    "react": ">= 16.8",
+    "react-dom": ">= 16.8",
+    "react-window": ">= 1.8.5"
   },
   "dependencies": {
     "@babel/runtime": "^7.11.0",
