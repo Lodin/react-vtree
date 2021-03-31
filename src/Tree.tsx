@@ -286,6 +286,7 @@ const generateNewTree = <
   let tempRecord: NodeRecord<TNodePublicState> | null = rootRecord;
 
   const useIdleCallback =
+    typeof window !== 'undefined' &&
     'requestIdleCallback' in window &&
     placeholder !== undefined &&
     // If placeholder is set to null and this is the first build, idle callback
