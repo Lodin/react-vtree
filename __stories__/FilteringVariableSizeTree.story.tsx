@@ -67,22 +67,13 @@ const defaultButtonStyle = {fontFamily: 'Courier New'};
 const Node: FC<NodeComponentProps<
   ExtendedData,
   VariableSizeNodePublicState<ExtendedData>
->> = ({
-  height,
-  data: {isLeaf, name, nestingLevel},
-  isOpen,
-  style,
-  setOpen,
-  treeData: itemSize,
-}) => {
-  const canOpen = height <= itemSize;
-
+>> = ({data: {isLeaf, name, nestingLevel}, isOpen, style, setOpen}) => {
   return (
     <div
       style={{
         ...style,
         alignItems: 'center',
-        background: canOpen ? undefined : '#ddd',
+        background: isLeaf ? '#fdd' : '#ddd',
         display: 'flex',
         marginLeft: nestingLevel * 30 + (isLeaf ? 48 : 0),
       }}
@@ -110,10 +101,9 @@ type TreePresenterProps = Readonly<{
 const getNodeData = (
   node: TreeNode,
   nestingLevel: number,
-  itemSize: number,
 ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
   data: {
-    defaultHeight: node.children.length === 0 ? itemSize : 50,
+    defaultHeight: node.children.length === 0 ? 30 : 60,
     id: node.id.toString(),
     isLeaf: node.children.length === 0,
     isOpenByDefault: true,
@@ -137,23 +127,23 @@ function filterTree(tree: TreeNode, text: string) {
     return subtree.children.length ? subtree : null;
   }
 
-  if (i++ < 50) {
-    console.log(tree.name, tree.name.startsWith(text), text);
-  }
-
   return tree.name.startsWith(text) ? tree : null;
 }
 
-const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
+const TreePresenter: FC<TreePresenterProps> = () => {
   const tree = useRef<VariableSizeTree<ExtendedData>>(null);
   const [filter, setFilter] = useState('');
-  const filteredRootNode = filterTree(rootNode, filter);
-  console.log({filteredRootNode});
+  const filteredRootNode = filterTree(rootNode, filter) || {
+    name: 'no results',
+    children: [],
+    id: 'na',
+    nestingLevel: 0,
+  };
   i = 0;
 
   const treeWalker = useCallback(
     function* treeWalker(): ReturnType<TreeWalker<ExtendedData, NodeMeta>> {
-      yield getNodeData(filteredRootNode, 0, itemSize);
+      yield getNodeData(filteredRootNode, 0);
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       while (true) {
@@ -164,12 +154,11 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
           yield getNodeData(
             parentMeta.node.children[i],
             parentMeta.nestingLevel + 1,
-            itemSize,
           );
         }
       }
     },
-    [itemSize, filteredRootNode],
+    [filteredRootNode],
   );
 
   useEffect(() => {
@@ -178,7 +167,8 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
       refreshNodes: true,
       useDefaultHeight: true,
     });
-  }, [itemSize]);
+    // Important, recompute tree on filter text changing
+  }, [filter]);
 
   return (
     <>
@@ -195,7 +185,6 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
         {({height}) => (
           <VariableSizeTree
             ref={tree}
-            itemData={itemSize}
             treeWalker={treeWalker}
             height={height}
             width="100%"
@@ -210,6 +199,4 @@ const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
 
 storiesOf('Tree', module)
   .addDecorator(withKnobs)
-  .add('FilteringVariableSizeTree', () => (
-    <TreePresenter itemSize={number('Default row height', 30)} />
-  ));
+  .add('FilteringVariableSizeTree', () => <TreePresenter />);
