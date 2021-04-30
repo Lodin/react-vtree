@@ -456,8 +456,6 @@ const updateExistingTree = <
           [index + 1, countToRemove],
         ];
 
-        let orderPartsCursor = 0;
-
         // Unfortunately, splice cannot work with big arrays. If array exceeds
         // some length it may fire an exception. The length is specific for
         // each engine; e.g., MDN says about 65536 for Webkit. So, to avoid this
@@ -478,16 +476,11 @@ const updateExistingTree = <
             : true;
 
           if (record.isShown) {
-            orderParts[orderPartsCursor].push(record.public.data.id);
+            const currentOrderPart = orderParts[orderParts.length - 1];
+            currentOrderPart.push(record.public.data.id);
 
-            if (
-              orderParts[orderPartsCursor].length === MAX_FUNCTION_ARGUMENTS
-            ) {
-              orderPartsCursor += 1;
-              orderParts.push([
-                index + 1 + orderPartsCursor * MAX_FUNCTION_ARGUMENTS,
-                0,
-              ]);
+            if (currentOrderPart.length >= MAX_FUNCTION_ARGUMENTS) {
+              orderParts.push([currentOrderPart.length, 0]);
             }
           }
         };
