@@ -72,7 +72,7 @@ const treeNodes = [
 const getNodeData = (node, nestingLevel) => ({
   data: {
     id: node.id.toString(), // mandatory
-    isLeaf: node.children.length === 0,
+    isLeaf: !!node.children,
     isOpenByDefault: true, // mandatory
     name: node.name,
     nestingLevel,
@@ -94,6 +94,8 @@ function* treeWalker() {
     // Step [2]: Get the parent component back. It will be the object
     // the `getNodeData` function constructed, so you can read any data from it.
     const parent = yield;
+
+    if (!parent.node.children) continue
 
     for (let i = 0; i < parent.node.children.length; i++) {
       // Step [3]: Yielding all the children of the provided component. Then we
