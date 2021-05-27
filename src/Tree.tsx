@@ -286,8 +286,7 @@ const generateNewTree = <
   let tempRecord: NodeRecord<TNodePublicState> | null = rootRecord;
 
   const useIdleCallback =
-    typeof window !== 'undefined' &&
-    'requestIdleCallback' in window &&
+    typeof requestIdleCallback !== 'undefined'
     placeholder !== undefined &&
     // If placeholder is set to null and this is the first build, idle callback
     // won't be used. It is necessary for trees with async data which can be
