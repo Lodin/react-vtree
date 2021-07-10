@@ -1,6 +1,6 @@
 import {mount, ReactWrapper} from 'enzyme';
 import React, {createRef, FC} from 'react';
-import {FixedSizeList} from 'react-window';
+import {FixedSizeList, FixedSizeListProps} from 'react-window';
 import {
   FixedSizeNodeData,
   FixedSizeNodePublicState,
@@ -11,12 +11,13 @@ import {
   TreeWalker,
   TreeWalkerValue,
 } from '../src';
-import {NodeComponentProps} from '../src/Tree';
+import {NodeComponentProps, NodePublicState} from '../src/Tree';
 import {
   defaultTree,
   extractReceivedRecords,
   mockRequestIdleCallback,
   sleep,
+  treeWithLargeNode,
 } from './utils/misc';
 
 type TreeNode = Readonly<{
@@ -51,19 +52,10 @@ describe('FixedSizeTree', () => {
   let treeWalkerSpy: jest.Mock;
   let isOpenByDefault: boolean;
 
-  const getNodeData = (
+  let getNodeData: (
     node: TreeNode,
     nestingLevel: number,
-  ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
-    data: {
-      id: node.id.toString(),
-      isOpenByDefault,
-      name: node.name,
-      nestingLevel,
-    },
-    nestingLevel,
-    node,
-  });
+  ) => TreeWalkerValue<ExtendedData, NodeMeta>;
 
   function* treeWalker(): ReturnType<TreeWalker<ExtendedData, NodeMeta>> {
     yield getNodeData(tree, 0);
@@ -104,6 +96,20 @@ describe('FixedSizeTree', () => {
     tree = defaultTree;
 
     isOpenByDefault = true;
+
+    getNodeData = (
+      node: TreeNode,
+      nestingLevel: number,
+    ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
+      data: {
+        id: node.id.toString(),
+        isOpenByDefault,
+        name: node.name,
+        nestingLevel,
+      },
+      nestingLevel,
+      node,
+    });
 
     treeWalkerSpy = jest.fn(treeWalker);
 
@@ -595,6 +601,83 @@ describe('FixedSizeTree', () => {
 
       list = component.find(FixedSizeList);
       expect(list.prop('itemCount')).toBe(7);
+    });
+
+    it('correctly collapses node with 100.000 children', async () => {
+      tree = treeWithLargeNode;
+      component = mountComponent();
+
+      const records = extractReceivedRecords<
+        FixedSizeListProps,
+        ExtendedData,
+        NodePublicState<ExtendedData>
+      >(component.find(FixedSizeList));
+
+      const {setOpen} = records.find(
+        (record) => record.data.id === 'largeNode-1',
+      )!;
+
+      await setOpen(false);
+      component.update(); // Update the wrapper to get the latest changes
+
+      const updatedRecords = extractReceivedRecords(
+        component.find(FixedSizeList),
+      );
+
+      expect(updatedRecords.map(({data: {id}}) => id)).toEqual([
+        'root-1',
+        'smallNode-1',
+        'smallNodeChild-1',
+        'smallNodeChild-2',
+        'largeNode-1',
+        'smallNode-2',
+        'smallNodeChild-3',
+        'smallNodeChild-4',
+      ]);
+    });
+
+    it('correctly expands node with 100.000 children', async () => {
+      getNodeData = (
+        node: TreeNode,
+        nestingLevel: number,
+      ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
+        data: {
+          id: node.id.toString(),
+          isOpenByDefault: node.id !== 'largeNode-1',
+          name: node.name,
+          nestingLevel,
+        },
+        nestingLevel,
+        node,
+      });
+      tree = treeWithLargeNode;
+
+      component = mountComponent();
+
+      const records = extractReceivedRecords<
+        FixedSizeListProps,
+        ExtendedData,
+        NodePublicState<ExtendedData>
+      >(component.find(FixedSizeList));
+
+      const {setOpen} = records.find(
+        (record) => record.data.id === 'largeNode-1',
+      )!;
+
+      await setOpen(true);
+      component.update(); // Update the wrapper to get the latest changes
+
+      const updatedRecords = extractReceivedRecords(
+        component.find(FixedSizeList),
+      );
+
+      expect(updatedRecords.slice(-5).map(({data: {id}}) => id)).toEqual([
+        'largeNodeChild-99999',
+        'largeNodeChild-100000',
+        'smallNode-2',
+        'smallNodeChild-3',
+        'smallNodeChild-4',
+      ]);
     });
   });
 });

@@ -386,6 +386,7 @@ const generateNewTree = <
 };
 
 const MAX_FUNCTION_ARGUMENTS = 32768;
+const SPLICE_DEFAULT_ARGUMENTS_NUMBER = 2;
 
 // If we need to perform only the update, treeWalker won't be used. Update will
 // work internally, traversing only the subtree of elements that require
@@ -479,8 +480,14 @@ const updateExistingTree = <
             const currentOrderPart = orderParts[orderParts.length - 1];
             currentOrderPart.push(record.public.data.id);
 
-            if (currentOrderPart.length >= MAX_FUNCTION_ARGUMENTS) {
-              orderParts.push([currentOrderPart.length, 0]);
+            if (
+              currentOrderPart.length ===
+              MAX_FUNCTION_ARGUMENTS + SPLICE_DEFAULT_ARGUMENTS_NUMBER
+            ) {
+              orderParts.push([
+                index + 1 + MAX_FUNCTION_ARGUMENTS * orderParts.length,
+                0,
+              ]);
             }
           }
         };
