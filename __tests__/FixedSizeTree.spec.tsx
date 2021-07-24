@@ -1,6 +1,6 @@
 import {mount, ReactWrapper} from 'enzyme';
 import React, {createRef, FC} from 'react';
-import {FixedSizeList} from 'react-window';
+import {FixedSizeList, FixedSizeListProps} from 'react-window';
 import {
   FixedSizeNodeData,
   FixedSizeNodePublicState,
@@ -14,10 +14,10 @@ import {
 import {NodeComponentProps, NodePublicState} from '../src/Tree';
 import {
   defaultTree,
-  treeWithLargeNode,
   extractReceivedRecords,
   mockRequestIdleCallback,
   sleep,
+  treeWithLargeNode,
 } from './utils/misc';
 
 type TreeNode = Readonly<{
@@ -50,21 +50,12 @@ describe('FixedSizeTree', () => {
   >;
   let tree: TreeNode;
   let treeWalkerSpy: jest.Mock;
-  let isOpenByDefault: (node: TreeNode) => boolean;
+  let isOpenByDefault: boolean;
 
-  const getNodeData = (
+  let getNodeData: (
     node: TreeNode,
     nestingLevel: number,
-  ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
-    data: {
-      id: node.id.toString(),
-      isOpenByDefault: isOpenByDefault(node),
-      name: node.name,
-      nestingLevel,
-    },
-    nestingLevel,
-    node,
-  });
+  ) => TreeWalkerValue<ExtendedData, NodeMeta>;
 
   function* treeWalker(): ReturnType<TreeWalker<ExtendedData, NodeMeta>> {
     yield getNodeData(tree, 0);
@@ -104,7 +95,21 @@ describe('FixedSizeTree', () => {
   beforeEach(() => {
     tree = defaultTree;
 
-    isOpenByDefault = () => true;
+    isOpenByDefault = true;
+
+    getNodeData = (
+      node: TreeNode,
+      nestingLevel: number,
+    ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
+      data: {
+        id: node.id.toString(),
+        isOpenByDefault,
+        name: node.name,
+        nestingLevel,
+      },
+      nestingLevel,
+      node,
+    });
 
     treeWalkerSpy = jest.fn(treeWalker);
 
@@ -602,10 +607,15 @@ describe('FixedSizeTree', () => {
       tree = treeWithLargeNode;
       component = mountComponent();
 
-      const records = extractReceivedRecords(component.find(FixedSizeList));
+      const records = extractReceivedRecords<
+        FixedSizeListProps,
+        ExtendedData,
+        NodePublicState<ExtendedData>
+      >(component.find(FixedSizeList));
+
       const {setOpen} = records.find(
         (record) => record.data.id === 'largeNode-1',
-      ) as NodePublicState<ExtendedData>;
+      )!;
 
       await setOpen(false);
       component.update(); // Update the wrapper to get the latest changes
@@ -613,64 +623,46 @@ describe('FixedSizeTree', () => {
       const updatedRecords = extractReceivedRecords(
         component.find(FixedSizeList),
       );
-      expect(updatedRecords).toEqual([
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'root-1',
-          }),
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'smallNode-1',
-          }),
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'smallNodeChild-1',
-          }),
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'smallNodeChild-2',
-          }),
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'largeNode-1',
-          }),
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'smallNode-2',
-          }),
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'smallNodeChild-3',
-          }),
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'smallNodeChild-4',
-          }),
-        }),
+
+      expect(updatedRecords.map(({data: {id}}) => id)).toEqual([
+        'root-1',
+        'smallNode-1',
+        'smallNodeChild-1',
+        'smallNodeChild-2',
+        'largeNode-1',
+        'smallNode-2',
+        'smallNodeChild-3',
+        'smallNodeChild-4',
       ]);
     });
 
     it('correctly expands node with 100.000 children', async () => {
+      getNodeData = (
+        node: TreeNode,
+        nestingLevel: number,
+      ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
+        data: {
+          id: node.id.toString(),
+          isOpenByDefault: node.id !== 'largeNode-1',
+          name: node.name,
+          nestingLevel,
+        },
+        nestingLevel,
+        node,
+      });
       tree = treeWithLargeNode;
-      isOpenByDefault = (node) => {
-        if (node.id === 'largeNode-1') {
-          return false;
-        }
-        return true;
-      };
+
       component = mountComponent();
 
-      const records = extractReceivedRecords(component.find(FixedSizeList));
+      const records = extractReceivedRecords<
+        FixedSizeListProps,
+        ExtendedData,
+        NodePublicState<ExtendedData>
+      >(component.find(FixedSizeList));
+
       const {setOpen} = records.find(
         (record) => record.data.id === 'largeNode-1',
-      ) as NodePublicState<ExtendedData>;
+      )!;
 
       await setOpen(true);
       component.update(); // Update the wrapper to get the latest changes
@@ -679,32 +671,12 @@ describe('FixedSizeTree', () => {
         component.find(FixedSizeList),
       );
 
-      expect(updatedRecords.slice(-5)).toEqual([
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'largeNodeChild-99999',
-          }),
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'largeNodeChild-100000',
-          }),
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'smallNode-2',
-          }),
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'smallNodeChild-3',
-          }),
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            id: 'smallNodeChild-4',
-          }),
-        }),
+      expect(updatedRecords.slice(-5).map(({data: {id}}) => id)).toEqual([
+        'largeNodeChild-99999',
+        'largeNodeChild-100000',
+        'smallNode-2',
+        'smallNodeChild-3',
+        'smallNodeChild-4',
       ]);
     });
   });
