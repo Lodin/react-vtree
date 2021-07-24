@@ -386,6 +386,7 @@ const generateNewTree = <
 };
 
 const MAX_FUNCTION_ARGUMENTS = 32768;
+const SPLICE_DEFAULT_ARGUMENTS_NUMBER = 2;
 
 // If we need to perform only the update, treeWalker won't be used. Update will
 // work internally, traversing only the subtree of elements that require
@@ -456,8 +457,6 @@ const updateExistingTree = <
           [index + 1, countToRemove],
         ];
 
-        let orderPartsCursor = 0;
-
         // Unfortunately, splice cannot work with big arrays. If array exceeds
         // some length it may fire an exception. The length is specific for
         // each engine; e.g., MDN says about 65536 for Webkit. So, to avoid this
@@ -478,14 +477,15 @@ const updateExistingTree = <
             : true;
 
           if (record.isShown) {
-            orderParts[orderPartsCursor].push(record.public.data.id);
+            const currentOrderPart = orderParts[orderParts.length - 1];
+            currentOrderPart.push(record.public.data.id);
 
             if (
-              orderParts[orderPartsCursor].length === MAX_FUNCTION_ARGUMENTS
+              currentOrderPart.length ===
+              MAX_FUNCTION_ARGUMENTS + SPLICE_DEFAULT_ARGUMENTS_NUMBER
             ) {
-              orderPartsCursor += 1;
               orderParts.push([
-                index + 1 + orderPartsCursor * MAX_FUNCTION_ARGUMENTS,
+                index + 1 + MAX_FUNCTION_ARGUMENTS * orderParts.length,
                 0,
               ]);
             }
