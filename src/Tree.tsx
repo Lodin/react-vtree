@@ -78,7 +78,7 @@ export type NodeComponentProps<
   TData extends NodeData,
   TNodePublicState extends NodePublicState<TData>
 > = Readonly<
-  Omit<ListChildComponentProps, 'data' | 'index'> &
+  Omit<ListChildComponentProps, 'data'> &
     TNodePublicState & {
       /**
        * The data provided by user via `itemData` Tree component property.
@@ -198,6 +198,7 @@ export const Row = <
       isScrolling={isScrolling}
       style={style}
       treeData={treeData}
+      index={index}
       {...data}
     />
   );
