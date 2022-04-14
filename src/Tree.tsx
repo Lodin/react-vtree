@@ -294,13 +294,11 @@ const generateNewTree = <
     // idle callbacks the old tree will be shown.
     !(placeholder === null && !state.order);
 
-  const hasTime = useIdleCallback
-    ? (deadline: RequestIdleCallbackDeadline) => deadline.timeRemaining() > 0
-    : () => true;
+  const hasTime = (deadline: RequestIdleCallbackDeadline) => deadline.timeRemaining() > 0
 
   const task = (deadline?: RequestIdleCallbackDeadline) => {
     while (currentRecord !== null) {
-      if (!hasTime(deadline!)) {
+      if (useIdleCallback && deadline && !hasTime(deadline)) {
         requestIdleCallback(task, requestIdleCallbackOptions);
 
         return;
