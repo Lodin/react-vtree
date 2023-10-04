@@ -133,8 +133,8 @@ You can read more about these properties in the [`FixedSizeList` documentation](
 
 - <del>`children: component`</del>. Uses own implementation, see [below](#children).
 - `className: string = ""`
-- `direction: strig = "ltr"`
-- `height: strig | number`
+- `direction: string = "ltr"`
+- `height: string | number`
 - `initialScrollOffset: number = 0`
 - `innerRef: function | createRef object`. This property works as it described in the `react-window`. For getting a `FixedSizeList` reference use `listRef`.
 - `innerElementType: React.ElementType = "div"`
