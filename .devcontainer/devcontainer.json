@@ -1,0 +1,40 @@
+{
+  "name": "react-vtree",
+  "image": "ghcr.io/ausginer/devimages/node:latest",
+  "workspaceFolder": "/workspaces/react-vtree",
+  "runArgs": ["--name=reactvtree_dev"],
+  "containerEnv": {
+    "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
+    "CODEX_HOME": "/workspaces/react-vtree/.agents/codex"
+  },
+  "forwardPorts": [9876, 6006, 5176, 24678],
+  "remoteUser": "node",
+  "updateRemoteUserUID": true,
+  "mounts": [
+    {
+      "source": "${localWorkspaceFolderBasename}_nodemodules",
+      "target": "${containerWorkspaceFolder}/node_modules",
+      "type": "volume"
+    }
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "EditorConfig.EditorConfig",
+        "runem.lit-plugin",
+        "openai.chatgpt",
+        "vitest.explorer",
+        "github.vscode-github-actions",
+        "oxc.oxc-vscode",
+        "YoavBls.pretty-ts-errors",
+        "acoreyj.restart-ts-eslint-server",
+        "TypeScriptTeam.native-preview",
+        "eamodio.gitlens",
+        "unifiedjs.vscode-mdx"
+      ]
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh"
+}

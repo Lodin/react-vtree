@@ -1,24 +1,15 @@
 /* eslint-disable max-depth */
-import {number, withKnobs} from '@storybook/addon-knobs';
-import {storiesOf} from '@storybook/react';
-import React, {FC} from 'react';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { FC } from 'react';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import {
-  FixedSizeNodeData,
-  FixedSizeNodePublicState,
   FixedSizeTree,
-  TreeWalker,
-  TreeWalkerValue,
+  type FixedSizeNodeData,
+  type FixedSizeNodePublicState,
+  type TreeWalker,
+  type TreeWalkerValue,
 } from '../src';
-import {NodeComponentProps} from '../src/Tree';
-
-document.body.style.margin = '0';
-document.body.style.display = 'flex';
-document.body.style.minHeight = '100vh';
-
-const root = document.getElementById('root')!;
-root.style.margin = '10px 0 0 10px';
-root.style.flex = '1';
+import type { NodeComponentProps } from '../src/Tree';
 
 type TreeNode = Readonly<{
   children: TreeNode[];
@@ -56,8 +47,8 @@ const createNode = (depth: number = 0): TreeNode => {
 };
 
 const rootNode = createNode();
-const defaultTextStyle = {marginLeft: 10};
-const defaultButtonStyle = {fontFamily: 'Courier New'};
+const defaultTextStyle = { marginLeft: 10 };
+const defaultButtonStyle = { fontFamily: 'Courier New' };
 
 type NodeMeta = Readonly<{
   nestingLevel: number;
@@ -80,29 +71,26 @@ const getNodeData = (
 });
 
 function* treeWalker(): ReturnType<TreeWalker<TreeData, NodeMeta>> {
-  // eslint-disable-next-line @typescript-eslint/prefer-for-of
   for (let i = 0; i < rootNode.children.length; i++) {
-    yield getNodeData(rootNode.children[i], 0);
+    yield getNodeData(rootNode.children[i]!, 0);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // oxlint-disable-next-line typescript/no-unnecessary-condition
   while (true) {
     const parentMeta = yield;
 
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < parentMeta.node.children.length; i++) {
       yield getNodeData(
-        parentMeta.node.children[i],
+        parentMeta.node.children[i]!,
         parentMeta.nestingLevel + 1,
       );
     }
   }
 }
 
-const Node: FC<NodeComponentProps<
-  TreeData,
-  FixedSizeNodePublicState<TreeData>
->> = ({data: {isLeaf, name, nestingLevel}, isOpen, style, setOpen}) => (
+const Node: FC<
+  NodeComponentProps<TreeData, FixedSizeNodePublicState<TreeData>>
+> = ({ data: { isLeaf, name, nestingLevel }, isOpen, style, setOpen }) => (
   <div
     style={{
       ...style,
@@ -115,7 +103,7 @@ const Node: FC<NodeComponentProps<
       <div>
         <button
           type="button"
-          onClick={() => setOpen(!isOpen)}
+          onClick={() => void setOpen(!isOpen)}
           style={defaultButtonStyle}
         >
           {isOpen ? '-' : '+'}
@@ -130,25 +118,31 @@ type TreePresenterProps = Readonly<{
   itemSize: number;
 }>;
 
-const TreePresenter: FC<TreePresenterProps> = ({itemSize}) => {
-  return (
-    <AutoSizer disableWidth>
-      {({height}) => (
-        <FixedSizeTree
-          treeWalker={treeWalker}
-          itemSize={itemSize}
-          height={height}
-          width="100%"
-        >
-          {Node}
-        </FixedSizeTree>
-      )}
-    </AutoSizer>
-  );
+const TreePresenter: FC<TreePresenterProps> = ({ itemSize }) => (
+  <AutoSizer
+    renderProp={({ height }) => (
+      <FixedSizeTree
+        treeWalker={treeWalker}
+        itemSize={itemSize}
+        height={height ?? 0}
+        width="100%"
+      >
+        {Node}
+      </FixedSizeTree>
+    )}
+  />
+);
+
+const meta: Meta<typeof TreePresenter> = {
+  args: {
+    itemSize: 30,
+  },
+  component: TreePresenter,
+  title: 'Tree/MultipleRoots',
 };
 
-storiesOf('Tree', module)
-  .addDecorator(withKnobs)
-  .add('Multiple Tree roots', () => (
-    <TreePresenter itemSize={number('Row height', 30)} />
-  ));
+export default meta;
+
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {};

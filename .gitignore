@@ -6,10 +6,13 @@
 # testing
 /.nyc_output
 /coverage
+/storybook-static
 
 # production
 /dist
 /.cache
+/.vite
+/.vitest
 
 # misc
 .DS_Store
@@ -17,3 +20,5 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+.agents/codex
