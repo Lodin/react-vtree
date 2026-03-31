@@ -3,11 +3,11 @@
   "version": "3.0.0-beta.3",
   "description": "React component for efficiently rendering large tree structures",
   "type": "module",
-  "types": "./dist/index.d.mts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -17,13 +17,13 @@
   "scripts": {
     "build": "tsdown",
     "build:watch": "tsdown --watch",
-    "check": "run-s lint oxlint typecheck test build",
+    "check": "concurrently --kill-others-on-fail --group --names lint,oxlint,typecheck,test,build npm:lint npm:oxlint npm:typecheck npm:test npm:build",
     "clean": "rimraf coverage dist storybook-static",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "full-prepare": "run-s clean format:check lint oxlint typecheck test build",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "full-prepare": "npm run clean && concurrently --kill-others-on-fail --group --names format,lint,oxlint,typecheck,test,build npm:format:check npm:lint npm:oxlint npm:typecheck npm:test npm:build",
+    "lint": "eslint . --flag unstable_native_nodejs_ts_config",
+    "lint:fix": "npm run eslint -- --fix",
     "oxlint": "oxlint -c .oxlintrc.json",
     "prepare": "echo 'update me'",
     "storybook": "storybook dev -p 6006",

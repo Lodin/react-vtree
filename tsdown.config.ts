@@ -9,6 +9,7 @@ const config: UserConfig = defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
   outDir: 'dist',
+  platform: 'browser',
   sourcemap: true,
   unbundle: true,
 });
