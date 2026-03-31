@@ -1,41 +1,44 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [master]
     paths:
       - '.github/workflows/ci.yml'
+      - '__stories__/**'
+      - '__tests__/**'
+      - '.storybook/**'
+      - '.lintstagedrc.json'
+      - '.oxfmtrc.json'
+      - '.oxlintrc.json'
+      - '.prettierrc.json'
       - 'src/**'
-      - 'scripts'
-      - '.eslintignore'
-      - '.eslintrc'
-      - '.prettierignore'
-      - '.prettierrc'
-      - 'babel.config.json'
-      - 'jest.config.js'
+      - 'eslint.config.ts'
       - 'package.json'
       - 'package-lock.json'
-      - 'sonar-project.properties'
+      - 'tsdown.config.ts'
       - 'tsconfig.json'
-      - 'tsconfig.prod.json'
+      - 'vitest.config.ts'
   pull_request:
     branches: [master]
     types: [opened, synchronize, reopened]
     paths:
       - '.github/workflows/ci.yml'
+      - '__stories__/**'
+      - '__tests__/**'
+      - '.storybook/**'
+      - '.lintstagedrc.json'
+      - '.oxfmtrc.json'
+      - '.oxlintrc.json'
+      - '.prettierrc.json'
       - 'src/**'
-      - 'scripts'
-      - '.eslintignore'
-      - '.eslintrc'
-      - '.prettierignore'
-      - '.prettierrc'
-      - 'babel.config.json'
-      - 'jest.config.js'
+      - 'eslint.config.ts'
       - 'package.json'
       - 'package-lock.json'
-      - 'sonar-project.properties'
+      - 'tsdown.config.ts'
       - 'tsconfig.json'
-      - 'tsconfig.prod.json'
+      - 'vitest.config.ts'
 jobs:
   testing:
     name: Testing and Analysis
@@ -44,23 +47,15 @@ jobs:
 
     steps:
       - name: Checkout project code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Use Node.js 14.x
-        uses: actions/setup-node@v1
+      - name: Use Node.js LTS
+        uses: actions/setup-node@v6
         with:
-          node-version: 14.x
+          cache: npm
+          node-version: lts/*
       - name: Installation
         run: npm ci
-      - name: Linting
+      - name: Check
         run: npm run check
-      - name: Testing
-        run: npm run test:coverage
-        env:
-          CI: true
-      - name: Analysis
-        uses: sonarsource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
