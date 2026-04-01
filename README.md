@@ -7,8 +7,6 @@
 
 This package provides a lightweight and flexible solution for rendering large tree structures. It is built on top of the [react-window](https://github.com/bvaughn/react-window) library.
 
-**Attention!** This library is entirely rewritten to work with the `react-window`. If you are looking for the tree view solution for the [react-virtualized](https://github.com/bvaughn/react-virtualized), take a look at [react-virtualized-tree](https://github.com/diogofcunha/react-virtualized-tree).
-
 **NOTE**: This is the documentation for version `3.x.x`. For version `2.x.x` see [this branch](https://github.com/Lodin/react-vtree/tree/version/2).
 
 ## Installation
@@ -21,6 +19,8 @@ npm i react-window react-vtree
 yarn add react-window react-vtree
 ```
 
+**Requires React 18 or later** (peer dependency).
+
 ## Usage
 
 ### `FixedSizeTree`
@@ -30,37 +30,39 @@ yarn add react-window react-vtree
 You can also take a look at the very similar example at the Storybook:
 
 - [Source code](./__stories__/FixedSizeTree.story.tsx)
-- [Demo](https://lodin.github.io/react-vtree/index.html?path=/story/tree--fixedsizetree)
+- [Demo](https://lodin.github.io/react-vtree/?path=/story/tree-fixedsizetree--default)
 
-```js
-import {FixedSizeTree as Tree} from 'react-vtree';
+```jsx
+import { FixedSizeTree as Tree } from 'react-vtree';
+import { createRoot } from 'react-dom/client';
 
 // Tree component can work with any possible tree structure because it uses an
 // iterator function that the user provides. Structure, approach, and iterator
 // function below is just one of many possible variants.
 const treeNodes = [
   {
-    name: 'Root #1',
     id: 'root-1',
+    name: 'Root #1',
     children: [
       {
-        children: [
-          {id: 'child-2', name: 'Child #2'},
-          {id: 'child-3', name: 'Child #3'},
-        ],
         id: 'child-1',
         name: 'Child #1',
+        children: [
+          { id: 'child-2', name: 'Child #2', children: [] },
+          { id: 'child-3', name: 'Child #3', children: [] },
+        ],
       },
       {
-        children: [{id: 'child-5', name: 'Child #5'}],
         id: 'child-4',
         name: 'Child #4',
+        children: [{ id: 'child-5', name: 'Child #5', children: [] }],
       },
     ],
   },
   {
-    name: 'Root #2',
     id: 'root-2',
+    name: 'Root #2',
+    children: [],
   },
 ];
 
@@ -69,7 +71,7 @@ const treeNodes = [
 // field you can put any additional data here.
 const getNodeData = (node, nestingLevel) => ({
   data: {
-    id: node.id.toString(), // mandatory
+    id: node.id,
     isLeaf: node.children.length === 0,
     isOpenByDefault: true, // mandatory
     name: node.name,
@@ -84,8 +86,8 @@ const getNodeData = (node, nestingLevel) => ({
 function* treeWalker() {
   // Step [1]: Define the root node of our tree. There can be one or
   // multiple nodes.
-  for (let i = 0; i < treeNodes.length; i++) {
-    yield getNodeData(treeNodes[i], 0);
+  for (const node of treeNodes) {
+    yield getNodeData(node, 0);
   }
 
   while (true) {
@@ -93,10 +95,10 @@ function* treeWalker() {
     // the `getNodeData` function constructed, so you can read any data from it.
     const parent = yield;
 
-    for (let i = 0; i < parent.node.children.length; i++) {
+    for (const child of parent.node.children) {
       // Step [3]: Yielding all the children of the provided component. Then we
       // will return for the step [2] with the first children.
-      yield getNodeData(parent.node.children[i], parent.nestingLevel + 1);
+      yield getNodeData(child, parent.nestingLevel + 1);
     }
   }
 }
@@ -104,10 +106,10 @@ function* treeWalker() {
 // Node component receives all the data we created in the `treeWalker` +
 // internal openness state (`isOpen`), function to change internal openness
 // state (`setOpen`) and `style` parameter that should be added to the root div.
-const Node = ({data: {isLeaf, name}, isOpen, style, setOpen}) => (
+const Node = ({ data: { isLeaf, name }, isOpen, style, setOpen }) => (
   <div style={style}>
     {!isLeaf && (
-      <button type="button" onClick={() => setOpen(!isOpen)}>
+      <button type="button" onClick={() => void setOpen(!isOpen)}>
         {isOpen ? '-' : '+'}
       </button>
     )}
@@ -115,13 +117,134 @@ const Node = ({data: {isLeaf, name}, isOpen, style, setOpen}) => (
   </div>
 );
 
-ReactDOM.render(
+createRoot(document.querySelector('#root')).render(
   <Tree treeWalker={treeWalker} itemSize={30} height={150} width={300}>
     {Node}
   </Tree>,
-  document.querySelector('#root'),
 );
 ```
+
+<details>
+<summary>TypeScript</summary>
+
+```tsx
+import { type CSSProperties, type FC } from 'react';
+import { createRoot } from 'react-dom/client';
+import {
+  FixedSizeTree as Tree,
+  type FixedSizeNodeData,
+  type FixedSizeNodePublicState,
+  type TreeWalker,
+  type TreeWalkerValue,
+} from 'react-vtree';
+
+type TreeNode = Readonly<{
+  children: TreeNode[];
+  id: string;
+  name: string;
+}>;
+
+type NodeMeta = Readonly<{
+  nestingLevel: number;
+  node: TreeNode;
+}>;
+
+type MyNodeData = FixedSizeNodeData &
+  Readonly<{
+    isLeaf: boolean;
+    name: string;
+    nestingLevel: number;
+  }>;
+
+const treeNodes: TreeNode[] = [
+  {
+    id: 'root-1',
+    name: 'Root #1',
+    children: [
+      {
+        id: 'child-1',
+        name: 'Child #1',
+        children: [
+          { id: 'child-2', name: 'Child #2', children: [] },
+          { id: 'child-3', name: 'Child #3', children: [] },
+        ],
+      },
+      {
+        id: 'child-4',
+        name: 'Child #4',
+        children: [{ id: 'child-5', name: 'Child #5', children: [] }],
+      },
+    ],
+  },
+  {
+    id: 'root-2',
+    name: 'Root #2',
+    children: [],
+  },
+];
+
+const getNodeData = (
+  node: TreeNode,
+  nestingLevel: number,
+): TreeWalkerValue<MyNodeData, NodeMeta> => ({
+  data: {
+    id: node.id,
+    isLeaf: node.children.length === 0,
+    isOpenByDefault: true,
+    name: node.name,
+    nestingLevel,
+  },
+  nestingLevel,
+  node,
+});
+
+function* treeWalker(): ReturnType<TreeWalker<MyNodeData, NodeMeta>> {
+  for (const node of treeNodes) {
+    yield getNodeData(node, 0);
+  }
+
+  while (true) {
+    const parent = yield;
+
+    for (const child of parent.node.children) {
+      yield getNodeData(child, parent.nestingLevel + 1);
+    }
+  }
+}
+
+type NodeProps = FixedSizeNodePublicState<MyNodeData> & {
+  style: CSSProperties;
+};
+
+const Node: FC<NodeProps> = ({
+  data: { isLeaf, name },
+  isOpen,
+  style,
+  setOpen,
+}) => (
+  <div style={style}>
+    {!isLeaf && (
+      <button type="button" onClick={() => void setOpen(!isOpen)}>
+        {isOpen ? '-' : '+'}
+      </button>
+    )}
+    <div>{name}</div>
+  </div>
+);
+
+createRoot(document.querySelector('#root')!).render(
+  <Tree<MyNodeData>
+    treeWalker={treeWalker}
+    itemSize={30}
+    height={150}
+    width={300}
+  >
+    {Node}
+  </Tree>,
+);
+```
+
+</details>
 
 #### Props
 
@@ -131,8 +254,8 @@ You can read more about these properties in the [`FixedSizeList` documentation](
 
 - <del>`children: component`</del>. Uses own implementation, see [below](#children).
 - `className: string = ""`
-- `direction: strig = "ltr"`
-- `height: strig | number`
+- `direction: string = "ltr"`
+- `height: string | number`
 - `initialScrollOffset: number = 0`
 - `innerRef: function | createRef object`. This property works as it described in the `react-window`. For getting a `FixedSizeList` reference use `listRef`.
 - `innerElementType: React.ElementType = "div"`
@@ -157,7 +280,7 @@ This option allows making the tree asynchronous; e.g. you will be able to load t
 
 To see how it works you can check the [`AsyncData`](./__stories__/AsyncData.story.tsx) story. You can use the `disableAsync` to see what will happen on the async action if the `async` prop is `false`.
 
-If it is combined with the `placeholder` option, the tree re-building won't be interrupted by showing the placeholder; it will be shown only at the first time the tree is building.
+When combined with the `placeholder` option, the tree re-building won't be interrupted by showing the placeholder; it will be shown only at the first time the tree is building.
 
 To see how two options interact with each other see the [`AsyncDataIdle`](./__stories__/AsyncDataIdle.story.tsx) story.
 
@@ -171,13 +294,12 @@ It receives the following props:
   - `style: object`
   - `isScrolling: boolean` - if `useIsScrolling` is enabled.
 - `Node`-specific props:
-
   - All fields of the [`FixedSizeNodePublicState`](#types) object.
   - `treeData: any` - any data provided via the `itemData` property of the `FixedSizeTree` component.
 
 ##### `placeholder: ReactNode | null`
 
-This property receives any react node that will be displayed instead of a tree during the building process. This option should only be used if the tree building process requires too much time (which means you have a really giant amount of data, e.g. about a million nodes).
+This property receives any react node that will be displayed instead of a tree during the building process. This option should only be used if the tree building process requires too much time (which means you have an extremely large dataset, e.g. about a million nodes).
 
 Setting this option enables the [`requestIdleCallback`](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestIdleCallback) under the hood for browsers that support this feature. For other browsers the original scenario is applied; no placeholder will be shown.
 
@@ -249,46 +371,74 @@ The type of the node objects received by `subtreeCallback` is `FixedSizeNodePubl
 
 ##### `recomputeTree` example
 
-```js
-// The tree
-const tree = {
-  name: 'Root #1',
-  id: 'root-1',
-  children: [
-    {
-      children: [
-        {id: 'child-2', name: 'Child #2'},
-        {id: 'child-3', name: 'Child #3'},
-      ],
-      id: 'child-1',
-      name: 'Child #1',
-    },
-    {
-      children: [{id: 'child-5', name: 'Child #5'}],
-      id: 'child-4',
-      name: 'Child #4',
-    },
-  ],
-};
+```jsx
+import { useRef } from 'react';
 
-// recomputeTree
+const treeRef = useRef(null);
 
-tree.recomputeTree({
+// Close all nodes under 'root-1', then re-open 'child-4'
+treeRef.current?.recomputeTree({
   'root-1': {
     open: false,
     subtreeCallback(node, ownerNode) {
-      // Since subtreeCallback affects the ownerNode as well, we can check if the
-      // nodes are the same, and run the action only if they aren't
+      // subtreeCallback also runs for the owner node itself, so guard against it
       if (node !== ownerNode) {
-        // All nodes of the tree will be closed
+        // All descendant nodes will be closed
         node.isOpen = false;
       }
     },
   },
   // But we want `child-4` to be open
-  'child-4': true,
+  'child-4': { open: true },
 });
+
+// Attach the ref to the tree component:
+<Tree
+  ref={treeRef}
+  treeWalker={treeWalker}
+  itemSize={30}
+  height={150}
+  width={300}
+>
+  {Node}
+</Tree>;
 ```
+
+<details>
+<summary>TypeScript</summary>
+
+```tsx
+import { useRef } from 'react';
+import { FixedSizeTree } from 'react-vtree';
+
+// Assuming MyNodeData is defined as in the example above
+const treeRef = useRef<FixedSizeTree<MyNodeData>>(null);
+
+treeRef.current?.recomputeTree({
+  'root-1': {
+    open: false,
+    subtreeCallback(node, ownerNode) {
+      if (node !== ownerNode) {
+        node.isOpen = false;
+      }
+    },
+  },
+  'child-4': { open: true },
+});
+
+// Attach the ref to the tree component:
+<Tree<MyNodeData>
+  ref={treeRef}
+  treeWalker={treeWalker}
+  itemSize={30}
+  height={150}
+  width={300}
+>
+  {Node}
+</Tree>;
+```
+
+</details>
 
 #### Types
 
@@ -299,7 +449,7 @@ tree.recomputeTree({
 - `FixedSizeNodePublicState<TData extends FixedSizeNodeData>` - the node state available for the `Node` component and `recomputeTree`'s `subtreeCallback` function. It has the following shape:
   - `data: FixedSizeNodeData`.
   - `isOpen: boolean` - a current openness status of the node.
-  - `setOpen(state: boolean): function` - a function to change the openness state of the node. It receives the new openness state as a `boolean` and opens/closes the node accordingly.
+  - `setOpen(state: boolean): Promise<void>` - a function to change the openness state of the node. It receives the new openness state as a `boolean` and opens/closes the node accordingly.
 - `FixedSizeTreeProps<TData extends FixedSizeNodeData>` - props that `FixedSizeTree` component receives. Described in the [Props](#props) section.
 - `FixedSizeTreeState<TData extends FixedSizeNodeData>` - state that `FixedSizeTree` component has.
 
@@ -310,33 +460,35 @@ tree.recomputeTree({
 You can also take a look at the very similar example at the Storybook:
 
 - [Source code](./__stories__/VariableSizeTree.story.tsx)
-- [Demo](https://lodin.github.io/react-vtree/index.html?path=/story/tree--variablesizetree)
+- [Demo](https://lodin.github.io/react-vtree/?path=/story/tree-variablesizetree--default)
 
-```javascript
-import {VariableSizeTree as Tree} from 'react-vtree';
+```jsx
+import { VariableSizeTree as Tree } from 'react-vtree';
 
 // Tree component can work with any possible tree structure because it uses an
 // iterator function that the user provides. Structure, approach, and iterator
 // function below is just one of many possible variants.
 const tree = {
-  name: 'Root #1',
   id: 'root-1',
+  name: 'Root #1',
   children: [
     {
-      children: [
-        {id: 'child-2', name: 'Child #2'},
-        {id: 'child-3', name: 'Child #3'},
-      ],
       id: 'child-1',
       name: 'Child #1',
+      children: [
+        { id: 'child-2', name: 'Child #2', children: [] },
+        { id: 'child-3', name: 'Child #3', children: [] },
+      ],
     },
     {
-      children: [{id: 'child-5', name: 'Child #5'}],
       id: 'child-4',
       name: 'Child #4',
+      children: [{ id: 'child-5', name: 'Child #5', children: [] }],
     },
   ],
 };
+
+const itemSize = 30;
 
 // This helper function constructs the object that will be sent back at the step
 // [2] during the treeWalker function work. Except for the mandatory `data`
@@ -344,7 +496,7 @@ const tree = {
 const getNodeData = (node, nestingLevel) => ({
   data: {
     defaultHeight: itemSize, // mandatory
-    id: node.id.toString(), // mandatory
+    id: node.id,
     isLeaf: node.children.length === 0,
     isOpenByDefault: true, // mandatory
     name: node.name,
@@ -366,19 +518,19 @@ function* treeWalker() {
     // the `getNodeData` function constructed, so you can read any data from it.
     const parent = yield;
 
-    for (let i = 0; i < parent.node.children.length; i++) {
+    for (const child of parent.node.children) {
       // Step [3]: Yielding all the children of the provided component. Then we
       // will return for the step [2] with the first children.
-      yield getNodeData(parent.node.children[i], parent.nestingLevel + 1);
+      yield getNodeData(child, parent.nestingLevel + 1);
     }
   }
 }
 
 // Node component receives current node height as a prop
-const Node = ({data: {isLeaf, name}, height, isOpen, style, setOpen}) => (
+const Node = ({ data: { isLeaf, name }, isOpen, style, setOpen }) => (
   <div style={style}>
     {!isLeaf && (
-      <button type="button" onClick={() => setOpen(!isOpen)}>
+      <button type="button" onClick={() => void setOpen(!isOpen)}>
         {isOpen ? '-' : '+'}
       </button>
     )}
@@ -392,6 +544,116 @@ const Example = () => (
   </Tree>
 );
 ```
+
+<details>
+<summary>TypeScript</summary>
+
+```tsx
+import { type CSSProperties, type FC } from 'react';
+import {
+  VariableSizeTree as Tree,
+  type TreeWalker,
+  type TreeWalkerValue,
+  type VariableSizeNodeData,
+  type VariableSizeNodePublicState,
+} from 'react-vtree';
+
+type TreeNode = Readonly<{
+  children: TreeNode[];
+  id: string;
+  name: string;
+}>;
+
+type NodeMeta = Readonly<{
+  nestingLevel: number;
+  node: TreeNode;
+}>;
+
+type MyNodeData = VariableSizeNodeData &
+  Readonly<{
+    isLeaf: boolean;
+    name: string;
+    nestingLevel: number;
+  }>;
+
+const tree: TreeNode = {
+  id: 'root-1',
+  name: 'Root #1',
+  children: [
+    {
+      id: 'child-1',
+      name: 'Child #1',
+      children: [
+        { id: 'child-2', name: 'Child #2', children: [] },
+        { id: 'child-3', name: 'Child #3', children: [] },
+      ],
+    },
+    {
+      id: 'child-4',
+      name: 'Child #4',
+      children: [{ id: 'child-5', name: 'Child #5', children: [] }],
+    },
+  ],
+};
+
+const itemSize = 30;
+
+const getNodeData = (
+  node: TreeNode,
+  nestingLevel: number,
+): TreeWalkerValue<MyNodeData, NodeMeta> => ({
+  data: {
+    defaultHeight: itemSize,
+    id: node.id,
+    isLeaf: node.children.length === 0,
+    isOpenByDefault: true,
+    name: node.name,
+    nestingLevel,
+  },
+  nestingLevel,
+  node,
+});
+
+function* treeWalker(): ReturnType<TreeWalker<MyNodeData, NodeMeta>> {
+  yield getNodeData(tree, 0);
+
+  while (true) {
+    const parent = yield;
+
+    for (const child of parent.node.children) {
+      yield getNodeData(child, parent.nestingLevel + 1);
+    }
+  }
+}
+
+type NodeProps = VariableSizeNodePublicState<MyNodeData> & {
+  style: CSSProperties;
+};
+
+const Node: FC<NodeProps> = ({
+  data: { isLeaf, name },
+  isOpen,
+  style,
+  setOpen,
+}) => (
+  <div style={style}>
+    {!isLeaf && (
+      <button type="button" onClick={() => void setOpen(!isOpen)}>
+        {isOpen ? '-' : '+'}
+      </button>
+    )}
+    <div>{name}</div>
+  </div>
+);
+
+const Example: FC = () => (
+  <Tree<MyNodeData> treeWalker={treeWalker} height={150} width={300}>
+    {Node}
+  </Tree>
+);
+```
+
+</details>
 
 #### Props
 
@@ -414,9 +676,9 @@ Same as [`listRef`](#listref-reffixedsizelist) of `FixedSizeTree`.
 
 ##### `rowComponent: component`
 
-See [`rowComponent`](#rowcomponent-component) in the `FixedSizeTree` section; the `getRecordData` returns the [`VirtualSizeNodePublicState`](#types-1) object.
+See [`rowComponent`](#rowcomponent-component) in the `FixedSizeTree` section; the `getRecordData` returns the [`VariableSizeNodePublicState`](#types-1) object.
 
-##### `* treeWalker(refresh: boolean)`
+##### `* treeWalker()`
 
 An iterator function that walks over the tree. It behaves the same as `FixedSizeTree`'s `treeWalker`. The `data` object should be in the [`VariableSizeNodeData`](#types-1) shape.
 
@@ -460,7 +722,7 @@ The `treeWalker` algorithm works in the following way. During the execution, the
 4. When all the children are yielded, and the new iteration of loop is started, you yield `undefined` again and in exchange receive the next node. It may be:
    - a child node if the previous node has children;
    - a sibling node if it has siblings;
-   - a sibling of the elder node.
+   - a sibling of an ancestor node.
 5. When the whole tree is finished and algorithm reaches the end, the loop stops. You don't have to finish `treeWalker`'s loop manually.
 
 The example of this algorithm is the following `treeWalker` function:
@@ -475,10 +737,10 @@ function* treeWalker() {
     // yielded next.
     const parent = yield;
 
-    for (let i = 0; i < parent.node.children.length; i++) {
+    for (const child of parent.node.children) {
       // Here we go through the parent's children and yield them to the tree
       // component
-      yield getNodeData(parent.node.children[i], parent.nestingLevel + 1);
+      yield getNodeData(child, parent.nestingLevel + 1);
       // Then the loop iteration is over, and we are going to our next parent
       // node.
     }
@@ -486,9 +748,28 @@ function* treeWalker() {
 }
 ```
 
+<details>
+<summary>TypeScript</summary>
+
+```ts
+function* treeWalker(): ReturnType<TreeWalker<MyNodeData, NodeMeta>> {
+  yield getNodeData(rootNode, 0);
+
+  while (true) {
+    const parent = yield;
+
+    for (const child of parent.node.children) {
+      yield getNodeData(child, parent.nestingLevel + 1);
+    }
+  }
+}
+```
+
+</details>
+
 ## Migrating `2.x.x` -> `3.x.x`
 
-If you use `react-vtree` of version 2, it is preferable migrate to the version 3. The third version is quite different under the hood and provides way more optimized approach to the initial tree building and tree openness state change. The most obvious it becomes if you have a giant tree (with about 1 million of nodes).
+If you use `react-vtree` version 2, it is preferable to migrate to version 3. The third version is quite different under the hood and provides a far more optimized approach to the initial tree building and tree openness state changes. The most obvious it becomes if you have a giant tree (with about 1 million of nodes).
 
 To migrate to the new version, you have to do the following steps.
 
@@ -510,7 +791,7 @@ function* treeWalker(refresh) {
   // Go through all the nodes adding children to the stack and removing them
   // when they are processed.
   while (stack.length !== 0) {
-    const {node, nestingLevel} = stack.pop();
+    const { node, nestingLevel } = stack.pop();
     const id = node.id.toString();
 
     // Receive the openness state of the node we are working with
@@ -544,7 +825,7 @@ The new `treeWalker` is only for the tree building. The `Tree` component builds 
 // We can also add any other data here.
 const getNodeData = (node, nestingLevel) => ({
   data: {
-    id: node.id.toString(),
+    id: node.id,
     isLeaf: node.children.length === 0,
     isOpenByDefault: true,
     name: node.name,
@@ -556,8 +837,8 @@ const getNodeData = (node, nestingLevel) => ({
 
 function* treeWalker() {
   // Here we send root nodes to the component.
-  for (let i = 0; i < rootNodes.length; i++) {
-    yield getNodeData(rootNodes[i], 0);
+  for (const node of rootNodes) {
+    yield getNodeData(node, 0);
   }
 
   while (true) {
@@ -566,15 +847,48 @@ function* treeWalker() {
     // in the same way we described the root nodes.
     const parentMeta = yield;
 
-    for (let i = 0; i < parentMeta.node.children.length; i++) {
-      yield getNodeData(
-        parentMeta.node.children[i],
-        parentMeta.nestingLevel + 1,
-      );
+    for (const child of parentMeta.node.children) {
+      yield getNodeData(child, parentMeta.nestingLevel + 1);
     }
   }
 }
 ```
+
+<details>
+<summary>TypeScript</summary>
+
+```ts
+const getNodeData = (
+  node: TreeNode,
+  nestingLevel: number,
+): TreeWalkerValue<MyNodeData, NodeMeta> => ({
+  data: {
+    id: node.id,
+    isLeaf: node.children.length === 0,
+    isOpenByDefault: true,
+    name: node.name,
+    nestingLevel,
+  },
+  nestingLevel,
+  node,
+});
+
+function* treeWalker(): ReturnType<TreeWalker<MyNodeData, NodeMeta>> {
+  for (const node of rootNodes) {
+    yield getNodeData(node, 0);
+  }
+
+  while (true) {
+    const parentMeta = yield;
+
+    for (const child of parentMeta.node.children) {
+      yield getNodeData(child, parentMeta.nestingLevel + 1);
+    }
+  }
+}
+```
+
+</details>
 
 ### 2. Migrate tree components
 
@@ -628,7 +942,7 @@ In the `3.x.x` version node provides a `setOpen` function instead of `toggle` th
 Old `toggle`:
 
 ```javascript
-const Node = ({data: {isLeaf, name}, isOpen, style, toggle}) => (
+const Node = ({ data: { isLeaf, name }, isOpen, style, toggle }) => (
   <div style={style}>
     {!isLeaf && (
       <div>
@@ -641,19 +955,54 @@ const Node = ({data: {isLeaf, name}, isOpen, style, toggle}) => (
 ```
 
 New `setOpen`:
-```javascript
-const Node = ({data: {isLeaf, name}, isOpen, style, setOpen}) => (
+
+```jsx
+const Node = ({ data: { isLeaf, name }, isOpen, style, setOpen }) => (
   <div style={style}>
     {!isLeaf && (
       <div>
-        // Imitating the old `toggle` function behavior
-        <button onClick={() => setOpen(!isOpen)}>{isOpen ? '-' : '+'}</button>
+        {/* Imitating the old `toggle` function behavior */}
+        <button onClick={() => void setOpen(!isOpen)}>
+          {isOpen ? '-' : '+'}
+        </button>
       </div>
     )}
     <div>{name}</div>
   </div>
 );
 ```
+
+<details>
+<summary>TypeScript</summary>
+
+```tsx
+import { type CSSProperties, type FC } from 'react';
+import { type FixedSizeNodePublicState } from 'react-vtree';
+
+type NodeProps = FixedSizeNodePublicState<MyNodeData> & {
+  style: CSSProperties;
+};
+
+const Node: FC<NodeProps> = ({
+  data: { isLeaf, name },
+  isOpen,
+  style,
+  setOpen,
+}) => (
+  <div style={style}>
+    {!isLeaf && (
+      <div>
+        <button onClick={() => void setOpen(!isOpen)}>
+          {isOpen ? '-' : '+'}
+        </button>
+      </div>
+    )}
+    <div>{name}</div>
+  </div>
+);
+```
+
+</details>
 
 ### 5. Migrate all your IDs to string
 
