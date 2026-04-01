@@ -3,7 +3,7 @@ name: CI
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - '.github/workflows/ci.yml'
       - '__stories__/**'
@@ -21,7 +21,7 @@ on:
       - 'tsconfig.json'
       - 'vitest.config.ts'
   pull_request:
-    branches: [master]
+    branches: [main]
     types: [opened, synchronize, reopened]
     paths:
       - '.github/workflows/ci.yml'
@@ -59,3 +59,10 @@ jobs:
         run: npm ci
       - name: Check
         run: npm run check
+      - name: Coverage
+        run: npm run test:coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: .coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -39,6 +39,7 @@
     "./config",
     "./eslint.config.ts",
     "./tsdown.config.ts",
-    "./vitest.config.ts"
+    "./vitest.config.ts",
+    "./release.config.ts"
   ]
 }

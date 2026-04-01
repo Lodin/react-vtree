@@ -5,7 +5,7 @@
 
 # testing
 /.nyc_output
-/coverage
+/.coverage
 /storybook-static
 
 # production
