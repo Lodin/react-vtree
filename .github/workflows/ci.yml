@@ -59,3 +59,9 @@ jobs:
         run: npm ci
       - name: Check
         run: npm run check
+      - name: Coverage
+        run: npm run test:coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: .coverage/lcov.info

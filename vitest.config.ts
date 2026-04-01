@@ -2,9 +2,17 @@ import react from '@vitejs/plugin-react';
 import type { UserConfig } from 'vite';
 import { defineConfig } from 'vitest/config';
 
+const isCI = process.env['CI'] === 'true';
+
 const config: UserConfig = defineConfig({
   plugins: [react()],
   test: {
+    coverage: {
+      provider: 'v8',
+      reportsDirectory: '.coverage',
+      clean: true,
+      reporter: isCI ? ['lcov'] : ['html'],
+    },
     environment: 'jsdom',
     globals: true,
     restoreMocks: true,

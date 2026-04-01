@@ -3,9 +3,7 @@
 [![Latest Stable Version](https://img.shields.io/npm/v/react-vtree.svg)](https://www.npmjs.com/package/react-vtree)
 [![License](https://img.shields.io/npm/l/react-vtree.svg)](./LICENSE)
 [![CI Status](https://github.com/Lodin/react-vtree/workflows/CI/badge.svg)](https://github.com/Lodin/react-vtree/actions)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Lodin_react-vtree&metric=coverage)](https://sonarcloud.io/dashboard?id=Lodin_react-vtree)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=Lodin_react-vtree&metric=bugs)](https://sonarcloud.io/dashboard?id=Lodin_react-vtree)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=Lodin_react-vtree&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=Lodin_react-vtree)
+[![Coverage](https://codecov.io/gh/Lodin/react-vtree/branch/main/graph/badge.svg)](https://codecov.io/gh/Lodin/react-vtree)
 
 This package provides a lightweight and flexible solution for rendering large tree structures. It is built on top of the [react-window](https://github.com/bvaughn/react-window) library.
 
