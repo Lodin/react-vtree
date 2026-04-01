@@ -20,11 +20,7 @@ import type {
   NodeComponentProps,
   TypedListChildComponentData,
 } from '../src/Tree.tsx';
-import {
-  Row,
-  type TreeWalker,
-  type TreeWalkerValue,
-} from '../src/Tree.tsx';
+import { Row, type TreeWalker, type TreeWalkerValue } from '../src/Tree.tsx';
 import {
   defaultTree,
   getLastListProps,
@@ -113,7 +109,7 @@ describe('Multiroot tree', () => {
       nestingLevel: number,
     ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
       data: {
-        id: node.id.toString(),
+        id: node.id,
         isOpenByDefault,
         name: node.name,
         nestingLevel,

@@ -32,13 +32,13 @@
     "useUnknownInCatchVariables": true
   },
   "include": [
-    "src",
-    "__tests__",
-    "__stories__",
-    ".storybook",
-    "config",
-    "eslint.config.ts",
-    "tsdown.config.ts",
-    "vitest.config.ts"
+    "./src",
+    "./__tests__",
+    "./__stories__",
+    "./.storybook/**/*",
+    "./config",
+    "./eslint.config.ts",
+    "./tsdown.config.ts",
+    "./vitest.config.ts"
   ]
 }

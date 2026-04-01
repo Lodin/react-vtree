@@ -6,6 +6,7 @@ import oxlint from 'eslint-plugin-oxlint';
 
 const config: readonly Config[] = defineConfig(
   globalIgnores([
+    '.agents',
     'coverage/**/*',
     'dist/**/*',
     'docs/**/*',
