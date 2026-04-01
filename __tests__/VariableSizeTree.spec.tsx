@@ -1,6 +1,7 @@
 // oxlint-disable typescript/consistent-type-imports
-import { createRef, type FC, type Ref, forwardRef } from 'react';
 import { render, screen } from '@testing-library/react';
+import { createRef, type FC, type Ref, forwardRef } from 'react';
+import { VariableSizeList, type VariableSizeListProps } from 'react-window';
 import {
   afterEach,
   beforeEach,
@@ -10,19 +11,16 @@ import {
   vi,
   type Mock,
 } from 'vitest';
-import { VariableSizeList, type VariableSizeListProps } from 'react-window';
-import {
-  type TreeWalker,
-  type TreeWalkerValue,
-  type VariableSizeNodeData,
-  type VariableSizeNodePublicState,
-  VariableSizeTree,
-  Row,
-} from '../src';
 import type {
   NodeComponentProps,
   TypedListChildComponentData,
-} from '../src/Tree';
+} from '../src/Tree.tsx';
+import { type TreeWalker, type TreeWalkerValue, Row } from '../src/Tree.tsx';
+import {
+  type VariableSizeNodeData,
+  type VariableSizeNodePublicState,
+  VariableSizeTree,
+} from '../src/VariableSizeTree.tsx';
 import { defaultTree, type TreeNode } from './utils/misc.ts';
 import {
   applyComponentUpdate,
@@ -116,7 +114,7 @@ describe('VariableSizeTree', () => {
     ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
       data: {
         defaultHeight,
-        id: node.id.toString(),
+        id: node.id,
         isOpenByDefault,
         name: node.name,
         nestingLevel,
@@ -131,7 +129,6 @@ describe('VariableSizeTree', () => {
   > {
     yield getNodeData(tree, 0);
 
-    // oxlint-disable-next-line typescript/no-unnecessary-condition
     while (true) {
       const parentMeta = yield;
 

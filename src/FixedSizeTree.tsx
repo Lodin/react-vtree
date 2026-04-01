@@ -6,8 +6,8 @@ import Tree, {
   type NodePublicState,
   type TreeProps,
   type TreeState,
-} from './Tree';
-import { createBasicRecord, getIdByIndex } from './utils';
+} from './Tree.tsx';
+import { createBasicRecord, getIdByIndex } from './utils.ts';
 
 export type FixedSizeNodeData = NodeData;
 
@@ -58,7 +58,7 @@ export class FixedSizeTree<
   FixedSizeTreeState<TData>,
   FixedSizeList
 > {
-  public constructor(props: FixedSizeTreeProps<TData>, context: any) {
+  constructor(props: FixedSizeTreeProps<TData>, context: any) {
     super(props, context);
 
     this.state = {
@@ -67,7 +67,7 @@ export class FixedSizeTree<
     };
   }
 
-  public override render(): ReactNode {
+  override render(): ReactNode {
     const {
       children: _c,
       listRef: _l,
@@ -86,9 +86,9 @@ export class FixedSizeTree<
         {...rest}
         itemCount={order!.length}
         itemData={this.getItemData()}
-        // eslint-disable-next-line @typescript-eslint/unbound-method
+         
         itemKey={getIdByIndex}
-        // eslint-disable-next-line @typescript-eslint/unbound-method
+         
         ref={attachRefs}
       >
         {rowComponent!}

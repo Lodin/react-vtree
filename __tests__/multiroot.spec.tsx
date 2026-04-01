@@ -1,6 +1,7 @@
 // oxlint-disable typescript/consistent-type-imports
-import { type FC, type Ref, forwardRef } from 'react';
 import { render, screen } from '@testing-library/react';
+import { type FC, type Ref, forwardRef } from 'react';
+import type { FixedSizeList, FixedSizeListProps } from 'react-window';
 import {
   afterEach,
   beforeEach,
@@ -10,18 +11,19 @@ import {
   vi,
   type Mock,
 } from 'vitest';
-import type { FixedSizeList, FixedSizeListProps } from 'react-window';
 import {
   type FixedSizeNodeData,
   type FixedSizeNodePublicState,
   FixedSizeTree,
-  Row,
-  type TreeWalker,
-  type TreeWalkerValue,
-} from '../src';
+} from '../src/FixedSizeTree.tsx';
 import type {
   NodeComponentProps,
   TypedListChildComponentData,
+} from '../src/Tree.tsx';
+import {
+  Row,
+  type TreeWalker,
+  type TreeWalkerValue,
 } from '../src/Tree.tsx';
 import {
   defaultTree,

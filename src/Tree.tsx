@@ -1,5 +1,4 @@
-/* eslint-disable no-labels,max-depth,complexity */
-import React, {
+import {
   type Component,
   type ComponentType,
   createRef,
@@ -23,7 +22,7 @@ import {
   type DefaultTreeState,
   noop,
   type RequestIdleCallbackDeadline,
-} from './utils';
+} from './utils.ts';
 
 export type NodeData = Readonly<{
   /**
@@ -48,15 +47,12 @@ export type OpennessStateUpdateRules<
   TNodePublicState extends NodePublicState<TData>,
 > = Readonly<{
   open: boolean;
-  subtreeCallback?: (
-    node: TNodePublicState,
-    ownerNode: TNodePublicState,
-  ) => void;
+  subtreeCallback?(node: TNodePublicState, ownerNode: TNodePublicState): void;
 }>;
 
 export type NodePublicState<TData extends NodeData> = Readonly<{
   data: TData;
-  setOpen: (state: boolean) => Promise<void>;
+  setOpen(state: boolean): Promise<void>;
 }> & {
   isOpen: boolean;
 };
@@ -140,9 +136,9 @@ export type TreeState<
     attachRefs: Ref<TListComponent>;
     computeTree: TreeComputer<any, any, any, any>;
     list: RefObject<TListComponent | null>;
-    recomputeTree: (
+    recomputeTree(
       options: OpennessState<TData, TNodePublicState>,
-    ) => Promise<void>;
+    ): Promise<void>;
     treeWalker: TreeWalker<TData>;
   }>;
 
@@ -160,7 +156,7 @@ export type TypedListChildComponentData<
    *
    * @param index
    */
-  getRecordData: (index: number) => TNodePublicState;
+  getRecordData(index: number): TNodePublicState;
 
   /**
    * @see NodeComponentProps#treeData
@@ -177,7 +173,6 @@ export type TypedListChildComponentProps<
   }
 >;
 
-// eslint-disable-next-line @typescript-eslint/naming-convention,@typescript-eslint/prefer-readonly-parameter-types
 export const Row = <
   TData extends NodeData,
   TNodePublicState extends NodePublicState<TData>,
@@ -206,12 +201,12 @@ export type TreeCreatorOptions<
   TNodePublicState extends NodePublicState<TData>,
   TState extends TreeComputerState<TData, TNodePublicState>,
 > = Readonly<{
-  createRecord: (
+  createRecord(
     data: TData,
     state: TState,
     parent?: NodeRecord<TNodePublicState> | null,
     previousRecord?: NodeRecord<TNodePublicState>,
-  ) => NodeRecord<TNodePublicState>;
+  ): NodeRecord<TNodePublicState>;
 }>;
 
 export type TreeComputerOptions<
@@ -235,6 +230,11 @@ export type TreeComputer<
   | (Pick<TState, 'order' | 'records'> & Partial<Pick<TState, 'updateRequest'>>)
   | null;
 
+const defaultDeadline: RequestIdleCallbackDeadline = {
+  didTimeout: false,
+  timeRemaining: () => 1,
+};
+
 // If refresh is required, we will run the TreeWalker. It will completely
 // update all requests and reset every state to default.
 const generateNewTree = <
@@ -244,12 +244,10 @@ const generateNewTree = <
   TState extends TreeComputerState<TData, TNodePublicState>,
 >(
   { createRecord }: TreeCreatorOptions<TData, TNodePublicState, TState>,
-  { buildingTaskTimeout, placeholder, async = false, treeWalker }: TProps,
+  { buildingTaskTimeout, placeholder, async, treeWalker }: TProps,
   state: TState,
 ): ReturnType<TreeComputer<TData, TNodePublicState, TProps, TState>> => {
-  const shouldPreservePreviousState =
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    async && state.records !== undefined;
+  const shouldPreservePreviousState = async && state.records !== undefined;
   const { records: previousRecords } = state;
 
   const order: string[] = [];
@@ -266,18 +264,22 @@ const generateNewTree = <
   const iter = treeWalker();
   const { value: root } = iter.next();
 
+  if (!root) {
+    throw new Error(
+      'TreeWalker must yield at least one root node on the first iteration.',
+    );
+  }
+
   // Each record has a link to a parent, the next sibling and the next child.
   // Having this info, we can perform a depth-first traverse.
   const rootRecord = createRecord(
-    root!.data,
+    root.data,
     state,
     undefined,
-    shouldPreservePreviousState
-      ? previousRecords.get(root!.data.id)
-      : undefined,
+    shouldPreservePreviousState ? previousRecords.get(root.data.id) : undefined,
   );
   records.set(rootRecord.public.data.id, rootRecord);
-  meta.set(rootRecord, root!);
+  meta.set(rootRecord, root);
 
   let currentRecord: NodeRecord<TNodePublicState> | null = rootRecord;
   let isTraversingRoot = true;
@@ -292,20 +294,15 @@ const generateNewTree = <
     // idle callbacks the old tree will be shown.
     !(placeholder === null && !state.order);
 
-  const hasTime = useIdleCallback
-    ? (deadline: RequestIdleCallbackDeadline) => deadline.timeRemaining() > 0
-    : () => true;
-
-  const task = (deadline?: RequestIdleCallbackDeadline) => {
+  const task = (deadline: RequestIdleCallbackDeadline = defaultDeadline) => {
     while (currentRecord !== null) {
-      if (!hasTime(deadline!)) {
+      if (deadline.timeRemaining() <= 0) {
         requestIdleCallback(task, requestIdleCallbackOptions);
 
         return;
       }
 
       if (!currentRecord.visited) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         const { value: child } = iter.next(meta.get(currentRecord)!);
 
         // When the generator returns the undefined value we consider that all
@@ -320,15 +317,6 @@ const generateNewTree = <
             }
 
             currentRecord.visited = currentRecord.child !== null;
-
-            /*
-            currentRecord =
-              currentRecord.child !== null
-                ? currentRecord.child
-                : currentRecord.sibling !== null
-                  ? currentRecord.sibling
-                  : currentRecord.parent;
-            */
 
             currentRecord =
               currentRecord.child ??
@@ -354,6 +342,24 @@ const generateNewTree = <
         if (!isTraversingRoot && tempRecord === currentRecord) {
           tempRecord.child = childRecord;
         } else {
+          // `tempRecord` is the last record that was linked while traversing the
+          // current DFS branch. At this point we are still inside
+          // `while (currentRecord !== null)`, so the traversal has not been
+          // exhausted, and the only way to reach this `else` branch is after at
+          // least one record has already been established as the previous node
+          // for the sibling we are about to attach:
+          //
+          // - initially `tempRecord` is `rootRecord`;
+          // - after finishing a node we copy `currentRecord` into `tempRecord`;
+          // - after creating any child record we immediately assign that child
+          //   back to `tempRecord`.
+          //
+          // In other words, `tempRecord` only becomes `null` when the traversal
+          // itself has already fallen off the tree, and that state cannot
+          // coincide with creating a fresh `childRecord` to append here. This is
+          // therefore an internal invariant of the traversal state machine, not
+          // user input validation, so we keep the hot path branch-free and
+          // assert it locally with `!`.
           tempRecord!.sibling = childRecord;
         }
 
@@ -406,18 +412,27 @@ const updateExistingTree = <
     return null;
   }
 
+  // Recompute/update only makes sense after the first successful tree build.
+  // If it is requested earlier, fall back to a no-op and let the normal
+  // refresh path populate `order`.
+  if (!order) {
+    return null;
+  }
+
   for (const id in opennessState) {
     if (!records.has(id)) {
       continue;
     }
 
+    // Safe after the membership check above: we only process ids that are
+    // present both in the update payload and in the current records map.
     const opts = opennessState[id]!;
     const ownerRecord = records.get(id)!;
 
     // Here we unify the shape of openness state options
     const {
       open,
-      subtreeCallback = noop,
+      subtreeCallback = () => {},
     }: OpennessStateUpdateRules<TData, TNodePublicState> =
       typeof opts === 'boolean' ? { open: opts } : opts;
 
@@ -432,7 +447,7 @@ const updateExistingTree = <
         // 2. The node is opened already. In this case we have to remove all
         // existing ids and replace them with new ids.
 
-        const index = order!.indexOf(id);
+        const index = order.indexOf(id);
 
         // Here we calculate a count of visible subtree nodes to remove from
         // `order`. Then we will replace the gap with the updated list of
@@ -451,8 +466,8 @@ const updateExistingTree = <
 
         const countToRemove =
           recordNextToSubtree === null
-            ? order!.length - 1 - index
-            : order!.indexOf(recordNextToSubtree.public.data.id) - 1 - index;
+            ? order.length - 1 - index
+            : order.indexOf(recordNextToSubtree.public.data.id) - 1 - index;
 
         const orderParts: Array<Array<number | string | symbol>> = [
           [index + 1, countToRemove],
@@ -496,14 +511,14 @@ const updateExistingTree = <
         apply = () => {
           for (let i = 0; i < orderParts.length; i++) {
             // @ts-expect-error: too generic for TS
-            order!.splice(...orderParts[i]);
+            order.splice(...orderParts[i]);
           }
         };
       } else if (ownerRecord.public.isOpen) {
         // If received rules require us to close the subtree, we have to remove
         // all subtree ids from the order list.
 
-        const index = order!.indexOf(id);
+        const index = order.indexOf(id);
 
         let count = 0;
 
@@ -527,7 +542,7 @@ const updateExistingTree = <
 
         apply = () => {
           // Remove data after element with index
-          order!.splice(index + 1, count);
+          order.splice(index + 1, count);
         };
       }
     }
@@ -598,15 +613,15 @@ class Tree<
   TState extends TreeState<TData, TNodePublicState, TListComponent>,
   TListComponent extends FixedSizeList | VariableSizeList,
 > extends PureComponent<TProps, TState> {
-  public static defaultProps: Partial<DefaultTreeProps> = {
+  static defaultProps: Partial<DefaultTreeProps> = {
     rowComponent: Row,
   };
 
-  public static getDerivedStateFromProps(
+  static getDerivedStateFromProps(
     props: DefaultTreeProps,
     state: DefaultTreeState,
   ): Partial<DefaultTreeState> | null {
-    const { listRef = null, treeWalker } = props;
+    const { listRef, treeWalker } = props;
     const { computeTree, list, order, treeWalker: oldTreeWalker } = state;
 
     return {
@@ -618,7 +633,7 @@ class Tree<
     };
   }
 
-  public constructor(props: TProps, context: any) {
+  constructor(props: TProps, context: any) {
     super(props, context);
 
     this.getRecordData = this.getRecordData.bind(this);
@@ -639,7 +654,7 @@ class Tree<
 
     return {
       component,
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       getRecordData: this.getRecordData,
       treeData,
     };
@@ -647,11 +662,12 @@ class Tree<
 
   protected getRecordData(index: number): TNodePublicState {
     const { order, records } = this.state;
-
+    // `react-window` requests rows only within the advertised `itemCount`,
+    // which is derived from `order.length` by the concrete tree components.
     return records.get(order![index]!)!.public;
   }
 
-  public async recomputeTree(
+  async recomputeTree(
     state: OpennessState<TData, TNodePublicState>,
   ): Promise<void> {
     return await new Promise((resolve) => {
@@ -665,14 +681,18 @@ class Tree<
     });
   }
 
-  public scrollTo(scrollOffset: number): void {
-    // eslint-disable-next-line react/destructuring-assignment
+  scrollTo(scrollOffset: number): void {
     this.state.list.current?.scrollTo(scrollOffset);
   }
 
-  public scrollToItem(id: string, align?: Align): void {
-    // eslint-disable-next-line react/destructuring-assignment
-    this.state.list.current?.scrollToItem(this.state.order!.indexOf(id), align);
+  scrollToItem(id: string, align?: Align): void {
+    const { order } = this.state;
+
+    if (!order) {
+      return;
+    }
+
+    this.state.list.current?.scrollToItem(order.indexOf(id), align);
   }
 }
 

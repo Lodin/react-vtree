@@ -1,15 +1,17 @@
-/* eslint-disable max-depth */
+ 
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { FC } from 'react';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import {
-  FixedSizeTree,
   type FixedSizeNodeData,
   type FixedSizeNodePublicState,
-  type TreeWalker,
-  type TreeWalkerValue,
-} from '../src';
-import type { NodeComponentProps } from '../src/Tree';
+  FixedSizeTree,
+} from '../src/FixedSizeTree.tsx';
+import type {
+  TreeWalker,
+  TreeWalkerValue,
+} from '../src/Tree.tsx';
+import type { NodeComponentProps } from '../src/Tree.tsx';
 
 type TreeNode = Readonly<{
   children: TreeNode[];

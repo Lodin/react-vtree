@@ -1,16 +1,14 @@
-/* eslint-disable max-depth */
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { type FC, useCallback, useMemo, useRef, useState } from 'react';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import {
-  FixedSizeTree,
   type FixedSizeNodeData,
   type FixedSizeNodePublicState,
-  type TreeWalker,
-  type TreeWalkerValue,
-} from '../src';
-import type { NodeComponentProps } from '../src/Tree';
-import { AsyncTaskScheduler } from './utils';
+  FixedSizeTree,
+} from '../src/FixedSizeTree.tsx';
+import type { NodeComponentProps } from '../src/Tree.tsx';
+import type { TreeWalker, TreeWalkerValue } from '../src/Tree.tsx';
+import { AsyncTaskScheduler } from './utils.ts';
 
 type TreeNode = Readonly<{
   children: TreeNode[];
@@ -22,7 +20,7 @@ type TreeNode = Readonly<{
 type TreeData = FixedSizeNodeData &
   Readonly<{
     downloaded: boolean;
-    download: () => Promise<void>;
+    download(): Promise<void>;
     isLeaf: boolean;
     name: string;
     nestingLevel: number;
@@ -91,6 +89,17 @@ const Node: FC<
 }) => {
   const [isLoading, setLoading] = useState(false);
 
+  const handleClick = async () => {
+    if (!downloaded) {
+      setLoading(true);
+      await download();
+      await setOpen(!isOpen);
+      setLoading(false);
+    } else {
+      await setOpen(!isOpen);
+    }
+  };
+
   return (
     <div
       style={{
@@ -104,16 +113,11 @@ const Node: FC<
         <div>
           <button
             type="button"
-            onClick={async () => {
-              if (!downloaded) {
-                setLoading(true);
-                await download();
-                await setOpen(!isOpen);
-                setLoading(false);
-              } else {
-                await setOpen(!isOpen);
-              }
-            }}
+            onClick={() =>
+              void handleClick().catch((error: unknown) => {
+                throw error;
+              })
+            }
             style={defaultButtonStyle}
           >
             {isLoading ? '⌛' : isOpen ? '-' : '+'}

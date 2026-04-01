@@ -7,7 +7,7 @@ import type {
   TreeProps,
   TreeState,
   TypedListChildComponentData,
-} from './Tree';
+} from './Tree.tsx';
 
 export type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
@@ -37,7 +37,7 @@ export type DefaultTreeCreatorOptions = TreeCreatorOptions<
   DefaultTreeState
 >;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
+ 
 export const noop = (): void => {};
 
 export const identity = <T>(value: T): T => value;

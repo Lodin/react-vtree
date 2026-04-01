@@ -1,6 +1,7 @@
 // oxlint-disable typescript/consistent-type-imports
-import { createRef, type FC, type Ref, forwardRef } from 'react';
 import { render, screen } from '@testing-library/react';
+import { createRef, type FC, type Ref, forwardRef } from 'react';
+import type { FixedSizeList, FixedSizeListProps } from 'react-window';
 import {
   afterEach,
   beforeEach,
@@ -10,19 +11,16 @@ import {
   vi,
   type Mock,
 } from 'vitest';
-import type { FixedSizeList, FixedSizeListProps } from 'react-window';
 import {
   type FixedSizeNodeData,
   type FixedSizeNodePublicState,
   FixedSizeTree,
-  Row,
-  type TreeWalker,
-  type TreeWalkerValue,
-} from '../src';
+} from '../src/FixedSizeTree.tsx';
 import type {
   NodeComponentProps,
   TypedListChildComponentData,
 } from '../src/Tree.tsx';
+import { Row, type TreeWalker, type TreeWalkerValue } from '../src/Tree.tsx';
 import { defaultTree, treeWithLargeNode, type TreeNode } from './utils/misc.ts';
 import {
   applyComponentUpdate,
@@ -113,7 +111,7 @@ describe('FixedSizeTree', () => {
       nestingLevel: number,
     ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
       data: {
-        id: node.id.toString(),
+        id: node.id,
         isOpenByDefault,
         name: node.name,
         nestingLevel,
@@ -305,7 +303,7 @@ describe('FixedSizeTree', () => {
 
     render(<FixedSizeTreeRenderer rowComponent={rowComponent} />);
 
-    expect(getLastListProps(fixedSizeListMock)!.children).toBe(rowComponent);
+    expect(getLastListProps(fixedSizeListMock)?.children).toBe(rowComponent);
   });
 
   it('should recompute on new treeWalker', () => {
@@ -345,7 +343,7 @@ describe('FixedSizeTree', () => {
 
   it('should allow preserving previous state on the new tree building', async () => {
     const renderResult = render(<FixedSizeTreeRenderer />);
-    const { setOpen } = getLastRecords(fixedSizeListMock)![1]!;
+    const { setOpen } = getLastRecords(fixedSizeListMock)?.[1] ?? {};
 
     const collapsedRecords = [
       {
@@ -400,7 +398,7 @@ describe('FixedSizeTree', () => {
       },
     ] satisfies ReadonlyArray<FixedSizeNodePublicState<ExtendedData>>;
 
-    await applyComponentUpdate(async () => await setOpen(false));
+    await applyComponentUpdate(async () => await setOpen?.(false));
 
     expect(fixedSizeListMock).toHaveBeenLastCalledWithRecords(collapsedRecords);
 
@@ -536,7 +534,7 @@ describe('FixedSizeTree', () => {
           async () => await treeInstance.recomputeTree({ 'foo-1': false }),
         );
 
-        expect(getLastRecords(fixedSizeListMock)!).toEqual([
+        expect(getLastRecords(fixedSizeListMock)).toEqual([
           {
             data: {
               id: 'foo-1',
@@ -556,7 +554,7 @@ describe('FixedSizeTree', () => {
         );
 
         expect(
-          getLastRecords(fixedSizeListMock)!.map(({ data: { id } }) => id),
+          getLastRecords(fixedSizeListMock)?.map(({ data: { id } }) => id),
         ).toEqual(['foo-1', 'foo-2', 'foo-3', 'foo-4', 'foo-5']);
       });
 
@@ -571,7 +569,7 @@ describe('FixedSizeTree', () => {
         );
 
         expect(
-          getLastRecords(fixedSizeListMock)!.map(({ data: { id } }) => id),
+          getLastRecords(fixedSizeListMock)?.map(({ data: { id } }) => id),
         ).toEqual(['foo-1']);
 
         await applyComponentUpdate(
@@ -583,7 +581,7 @@ describe('FixedSizeTree', () => {
         );
 
         expect(
-          getLastRecords(fixedSizeListMock)!.map(({ data: { id } }) => id),
+          getLastRecords(fixedSizeListMock)?.map(({ data: { id } }) => id),
         ).toEqual(['foo-1', 'foo-2', 'foo-5', 'foo-6', 'foo-7']);
       });
 
@@ -603,7 +601,7 @@ describe('FixedSizeTree', () => {
         );
 
         expect(
-          getLastRecords(fixedSizeListMock)!.map(({ isOpen }) => isOpen),
+          getLastRecords(fixedSizeListMock)?.map(({ isOpen }) => isOpen),
         ).toEqual([true, true, true, true, true, false, false]);
       });
 
@@ -626,7 +624,7 @@ describe('FixedSizeTree', () => {
         );
 
         expect(
-          getLastRecords(fixedSizeListMock)!.reduce<Record<string, boolean>>(
+          getLastRecords(fixedSizeListMock)?.reduce<Record<string, boolean>>(
             (acc, { data: { id }, isOpen }) => {
               acc[id] = isOpen;
 
@@ -644,18 +642,18 @@ describe('FixedSizeTree', () => {
       });
 
       it('does nothing if opennessState is not an object', async () => {
-        const originalRecords = getLastRecords(fixedSizeListMock)!;
+        const originalRecords = getLastRecords(fixedSizeListMock);
 
         await applyComponentUpdate(
           // @ts-expect-error Test for non-typescript code.
           async () => await treeInstance.recomputeTree('4'),
         );
 
-        expect(getLastRecords(fixedSizeListMock)!).toEqual(originalRecords);
+        expect(getLastRecords(fixedSizeListMock)).toEqual(originalRecords);
       });
 
       it('does nothing if record ID does not exist', async () => {
-        const originalRecords = getLastRecords(fixedSizeListMock)!;
+        const originalRecords = getLastRecords(fixedSizeListMock);
 
         await applyComponentUpdate(
           async () =>
@@ -664,22 +662,22 @@ describe('FixedSizeTree', () => {
             }),
         );
 
-        expect(getLastRecords(fixedSizeListMock)!).toEqual(originalRecords);
+        expect(getLastRecords(fixedSizeListMock)).toEqual(originalRecords);
       });
     });
 
     it('provides a setOpen function that changes openness state of the specific node', async () => {
-      const firstRecord = getLastRecords(fixedSizeListMock)![0]!;
+      const firstRecord = getLastRecords(fixedSizeListMock)?.[0];
 
-      await applyComponentUpdate(async () => await firstRecord.setOpen(false));
+      await applyComponentUpdate(async () => await firstRecord?.setOpen(false));
 
       expect(
-        getLastRecords(fixedSizeListMock)!.map(({ data: { id } }) => id),
+        getLastRecords(fixedSizeListMock)?.map(({ data: { id } }) => id),
       ).toEqual(['foo-1']);
 
-      await applyComponentUpdate(async () => await firstRecord.setOpen(true));
+      await applyComponentUpdate(async () => await firstRecord?.setOpen(true));
 
-      expect(getLastRecords(fixedSizeListMock)!).toHaveLength(7);
+      expect(getLastRecords(fixedSizeListMock)).toHaveLength(7);
     });
 
     it('correctly collapses node with 100.000 children', async () => {
@@ -689,14 +687,14 @@ describe('FixedSizeTree', () => {
       expect(component.treeRef.current).not.toBeNull();
       treeInstance = component.treeRef.current!;
 
-      const largeNode = getLastRecords(fixedSizeListMock)!.find(
+      const largeNode = getLastRecords(fixedSizeListMock)?.find(
         (record) => record.data.id === 'largeNode-1',
-      )!;
+      );
 
-      await applyComponentUpdate(async () => await largeNode.setOpen(false));
+      await applyComponentUpdate(async () => await largeNode?.setOpen(false));
 
       expect(
-        getLastRecords(fixedSizeListMock)!.map(({ data: { id } }) => id),
+        getLastRecords(fixedSizeListMock)?.map(({ data: { id } }) => id),
       ).toEqual([
         'root-1',
         'smallNode-1',
@@ -716,7 +714,7 @@ describe('FixedSizeTree', () => {
           nestingLevel: number,
         ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
           data: {
-            id: node.id.toString(),
+            id: node.id,
             isOpenByDefault: node.id !== 'largeNode-1',
             name: node.name,
             nestingLevel,
@@ -731,15 +729,15 @@ describe('FixedSizeTree', () => {
       expect(component.treeRef.current).not.toBeNull();
       treeInstance = component.treeRef.current!;
 
-      const largeNode = getLastRecords(fixedSizeListMock)!.find(
+      const largeNode = getLastRecords(fixedSizeListMock)?.find(
         (record) => record.data.id === 'largeNode-1',
-      )!;
+      );
 
-      await applyComponentUpdate(async () => await largeNode.setOpen(true));
+      await applyComponentUpdate(async () => await largeNode?.setOpen(true));
 
       expect(
-        getLastRecords(fixedSizeListMock)!
-          .map(({ data: { id } }) => id)
+        getLastRecords(fixedSizeListMock)
+          ?.map(({ data: { id } }) => id)
           .slice(-5),
       ).toEqual([
         'largeNodeChild-99999',

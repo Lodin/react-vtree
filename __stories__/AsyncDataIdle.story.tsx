@@ -10,15 +10,14 @@ import {
 } from 'react';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import {
-  FixedSizeTree,
   type FixedSizeNodeData,
   type FixedSizeNodePublicState,
-  type TreeWalker,
-  type TreeWalkerValue,
-} from '../src';
-import type { NodeComponentProps } from '../src/Tree';
-import { noop } from '../src/utils';
-import { AsyncTaskScheduler } from './utils';
+  FixedSizeTree,
+} from '../src/FixedSizeTree.tsx';
+import type { TreeWalker, TreeWalkerValue } from '../src/Tree.tsx';
+import type { NodeComponentProps } from '../src/Tree.tsx';
+import { noop } from '../src/utils.ts';
+import { AsyncTaskScheduler } from './utils.ts';
 
 type TreeNode = Readonly<{
   children: TreeNode[];
@@ -30,7 +29,7 @@ type TreeNode = Readonly<{
 type TreeData = FixedSizeNodeData &
   Readonly<{
     downloaded: boolean;
-    download: () => Promise<void>;
+    download(): Promise<void>;
     isLeaf: boolean;
     name: string;
     nestingLevel: number;
@@ -113,6 +112,20 @@ const Node: FC<
   const [isLoading, setLoading] = useState(false);
   const createBuildingPromise = useBuildingPromise([download]);
 
+  const handleClick = async () => {
+    if (!downloaded) {
+      setLoading(true);
+      await Promise.all([
+        download(),
+        setOpen(!isOpen),
+        createBuildingPromise(),
+      ]);
+      setLoading(false);
+    } else {
+      await setOpen(!isOpen);
+    }
+  };
+
   return (
     <div
       style={{
@@ -128,19 +141,10 @@ const Node: FC<
             type="button"
             onClick={
               !isLoading
-                ? async () => {
-                    if (!downloaded) {
-                      setLoading(true);
-                      await Promise.all([
-                        download(),
-                        setOpen(!isOpen),
-                        createBuildingPromise(),
-                      ]);
-                      setLoading(false);
-                    } else {
-                      await setOpen(!isOpen);
-                    }
-                  }
+                ? () =>
+                    void handleClick().catch((error: unknown) => {
+                      throw error;
+                    })
                 : undefined
             }
             style={defaultButtonStyle}

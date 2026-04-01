@@ -1,12 +1,13 @@
 import { act } from '@testing-library/react';
+import type { ReactElement, Ref } from 'react';
 import { flushSync } from 'react-dom';
-import { vi, type Mock } from 'vitest';
 import type {
   FixedSizeList,
   FixedSizeListProps,
   VariableSizeList,
   VariableSizeListProps,
 } from 'react-window';
+import { vi, type Mock } from 'vitest';
 import type {
   NodeData,
   NodePublicState,
@@ -17,7 +18,6 @@ import type {
   RequestIdleCallbackHandle,
   RequestIdleCallbackOptions,
 } from '../../src/utils';
-import type { ReactElement, Ref } from 'react';
 
 type DeadlineConfig = Readonly<{
   didTimeout?: boolean;

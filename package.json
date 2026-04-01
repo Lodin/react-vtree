@@ -22,15 +22,18 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "full-prepare": "npm run clean && concurrently --kill-others-on-fail --group --names format,lint,oxlint,typecheck,test,build npm:format:check npm:lint npm:oxlint npm:typecheck npm:test npm:build",
-    "lint": "eslint . --flag unstable_native_nodejs_ts_config",
-    "lint:fix": "npm run eslint -- --fix",
+    "lint": "concurrently npm:eslint npm:oxlint",
+    "lint:fix": "npm run oxlint:fix && npm run eslint:fix",
+    "eslint": "eslint . --flag unstable_native_nodejs_ts_config",
+    "eslint:fix": "npm run eslint -- --fix",
     "oxlint": "oxlint -c .oxlintrc.json",
+    "oxlint:fix": "npm run oxlint -- --fix",
     "prepare": "echo 'update me'",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsgo -p tsconfig.json --noEmit"
   },
   "repository": {
     "type": "git",
@@ -62,6 +65,7 @@
     "@types/react-test-renderer": "19.1.0",
     "@types/react-virtualized-auto-sizer": "1.0.8",
     "@types/react-window": "1.8.8",
+    "@typescript/native-preview": "7.0.0-dev.20260330.1",
     "@vitejs/plugin-react": "6.0.1",
     "concurrently": "9.2.1",
     "eslint": "9.39.4",
@@ -81,7 +85,7 @@
     "storybook": "10.3.3",
     "tsdown": "0.21.7",
     "tsgolint": "0.0.1",
-    "typescript": "6.0.2",
+    "typescript": "5.9.3",
     "vite": "8.0.3",
     "vitest": "4.1.2"
   },

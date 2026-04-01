@@ -36,7 +36,7 @@ const config: readonly Config[] = defineConfig(
       'guard-for-in': 'off',
     },
   },
-  ...oxlint.buildFromOxlintConfigFile('./.oxlintrc.json'),
+  ...oxlint.buildFromOxlintConfigFile('./.oxlintrc.json', { typeAware: true }),
   {
     // disable rules duplicated in Oxlint but not handled by
     // `buildFromOxlintConfigFile`.

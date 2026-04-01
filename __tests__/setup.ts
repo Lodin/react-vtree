@@ -75,6 +75,7 @@ interface CustomMatchers<R = unknown> {
   toHaveBeenLastCalledWithItemKeys(expected: readonly string[]): R;
   toHaveBeenLastCalledWithRecords<
     TData extends NodeData,
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
     TNodePublicState extends NodePublicState<TData>,
   >(
     expected: readonly TNodePublicState[],
