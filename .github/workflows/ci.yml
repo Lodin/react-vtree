@@ -3,7 +3,7 @@ name: CI
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - '.github/workflows/ci.yml'
       - '__stories__/**'
@@ -21,7 +21,7 @@ on:
       - 'tsconfig.json'
       - 'vitest.config.ts'
   pull_request:
-    branches: [master]
+    branches: [main]
     types: [opened, synchronize, reopened]
     paths:
       - '.github/workflows/ci.yml'
