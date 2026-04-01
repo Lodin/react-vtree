@@ -1,4 +1,4 @@
-export * from './FixedSizeTree';
-export * from './VariableSizeTree';
-export type {TreeWalker, TreeWalkerValue} from './Tree';
-export {Row} from './Tree';
+export * from './FixedSizeTree.tsx';
+export * from './VariableSizeTree.tsx';
+export type { TreeWalker, TreeWalkerValue } from './Tree.tsx';
+export { Row } from './Tree.tsx';

@@ -1,14 +1,14 @@
-import React, {ReactNode} from 'react';
-import {VariableSizeList, VariableSizeListProps} from 'react-window';
+import type { ReactNode } from 'react';
+import { VariableSizeList, type VariableSizeListProps } from 'react-window';
 import Tree, {
   createTreeComputer,
-  NodeData,
-  NodePublicState,
-  OpennessState,
-  TreeProps,
-  TreeState,
-} from './Tree';
-import {createBasicRecord, getIdByIndex} from './utils';
+  type NodeData,
+  type NodePublicState,
+  type OpennessState,
+  type TreeProps,
+  type TreeState,
+} from './Tree.tsx';
+import { createBasicRecord, getIdByIndex } from './utils.ts';
 
 export type VariableSizeNodeData = Readonly<{
   /** Default node height. Can be used only with VariableSizeTree */
@@ -16,19 +16,17 @@ export type VariableSizeNodeData = Readonly<{
 }> &
   NodeData;
 
-export type VariableSizeNodePublicState<
-  T extends VariableSizeNodeData
-> = NodePublicState<T> & {
-  height: number;
-  readonly resize: (height: number, shouldForceUpdate?: boolean) => void;
-};
+export type VariableSizeNodePublicState<T extends VariableSizeNodeData> =
+  NodePublicState<T> & {
+    height: number;
+    resize(height: number, shouldForceUpdate?: boolean): void;
+  };
 
-export type VariableSizeTreeProps<
-  TData extends VariableSizeNodeData
-> = TreeProps<TData, VariableSizeNodePublicState<TData>, VariableSizeList> &
-  Readonly<{
-    itemSize?: VariableSizeListProps['itemSize'];
-  }>;
+export type VariableSizeTreeProps<TData extends VariableSizeNodeData> =
+  TreeProps<TData, VariableSizeNodePublicState<TData>, VariableSizeList> &
+    Readonly<{
+      itemSize?: VariableSizeListProps['itemSize'];
+    }>;
 
 export type VariableSizeTreeState<T extends VariableSizeNodeData> = TreeState<
   T,
@@ -36,7 +34,7 @@ export type VariableSizeTreeState<T extends VariableSizeNodeData> = TreeState<
   VariableSizeList
 > &
   Readonly<{
-    resetAfterId: (id: string, shouldForceUpdate?: boolean) => void;
+    resetAfterId(id: string, shouldForceUpdate?: boolean): void;
   }>;
 
 const computeTree = createTreeComputer<
@@ -47,7 +45,7 @@ const computeTree = createTreeComputer<
 >({
   createRecord: (
     data,
-    {recomputeTree, resetAfterId},
+    { recomputeTree, resetAfterId },
     parent,
     previousRecord,
   ) => {
@@ -64,8 +62,8 @@ const computeTree = createTreeComputer<
           record.public.height = height;
           resetAfterId(record.public.data.id, shouldForceUpdate);
         },
-        setOpen: (state): Promise<void> =>
-          recomputeTree({
+        setOpen: async (state): Promise<void> =>
+          await recomputeTree({
             [data.id]: state,
           }),
       },
@@ -83,7 +81,7 @@ export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
   VariableSizeTreeState<TData>,
   VariableSizeList
 > {
-  public constructor(props: VariableSizeTreeProps<TData>, context: any) {
+  constructor(props: VariableSizeTreeProps<TData>, context: any) {
     super(props, context);
     this.getItemSize = this.getItemSize.bind(this);
     this.state = {
@@ -93,45 +91,42 @@ export class VariableSizeTree<TData extends VariableSizeNodeData> extends Tree<
     };
   }
 
-  public resetAfterId(id: string, shouldForceUpdate: boolean = false): void {
-    const {list, order} = this.state;
-    list.current?.resetAfterIndex(order!.indexOf(id), shouldForceUpdate);
+  resetAfterId(id: string, shouldForceUpdate: boolean = false): void {
+    const { list, order = [] } = this.state;
+    list.current?.resetAfterIndex(order.indexOf(id), shouldForceUpdate);
   }
 
-  public recomputeTree(
+  override async recomputeTree(
     state: OpennessState<TData, VariableSizeNodePublicState<TData>>,
   ): Promise<void> {
-    return super.recomputeTree(state).then(() => {
+    return await super.recomputeTree(state).then(() => {
       this.state.list.current?.resetAfterIndex(0, true);
     });
   }
 
-  public render(): ReactNode {
+  override render(): ReactNode {
     const {
-      children,
+      children: _c,
       placeholder,
       itemSize,
-      rowComponent,
-      treeWalker,
+      rowComponent = () => null,
+      treeWalker: _t,
       ...rest
     } = this.props;
-    const {attachRefs, order} = this.state;
+    const { attachRefs, order = [] } = this.state;
 
-    return placeholder && order!.length === 0 ? (
+    return placeholder && order.length === 0 ? (
       placeholder
     ) : (
       <VariableSizeList
         {...rest}
-        itemCount={order!.length}
+        itemCount={order.length}
         itemData={this.getItemData()}
-        // eslint-disable-next-line @typescript-eslint/unbound-method
         itemKey={getIdByIndex}
-        // eslint-disable-next-line @typescript-eslint/unbound-method
         itemSize={itemSize ?? this.getItemSize}
-        // eslint-disable-next-line @typescript-eslint/unbound-method
         ref={attachRefs}
       >
-        {rowComponent!}
+        {rowComponent}
       </VariableSizeList>
     );
   }

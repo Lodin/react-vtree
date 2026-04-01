@@ -1,33 +1,23 @@
-import {boolean, number, withKnobs} from '@storybook/addon-knobs';
-import {storiesOf} from '@storybook/react';
-import React, {
-  DependencyList,
-  FC,
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import {
+  type DependencyList,
+  type FC,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import {
-  FixedSizeNodeData,
-  FixedSizeNodePublicState,
+  type FixedSizeNodeData,
+  type FixedSizeNodePublicState,
   FixedSizeTree,
-  TreeWalker,
-  TreeWalkerValue,
-} from '../src';
-import {NodeComponentProps} from '../src/Tree';
-import {noop} from '../src/utils';
-import {AsyncTaskScheduler} from './utils';
-
-document.body.style.margin = '0';
-document.body.style.display = 'flex';
-document.body.style.minHeight = '100vh';
-
-const root = document.getElementById('root')!;
-root.style.margin = '10px 0 0 10px';
-root.style.flex = '1';
+} from '../src/FixedSizeTree.tsx';
+import type { TreeWalker, TreeWalkerValue } from '../src/Tree.tsx';
+import type { NodeComponentProps } from '../src/Tree.tsx';
+import { noop } from '../src/utils.ts';
+import { AsyncTaskScheduler } from './utils.ts';
 
 type TreeNode = Readonly<{
   children: TreeNode[];
@@ -39,7 +29,7 @@ type TreeNode = Readonly<{
 type TreeData = FixedSizeNodeData &
   Readonly<{
     downloaded: boolean;
-    download: () => Promise<void>;
+    download(): Promise<void>;
     isLeaf: boolean;
     name: string;
     nestingLevel: number;
@@ -72,8 +62,8 @@ const createNode = (
   return node;
 };
 
-const defaultTextStyle = {marginLeft: 10};
-const defaultButtonStyle = {fontFamily: 'Courier New'};
+const defaultTextStyle = { marginLeft: 10 };
+const defaultButtonStyle = { fontFamily: 'Courier New' };
 
 type NodeMeta = Readonly<{
   nestingLevel: number;
@@ -105,23 +95,36 @@ const useBuildingPromise = (deps: DependencyList) => {
     resolve.current();
   }, deps);
 
-  return () =>
-    new Promise((r) => {
-      resolve.current = r;
+  return async () =>
+    await new Promise<void>((nextResolve) => {
+      resolve.current = nextResolve;
     });
 };
 
-const Node: FC<NodeComponentProps<
-  TreeData,
-  FixedSizeNodePublicState<TreeData>
->> = ({
-  data: {download, downloaded, isLeaf, name, nestingLevel},
+const Node: FC<
+  NodeComponentProps<TreeData, FixedSizeNodePublicState<TreeData>>
+> = ({
+  data: { download, downloaded, isLeaf, name, nestingLevel },
   isOpen,
   style,
   setOpen,
 }) => {
   const [isLoading, setLoading] = useState(false);
   const createBuildingPromise = useBuildingPromise([download]);
+
+  const handleClick = async () => {
+    if (!downloaded) {
+      setLoading(true);
+      await Promise.all([
+        download(),
+        setOpen(!isOpen),
+        createBuildingPromise(),
+      ]);
+      setLoading(false);
+    } else {
+      await setOpen(!isOpen);
+    }
+  };
 
   return (
     <div
@@ -138,19 +141,10 @@ const Node: FC<NodeComponentProps<
             type="button"
             onClick={
               !isLoading
-                ? async () => {
-                    if (!downloaded) {
-                      setLoading(true);
-                      await Promise.all([
-                        download(),
-                        setOpen(!isOpen),
-                        createBuildingPromise(),
-                      ]);
-                      setLoading(false);
-                    } else {
-                      await setOpen(!isOpen);
-                    }
-                  }
+                ? () =>
+                    void handleClick().catch((error: unknown) => {
+                      throw error;
+                    })
                 : undefined
             }
             style={defaultButtonStyle}
@@ -169,7 +163,7 @@ type TreePresenterProps = Readonly<{
   itemSize: number;
 }>;
 
-const TreePresenter: FC<TreePresenterProps> = ({disableAsync, itemSize}) => {
+const TreePresenter: FC<TreePresenterProps> = ({ disableAsync, itemSize }) => {
   const [downloadedIds, setDownloadedIds] = useState<readonly number[]>([]);
   const scheduler = useRef<AsyncTaskScheduler<number>>(
     new AsyncTaskScheduler(setDownloadedIds),
@@ -180,8 +174,8 @@ const TreePresenter: FC<TreePresenterProps> = ({disableAsync, itemSize}) => {
     return createNode(downloadedIds);
   }, [downloadedIds]);
 
-  const createDownloader = (node: TreeNode) => (): Promise<void> =>
-    new Promise((resolve) => {
+  const createDownloader = (node: TreeNode) => async (): Promise<void> =>
+    await new Promise((resolve) => {
       const timeoutId = setTimeout(() => {
         scheduler.current.finalize();
       }, 2000);
@@ -190,20 +184,21 @@ const TreePresenter: FC<TreePresenterProps> = ({disableAsync, itemSize}) => {
     });
 
   const treeWalker = useCallback(
-    function* treeWalker(): ReturnType<TreeWalker<TreeData, NodeMeta>> {
+    function* idleAsyncTreeWalker(): ReturnType<
+      TreeWalker<TreeData, NodeMeta>
+    > {
       yield getNodeData(rootNode, 0, createDownloader(rootNode));
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
       while (true) {
         const parentMeta = yield;
 
         if (parentMeta.data.downloaded) {
-          // eslint-disable-next-line @typescript-eslint/prefer-for-of
           for (let i = 0; i < parentMeta.node.children.length; i++) {
             yield getNodeData(
-              parentMeta.node.children[i],
+              parentMeta.node.children[i]!,
               parentMeta.nestingLevel + 1,
-              createDownloader(parentMeta.node.children[i]),
+              createDownloader(parentMeta.node.children[i]!),
             );
           }
         }
@@ -213,12 +208,12 @@ const TreePresenter: FC<TreePresenterProps> = ({disableAsync, itemSize}) => {
   );
 
   return (
-    <AutoSizer disableWidth>
-      {({height}) => (
+    <AutoSizer
+      renderProp={({ height }) => (
         <FixedSizeTree
           treeWalker={treeWalker}
           itemSize={itemSize}
-          height={height}
+          height={height ?? 0}
           placeholder={null}
           async={!disableAsync}
           width="100%"
@@ -226,15 +221,21 @@ const TreePresenter: FC<TreePresenterProps> = ({disableAsync, itemSize}) => {
           {Node}
         </FixedSizeTree>
       )}
-    </AutoSizer>
+    />
   );
 };
 
-storiesOf('Tree', module)
-  .addDecorator(withKnobs)
-  .add('Async data with placeholder', () => (
-    <TreePresenter
-      disableAsync={boolean('Disable async', false)}
-      itemSize={number('Row height', 30)}
-    />
-  ));
+const meta: Meta<typeof TreePresenter> = {
+  args: {
+    disableAsync: false,
+    itemSize: 30,
+  },
+  component: TreePresenter,
+  title: 'Tree/AsyncDataIdle',
+};
+
+export default meta;
+
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {};

@@ -1,28 +1,28 @@
 export type AsyncTaskSchedulerFinalizeCallback<T> = (ids: readonly T[]) => void;
 
 export class AsyncTaskScheduler<T> {
-  private readonly aborters: Set<() => void> = new Set();
-  private readonly finalizeCallback: AsyncTaskSchedulerFinalizeCallback<T>;
-  private readonly tasks: Map<T, () => void> = new Map();
+  readonly #aborters = new Set<() => void>();
+  readonly #finalizeCallback: AsyncTaskSchedulerFinalizeCallback<T>;
+  readonly #tasks = new Map<T, () => void>();
 
-  public constructor(finalizeCallback: AsyncTaskSchedulerFinalizeCallback<T>) {
-    this.finalizeCallback = finalizeCallback;
+  constructor(finalizeCallback: AsyncTaskSchedulerFinalizeCallback<T>) {
+    this.#finalizeCallback = finalizeCallback;
   }
 
-  public add(id: T, task: () => void, aborter: () => void): void {
-    this.tasks.set(id, task);
-    this.dropOthers();
-    this.aborters.add(aborter);
+  add(id: T, task: () => void, aborter: () => void): void {
+    this.#tasks.set(id, task);
+    this.#dropOthers();
+    this.#aborters.add(aborter);
   }
 
-  public finalize(): void {
-    this.tasks.forEach((task) => task());
+  finalize(): void {
+    this.#tasks.forEach((task) => task());
 
-    this.finalizeCallback(Array.from(this.tasks.keys()));
+    this.#finalizeCallback(Array.from(this.#tasks.keys()));
   }
 
-  private dropOthers(): void {
-    this.aborters.forEach((aborter) => aborter());
-    this.aborters.clear();
+  #dropOthers(): void {
+    this.#aborters.forEach((aborter) => aborter());
+    this.#aborters.clear();
   }
 }

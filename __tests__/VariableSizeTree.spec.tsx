@@ -1,33 +1,39 @@
-import {mount, ReactWrapper} from 'enzyme';
-import React, {createRef, FC} from 'react';
-import {VariableSizeList} from 'react-window';
+// oxlint-disable typescript/consistent-type-imports
+import { render, screen } from '@testing-library/react';
+import { createRef, type FC, type Ref, forwardRef } from 'react';
+import { VariableSizeList, type VariableSizeListProps } from 'react-window';
 import {
-  Row,
-  TreeWalker,
-  TreeWalkerValue,
-  VariableSizeNodeData,
-  VariableSizeNodePublicState,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from 'vitest';
+import type {
+  NodeComponentProps,
+  TypedListChildComponentData,
+} from '../src/Tree.tsx';
+import { type TreeWalker, type TreeWalkerValue, Row } from '../src/Tree.tsx';
+import {
+  type VariableSizeNodeData,
+  type VariableSizeNodePublicState,
   VariableSizeTree,
-  VariableSizeTreeProps,
-  VariableSizeTreeState,
-} from '../src';
-import {NodeComponentProps} from '../src/Tree';
+} from '../src/VariableSizeTree.tsx';
+import { defaultTree, type TreeNode } from './utils/misc.ts';
 import {
-  defaultTree,
-  extractReceivedRecords,
-  mockRequestIdleCallback,
-  sleep,
-} from './utils/misc';
+  applyComponentUpdate,
+  getLastListProps,
+  getLastRecords,
+  MockRequestIdleCallbackController,
+  type VariableSizeListMock,
+} from './utils/misc.ts';
 
-type TreeNode = Readonly<{
-  children?: TreeNode[];
-  id: string;
-  name: string;
-}>;
-
-type NodeMeta = Readonly<{
-  nestingLevel: number;
-  node: TreeNode;
+type VariableSizeListRef = Readonly<{
+  resetAfterIndex: Mock;
+  scrollTo: Mock;
+  scrollToItem: Mock;
 }>;
 
 type ExtendedData = VariableSizeNodeData &
@@ -36,98 +42,193 @@ type ExtendedData = VariableSizeNodeData &
     nestingLevel: number;
   }>;
 
-describe('VariableSizeTree', () => {
-  const Node: FC<NodeComponentProps<
-    ExtendedData,
-    VariableSizeNodePublicState<ExtendedData>
-  >> = () => null;
+type NodeMeta = Readonly<{
+  nestingLevel: number;
+  node: TreeNode;
+}>;
 
-  let component: ReactWrapper<
-    VariableSizeTreeProps<ExtendedData>,
-    VariableSizeTreeState<ExtendedData>,
-    VariableSizeTree<ExtendedData>
-  >;
-  let tree: TreeNode;
-  let treeWalkerSpy: jest.Mock;
+type VariableSizeListData = TypedListChildComponentData<
+  ExtendedData,
+  VariableSizeNodePublicState<ExtendedData>
+>;
+
+const variableSizeListMock: VariableSizeListMock<VariableSizeListData> =
+  vi.hoisted(() => vi.fn());
+
+const variableSizeListRef: VariableSizeListRef = vi.hoisted(() => ({
+  resetAfterIndex: vi.fn(),
+  scrollTo: vi.fn(),
+  scrollToItem: vi.fn(),
+}));
+
+vi.mock('react-window', async () => {
+  const actual =
+    await vi.importActual<typeof import('react-window')>('react-window');
+
+  const { createElement, forwardRef, useImperativeHandle } =
+    await import('react');
+
+  variableSizeListMock.mockImplementation(
+    (
+      _: VariableSizeListProps<VariableSizeListData>,
+      ref: Ref<Partial<VariableSizeList>>,
+    ) => {
+      useImperativeHandle(ref, () => variableSizeListRef);
+
+      return createElement('div', {
+        'data-testid': 'variable-size-list',
+      });
+    },
+  );
+
+  const VariableSizeListMock = forwardRef(variableSizeListMock);
+
+  VariableSizeListMock.displayName = 'VariableSizeListMock';
+
+  return {
+    ...actual,
+    VariableSizeList: VariableSizeListMock,
+  };
+});
+
+describe('VariableSizeTree', () => {
   let defaultHeight: number;
   let isOpenByDefault: boolean;
+  let tree: TreeNode;
 
-  const getNodeData = (
-    node: TreeNode,
-    nestingLevel: number,
-  ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
-    data: {
-      defaultHeight,
-      id: node.id.toString(),
-      isOpenByDefault,
-      name: node.name,
+  const Node: FC<
+    NodeComponentProps<ExtendedData, VariableSizeNodePublicState<ExtendedData>>
+  > = vi.fn(
+    ({
+      data: { id },
+    }: NodeComponentProps<
+      ExtendedData,
+      VariableSizeNodePublicState<ExtendedData>
+    >) => <div data-testid={`node-${id}`} />,
+  );
+
+  const getNodeData = vi.fn(
+    (
+      node: TreeNode,
+      nestingLevel: number,
+    ): TreeWalkerValue<ExtendedData, NodeMeta> => ({
+      data: {
+        defaultHeight,
+        id: node.id,
+        isOpenByDefault,
+        name: node.name,
+        nestingLevel,
+      },
       nestingLevel,
-    },
-    nestingLevel,
-    node,
-  });
+      node,
+    }),
+  );
 
-  function* treeWalker(): ReturnType<TreeWalker<ExtendedData, NodeMeta>> {
+  const treeWalker = vi.fn(function* (): ReturnType<
+    TreeWalker<ExtendedData, NodeMeta>
+  > {
     yield getNodeData(tree, 0);
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     while (true) {
       const parentMeta = yield;
 
       if (parentMeta.node.children) {
-        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < parentMeta.node.children.length; i++) {
           yield getNodeData(
-            parentMeta.node.children[i],
+            parentMeta.node.children[i]!,
             parentMeta.nestingLevel + 1,
           );
         }
       }
     }
-  }
+  });
 
-  const mountComponent = (
-    overriddenProps: Partial<VariableSizeTreeProps<ExtendedData>> = {},
-  ): typeof component =>
-    mount(
-      <VariableSizeTree<ExtendedData>
-        treeWalker={treeWalkerSpy}
-        height={500}
-        width={500}
-        {...overriddenProps}
-      >
-        {Node}
-      </VariableSizeTree>,
+  const VariableSizeTreeRenderer = forwardRef(
+    (
+      props: Partial<
+        React.ComponentProps<typeof VariableSizeTree<ExtendedData>>
+      >,
+      treeRef: Ref<VariableSizeTree<ExtendedData>>,
+    ) => {
+      return (
+        <VariableSizeTree<ExtendedData>
+          ref={treeRef}
+          treeWalker={treeWalker}
+          height={500}
+          width={500}
+          {...props}
+        >
+          {Node}
+        </VariableSizeTree>
+      );
+    },
+  );
+
+  function renderComponent(
+    overriddenProps: Partial<
+      React.ComponentProps<typeof VariableSizeTree<ExtendedData>>
+    > = {},
+  ) {
+    const treeRef = createRef<VariableSizeTree<ExtendedData>>();
+    let currentProps = overriddenProps;
+
+    const renderResult = render(
+      <VariableSizeTreeRenderer ref={treeRef} {...currentProps} />,
     );
+
+    return {
+      ...renderResult,
+      rerenderComponent(
+        nextProps: Partial<
+          React.ComponentProps<typeof VariableSizeTree<ExtendedData>>
+        > = {},
+      ) {
+        currentProps = {
+          ...currentProps,
+          ...nextProps,
+        };
+
+        renderResult.rerender(
+          <VariableSizeTreeRenderer ref={treeRef} {...currentProps} />,
+        );
+      },
+      treeRef,
+    };
+  }
 
   beforeEach(() => {
     tree = defaultTree;
-
     defaultHeight = 30;
     isOpenByDefault = true;
-
-    treeWalkerSpy = jest.fn(treeWalker);
-
-    component = mountComponent();
   });
 
-  it('renders a component', () => {
-    expect(component).not.toBeUndefined();
+  afterEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('contains a VariableSizeList component', () => {
-    const list = component.find(VariableSizeList);
-    expect(list).toHaveLength(1);
-    expect(list.props()).toMatchObject({
-      children: Row,
-      itemCount: 7,
-      itemData: expect.any(Object),
-      itemSize: expect.any(Function),
-    });
+  it('should render a component', () => {
+    render(<VariableSizeTreeRenderer />);
 
-    const receivedRecords = extractReceivedRecords(list);
+    expect(screen.getByTestId('variable-size-list')).toBeInTheDocument();
+  });
 
-    expect(receivedRecords).toEqual([
+  it('should contain a VariableSizeList component', () => {
+    render(<VariableSizeTreeRenderer />);
+
+    expect(variableSizeListMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        children: Row,
+        itemCount: 7,
+        itemData: expect.objectContaining({
+          component: Node,
+          getRecordData: expect.any(Function),
+        }),
+        itemSize: expect.any(Function),
+      }),
+      expect.any(Function),
+    );
+
+    expect(variableSizeListMock).toHaveBeenLastCalledWithRecords([
       {
         data: {
           defaultHeight: 30,
@@ -222,82 +323,142 @@ describe('VariableSizeTree', () => {
     ]);
   });
 
-  it('allows providing custom row component', () => {
+  it('should allow providing custom row component', () => {
     const rowComponent = () => null;
-    component = mountComponent({rowComponent});
 
-    expect(component.find(VariableSizeList).prop('children')).toBe(
-      rowComponent,
+    render(<VariableSizeTreeRenderer rowComponent={rowComponent} />);
+
+    expect(getLastListProps(variableSizeListMock)!.children).toBe(rowComponent);
+  });
+
+  it('should recompute on new treeWalker', () => {
+    const renderResult = render(<VariableSizeTreeRenderer />);
+    const nextTreeWalker = vi.fn(treeWalker.getMockImplementation());
+
+    renderResult.rerender(
+      <VariableSizeTreeRenderer treeWalker={nextTreeWalker} />,
+    );
+
+    expect(nextTreeWalker).toHaveBeenCalledWith();
+  });
+
+  it('should not recompute if treeWalker is the same', () => {
+    const renderResult = render(<VariableSizeTreeRenderer />);
+
+    treeWalker.mockClear();
+
+    renderResult.rerender(<VariableSizeTreeRenderer />);
+
+    expect(treeWalker).not.toHaveBeenCalled();
+  });
+
+  it('should remember a new treeWalker to avoid further re-computation if treeWalker is the same', () => {
+    const renderResult = render(<VariableSizeTreeRenderer />);
+    const nextTreeWalker = vi.fn(treeWalker.getMockImplementation());
+
+    renderResult.rerender(
+      <VariableSizeTreeRenderer treeWalker={nextTreeWalker} />,
+    );
+    renderResult.rerender(
+      <VariableSizeTreeRenderer treeWalker={nextTreeWalker} />,
+    );
+
+    expect(nextTreeWalker).toHaveBeenCalledTimes(1);
+  });
+
+  it('should allow preserving previous state on the new tree building', async () => {
+    const renderResult = render(<VariableSizeTreeRenderer />);
+    const { setOpen } = getLastRecords(variableSizeListMock)![1]!;
+
+    const collapsedRecords = [
+      {
+        data: {
+          defaultHeight: 30,
+          id: 'foo-1',
+          isOpenByDefault: true,
+          name: 'Foo #1',
+          nestingLevel: 0,
+        },
+        height: 30,
+        isOpen: true,
+        resize: expect.any(Function),
+        setOpen: expect.any(Function),
+      },
+      {
+        data: {
+          defaultHeight: 30,
+          id: 'foo-2',
+          isOpenByDefault: true,
+          name: 'Foo #2',
+          nestingLevel: 1,
+        },
+        height: 30,
+        isOpen: false,
+        resize: expect.any(Function),
+        setOpen: expect.any(Function),
+      },
+      {
+        data: {
+          defaultHeight: 30,
+          id: 'foo-5',
+          isOpenByDefault: true,
+          name: 'Foo #5',
+          nestingLevel: 1,
+        },
+        height: 30,
+        isOpen: true,
+        resize: expect.any(Function),
+        setOpen: expect.any(Function),
+      },
+      {
+        data: {
+          defaultHeight: 30,
+          id: 'foo-6',
+          isOpenByDefault: true,
+          name: 'Foo #6',
+          nestingLevel: 2,
+        },
+        height: 30,
+        isOpen: true,
+        resize: expect.any(Function),
+        setOpen: expect.any(Function),
+      },
+      {
+        data: {
+          defaultHeight: 30,
+          id: 'foo-7',
+          isOpenByDefault: true,
+          name: 'Foo #7',
+          nestingLevel: 2,
+        },
+        height: 30,
+        isOpen: true,
+        resize: expect.any(Function),
+        setOpen: expect.any(Function),
+      },
+    ] satisfies ReadonlyArray<VariableSizeNodePublicState<ExtendedData>>;
+
+    await applyComponentUpdate(async () => await setOpen(false));
+
+    expect(variableSizeListMock).toHaveBeenLastCalledWithRecords(
+      collapsedRecords,
+    );
+
+    const nextTreeWalker = vi.fn(treeWalker.getMockImplementation());
+
+    renderResult.rerender(
+      <VariableSizeTreeRenderer async={true} treeWalker={nextTreeWalker} />,
+    );
+
+    expect(variableSizeListMock).toHaveBeenLastCalledWithRecords(
+      collapsedRecords,
     );
   });
 
-  it('recomputes on new treeWalker', () => {
-    treeWalkerSpy = jest.fn(treeWalker);
+  it('should provide a itemKey function to VariableSizeList', () => {
+    render(<VariableSizeTreeRenderer />);
 
-    component.setProps({
-      treeWalker: treeWalkerSpy,
-    });
-
-    expect(treeWalkerSpy).toHaveBeenCalledWith();
-  });
-
-  it('does not recompute if treeWalker is the same', () => {
-    treeWalkerSpy.mockClear();
-
-    component.setProps({
-      treeWalker: treeWalkerSpy,
-    });
-
-    expect(treeWalkerSpy).not.toHaveBeenCalled();
-  });
-
-  it('remembers a new treeWalker to avoid further re-computation if treeWalker is the same', () => {
-    treeWalkerSpy = jest.fn(treeWalker);
-
-    component.setProps({
-      treeWalker: treeWalkerSpy,
-    });
-
-    component.setProps({
-      treeWalker: treeWalkerSpy,
-    });
-
-    expect(treeWalkerSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('allows preserving previous state on the new tree building', async () => {
-    const [, {setOpen}]: ReadonlyArray<VariableSizeNodePublicState<
-      ExtendedData
-    >> = extractReceivedRecords(component.find(VariableSizeList));
-
-    await setOpen(false);
-    component.update();
-
-    expect(
-      extractReceivedRecords(component.find(VariableSizeList)).map(
-        ({data: {id}}) => id,
-      ),
-    ).toEqual(['foo-1', 'foo-2', 'foo-5', 'foo-6', 'foo-7']);
-
-    treeWalkerSpy = jest.fn(treeWalker);
-
-    component.setProps({
-      async: true,
-      treeWalker: treeWalkerSpy,
-    });
-
-    expect(
-      extractReceivedRecords(component.find(VariableSizeList)).map(
-        ({data: {id}}) => id,
-      ),
-    ).toEqual(['foo-1', 'foo-2', 'foo-5', 'foo-6', 'foo-7']);
-  });
-
-  it('provides a itemKey function to VariableSizeList', () => {
-    const itemKey = component.find(VariableSizeList).prop('itemKey');
-    expect(itemKey).not.toBeUndefined();
-
-    expect(component.find(Row).map((node) => node.key())).toEqual([
+    expect(variableSizeListMock).toHaveBeenLastCalledWithItemKeys([
       'foo-1',
       'foo-2',
       'foo-3',
@@ -308,82 +469,83 @@ describe('VariableSizeTree', () => {
     ]);
   });
 
-  it('allows providing a listRef prop', () => {
+  it('should allow providing a listRef prop', () => {
+    const renderResult = render(<VariableSizeTreeRenderer />);
     const refObject = createRef<VariableSizeList>();
-    const refCallback = jest.fn();
+    const refCallback = vi.fn();
 
-    const instance = component.find(VariableSizeList).instance();
+    renderResult.rerender(<VariableSizeTreeRenderer listRef={refObject} />);
 
-    component.setProps({listRef: refObject});
+    expect(refObject.current).toBe(variableSizeListRef);
 
-    expect(refObject.current).toBe(instance);
+    renderResult.rerender(<VariableSizeTreeRenderer listRef={refCallback} />);
 
-    component.setProps({
-      listRef: refCallback,
-    });
-
-    expect(refCallback).toHaveBeenCalledWith(instance);
+    expect(refCallback).toHaveBeenCalledWith(variableSizeListRef);
   });
 
   describe('placeholder', () => {
-    const testRICTimeout = 16;
-    let unmockRIC: () => void;
+    let idle: MockRequestIdleCallbackController;
 
     beforeEach(() => {
-      unmockRIC = mockRequestIdleCallback(testRICTimeout);
-      component.unmount();
+      idle = MockRequestIdleCallbackController.install();
     });
 
     afterEach(() => {
-      unmockRIC();
+      idle.restore();
     });
 
-    it('uses requestIdleCallback if placeholder prop is set', async () => {
+    it('should use requestIdleCallback if placeholder prop is set', async () => {
       const placeholder = 'Waiting...';
-      component = mountComponent({
-        placeholder,
-      });
 
-      expect(component.text()).toBe(placeholder);
+      render(<VariableSizeTreeRenderer placeholder={placeholder} />);
 
-      await sleep(testRICTimeout);
-      component.update();
+      expect(screen.getByText(placeholder)).toBeInTheDocument();
+      expect(idle.pendingCount()).toBe(1);
 
-      expect(component.find(VariableSizeTree)).toHaveLength(1);
-      expect(window.requestIdleCallback).toHaveBeenCalledTimes(2);
+      await idle.drain();
+
+      expect(screen.getByTestId('variable-size-list')).toBeInTheDocument();
+      expect(idle.requestIdleCallback).toHaveBeenCalledTimes(2);
     });
 
-    it('allows setting timeout for requestIdleCallback', async () => {
+    it('should allow setting timeout for requestIdleCallback', () => {
       const timeout = 16;
-      component = mountComponent({
-        buildingTaskTimeout: timeout,
-        placeholder: 'Waiting...',
-      });
 
-      await sleep(testRICTimeout);
+      render(
+        <VariableSizeTreeRenderer
+          buildingTaskTimeout={timeout}
+          placeholder="Waiting..."
+        />,
+      );
 
-      expect(window.requestIdleCallback).toHaveBeenCalledWith(
+      expect(idle.requestIdleCallback).toHaveBeenCalledWith(
         expect.any(Function),
-        {timeout},
+        { timeout },
       );
     });
 
-    it('allows skipping first render but enable requestIdleCallback after', async () => {
-      component = mountComponent({
-        placeholder: null,
-      });
+    it('should allow skipping first render but enable requestIdleCallback after', async () => {
+      const renderResult = render(
+        <VariableSizeTreeRenderer placeholder={null} />,
+      );
 
-      expect(window.requestIdleCallback).not.toHaveBeenCalled();
+      expect(idle.requestIdleCallback).not.toHaveBeenCalled();
 
-      treeWalkerSpy = jest.fn(treeWalker);
+      const nextTreeWalker = vi.fn(treeWalker.getMockImplementation());
 
-      component.setProps({
-        treeWalker: treeWalkerSpy,
-      });
+      renderResult.rerender(
+        <VariableSizeTreeRenderer
+          treeWalker={nextTreeWalker}
+          placeholder={null}
+        />,
+      );
 
-      await sleep(testRICTimeout);
+      expect(idle.requestIdleCallback).toHaveBeenCalled();
+      expect(idle.pendingCount()).toBe(1);
 
-      expect(window.requestIdleCallback).toHaveBeenCalled();
+      await idle.next();
+
+      expect(idle.requestIdleCallback).toHaveBeenCalled();
     });
   });
 
@@ -391,49 +553,53 @@ describe('VariableSizeTree', () => {
     let treeInstance: VariableSizeTree<ExtendedData>;
 
     beforeEach(() => {
-      treeInstance = component.instance();
+      const component = renderComponent();
+
+      expect(component.treeRef.current).not.toBeNull();
+
+      treeInstance = component.treeRef.current!;
     });
 
     describe('scrollTo', () => {
-      let listInstance: VariableSizeList;
-
-      beforeEach(() => {
-        listInstance = component
-          .find(VariableSizeList)
-          .instance() as VariableSizeList;
-      });
-
       it('can scroll to a specific offset', () => {
-        const scrollToSpy = jest.spyOn(listInstance, 'scrollTo');
+        variableSizeListRef.scrollTo.mockClear();
+
         treeInstance.scrollTo(200);
-        expect(scrollToSpy).toHaveBeenCalledWith(200);
+
+        expect(variableSizeListRef.scrollTo).toHaveBeenCalledWith(200);
       });
 
       it('can scroll to an item', () => {
-        const scrollToItemSpy = jest.spyOn(listInstance, 'scrollToItem');
+        variableSizeListRef.scrollToItem.mockClear();
+
         treeInstance.scrollToItem('foo-3', 'auto');
-        expect(scrollToItemSpy).toHaveBeenCalledWith(2, 'auto');
+
+        expect(variableSizeListRef.scrollToItem).toHaveBeenCalledWith(
+          2,
+          'auto',
+        );
       });
 
       it('re-renders nodes after specific index', () => {
-        const resetAfterIndexSpy = jest.spyOn(listInstance, 'resetAfterIndex');
+        variableSizeListRef.resetAfterIndex.mockClear();
+
         treeInstance.resetAfterId('foo-3', true);
-        expect(resetAfterIndexSpy).toHaveBeenCalledWith(2, true);
+
+        expect(variableSizeListRef.resetAfterIndex).toHaveBeenCalledWith(
+          2,
+          true,
+        );
       });
     });
 
     describe('recomputeTree', () => {
       it('changes the node openness state', async () => {
-        await treeInstance.recomputeTree({'foo-1': false});
-        component.update(); // Update the wrapper to get the latest changes
-
-        expect(component.find(VariableSizeList).prop('itemCount')).toBe(1);
-
-        const receivedRecords = extractReceivedRecords(
-          component.find(VariableSizeList),
+        await applyComponentUpdate(
+          async () => await treeInstance.recomputeTree({ 'foo-1': false }),
         );
 
-        expect(receivedRecords).toEqual([
+        expect(getLastListProps(variableSizeListMock)!.itemCount).toBe(1);
+        expect(getLastRecords(variableSizeListMock)!).toEqual([
           {
             data: {
               defaultHeight: 30,
@@ -451,114 +617,84 @@ describe('VariableSizeTree', () => {
       });
 
       it('changes the nested node openness state', async () => {
-        await treeInstance.recomputeTree({'foo-5': false});
-        component.update(); // Update the wrapper to get the latest changes
-
-        expect(component.find(VariableSizeList).prop('itemCount')).toBe(5);
-
-        const receivedRecords = extractReceivedRecords(
-          component.find(VariableSizeList),
+        await applyComponentUpdate(
+          async () => await treeInstance.recomputeTree({ 'foo-5': false }),
         );
 
-        expect(receivedRecords.map(({data: {id}}) => id)).toEqual([
-          'foo-1',
-          'foo-2',
-          'foo-3',
-          'foo-4',
-          'foo-5',
-        ]);
+        expect(getLastListProps(variableSizeListMock)!.itemCount).toBe(5);
+        expect(
+          getLastRecords(variableSizeListMock)!.map(({ data: { id } }) => id),
+        ).toEqual(['foo-1', 'foo-2', 'foo-3', 'foo-4', 'foo-5']);
       });
 
       it("changes several nodes at once regardless of parent's openness", async () => {
-        await treeInstance.recomputeTree({
-          'foo-1': false,
-          'foo-2': false,
-          'foo-5': false,
-        });
-        component.update(); // Update the wrapper to get the latest changes
-
-        expect(component.find(VariableSizeList).prop('itemCount')).toBe(1);
-
-        await treeInstance.recomputeTree({
-          'foo-1': true,
-          'foo-5': true,
-        });
-        component.update(); // Update the wrapper to get the latest changes
-
-        expect(component.find(VariableSizeList).prop('itemCount')).toBe(5);
-
-        const receivedRecords = extractReceivedRecords(
-          component.find(VariableSizeList),
+        await applyComponentUpdate(
+          async () =>
+            await treeInstance.recomputeTree({
+              'foo-1': false,
+              'foo-2': false,
+              'foo-5': false,
+            }),
         );
 
-        expect(receivedRecords.map(({data: {id}}) => id)).toEqual([
-          'foo-1',
-          'foo-2',
-          'foo-5',
-          'foo-6',
-          'foo-7',
-        ]);
+        expect(getLastListProps(variableSizeListMock)!.itemCount).toBe(1);
+
+        await applyComponentUpdate(
+          async () =>
+            await treeInstance.recomputeTree({
+              'foo-1': true,
+              'foo-5': true,
+            }),
+        );
+
+        expect(getLastListProps(variableSizeListMock)!.itemCount).toBe(5);
+        expect(
+          getLastRecords(variableSizeListMock)!.map(({ data: { id } }) => id),
+        ).toEqual(['foo-1', 'foo-2', 'foo-5', 'foo-6', 'foo-7']);
       });
 
       it('applies subtreeCallback for each element in the recomputed subtree', async () => {
-        await treeInstance.recomputeTree({
-          'foo-5': {
-            open: true,
-            // This function will close all tree nodes that are descendants of
-            // `foo-5`
-            subtreeCallback(node, root) {
-              if (node !== root) {
-                node.isOpen = false;
-              }
-            },
-          },
-        });
-        component.update(); // Update the wrapper to get the latest changes
-
-        const receivedRecords = extractReceivedRecords(
-          component.find(VariableSizeList),
+        await applyComponentUpdate(
+          async () =>
+            await treeInstance.recomputeTree({
+              'foo-5': {
+                open: true,
+                subtreeCallback(node, root) {
+                  if (node !== root) {
+                    node.isOpen = false;
+                  }
+                },
+              },
+            }),
         );
 
-        expect(receivedRecords.length).toBe(7);
-        expect(receivedRecords.map(({isOpen}) => isOpen)).toEqual([
-          true,
-          true,
-          true,
-          true,
-          // `foo-5` is open by { open: true }
-          true,
-          // `foo-5`'s children are closed by subtreeCallback
-          false,
-          false,
-        ]);
+        expect(getLastRecords(variableSizeListMock)!).toHaveLength(7);
+        expect(
+          getLastRecords(variableSizeListMock)!.map(({ isOpen }) => isOpen),
+        ).toEqual([true, true, true, true, true, false, false]);
       });
 
       it('allows overriding in definition order', async () => {
-        await treeInstance.recomputeTree({
-          // That will be overridden by `foo-1` subtreeCallback
-          'foo-7': true,
-          // eslint-disable-next-line sort-keys
-          'foo-1': {
-            open: true,
-            subtreeCallback(node, root) {
-              if (node !== root) {
-                node.isOpen = false;
-              }
-            },
-          },
-          'foo-5': true,
-          // This action means nothing because "foo-6" is leaf and has no
-          // children. But it sill will set `isOpen` to true.
-          'foo-6': true,
-        });
-        component.update(); // Update the wrapper to get the latest changes
-
-        const receivedRecords = extractReceivedRecords(
-          component.find(VariableSizeList),
+        await applyComponentUpdate(
+          async () =>
+            await treeInstance.recomputeTree({
+              'foo-7': true,
+              'foo-1': {
+                open: true,
+                subtreeCallback(node, root) {
+                  if (node !== root) {
+                    node.isOpen = false;
+                  }
+                },
+              },
+              'foo-5': true,
+              'foo-6': true,
+            }),
         );
+
         expect(
-          receivedRecords.reduce<Record<string, boolean>>(
-            (acc, {data: {id}, isOpen}) => {
+          getLastRecords(variableSizeListMock)!.reduce<Record<string, boolean>>(
+            (acc, { data: { id }, isOpen }) => {
               acc[id] = isOpen;
 
               return acc;
@@ -567,10 +703,7 @@ describe('VariableSizeTree', () => {
           ),
         ).toEqual({
           'foo-1': true,
-          // Since `foo-2` is closed, `foo-3` and `foo-4` do not even appear in
-          // the list of received records.
           'foo-2': false,
-          // The `foo-5` and `foo-6` nodes are opened manually in recomputeTree
           'foo-5': true,
           'foo-6': true,
           'foo-7': false,
@@ -578,69 +711,53 @@ describe('VariableSizeTree', () => {
       });
 
       it('does nothing if opennessState is not an object', async () => {
-        const originalRecords = extractReceivedRecords(
-          component.find(VariableSizeList),
+        const originalRecords = getLastRecords(variableSizeListMock)!;
+
+        await applyComponentUpdate(
+          // @ts-expect-error Test for non-typescript code.
+          async () => await treeInstance.recomputeTree('4'),
         );
 
-        // @ts-expect-error: Test for non-typescript code.
-        await treeInstance.recomputeTree('4');
-        component.update(); // Update the wrapper to get the latest changes
-
-        expect(
-          extractReceivedRecords(component.find(VariableSizeList)),
-        ).toEqual(originalRecords);
+        expect(getLastRecords(variableSizeListMock)!).toEqual(originalRecords);
       });
 
       it('does nothing if record ID does not exist', async () => {
-        const originalRecords = extractReceivedRecords(
-          component.find(VariableSizeList),
+        const originalRecords = getLastRecords(variableSizeListMock)!;
+
+        await applyComponentUpdate(
+          async () =>
+            await treeInstance.recomputeTree({
+              'foo-42': false,
+            }),
         );
 
-        await treeInstance.recomputeTree({
-          'foo-42': false,
-        });
-        component.update(); // Update the wrapper to get the latest changes
-
-        expect(
-          extractReceivedRecords(component.find(VariableSizeList)),
-        ).toEqual(originalRecords);
+        expect(getLastRecords(variableSizeListMock)!).toEqual(originalRecords);
       });
     });
 
     it('provides a setOpen function that changes openness state of the specific node', async () => {
-      const [{setOpen}] = extractReceivedRecords(
-        component.find(VariableSizeList),
-      );
+      const firstRecord = getLastRecords(variableSizeListMock)![0]!;
 
-      await setOpen(false);
-      component.update(); // Update the wrapper to get the latest changes
+      await applyComponentUpdate(async () => await firstRecord.setOpen(false));
 
-      let list = component.find(VariableSizeList);
-      expect(list.prop('itemCount')).toBe(1);
-      expect(extractReceivedRecords(list).map(({data: {id}}) => id)).toEqual([
-        'foo-1',
-      ]);
+      expect(getLastListProps(variableSizeListMock)!.itemCount).toBe(1);
+      expect(
+        getLastRecords(variableSizeListMock)!.map(({ data: { id } }) => id),
+      ).toEqual(['foo-1']);
 
-      await setOpen(true);
-      component.update(); // Update the wrapper to get the latest changes
+      await applyComponentUpdate(async () => await firstRecord.setOpen(true));
 
-      list = component.find(VariableSizeList);
-      expect(list.prop('itemCount')).toBe(7);
+      expect(getLastListProps(variableSizeListMock)!.itemCount).toBe(7);
     });
 
     it('provides a resize function that changes height of the specific node', () => {
-      const listInstance: VariableSizeList = component
-        .find(VariableSizeList)
-        .instance() as VariableSizeList;
+      variableSizeListRef.resetAfterIndex.mockClear();
 
-      const resetAfterIndexSpy = jest.spyOn(listInstance, 'resetAfterIndex');
-      const [, , foo3]: ReadonlyArray<VariableSizeNodePublicState<
-        ExtendedData
-      >> = extractReceivedRecords(component.find(VariableSizeList));
+      const foo3 = getLastRecords(variableSizeListMock)![2]!;
 
       foo3.resize(100, true);
 
-      expect(resetAfterIndexSpy).toHaveBeenCalledWith(2, true);
+      expect(variableSizeListRef.resetAfterIndex).toHaveBeenCalledWith(2, true);
       expect(foo3.height).toBe(100);
     });
   });

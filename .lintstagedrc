@@ -1,4 +1,0 @@
-{
-  "+(.storybook|config)/*.js": ["prettier --write", "eslint --fix", "git add"],
-  "+(__tests__|src)/*.+(ts|tsx)": ["prettier --write", "tslint -c tslint.json -p tsconfig.json -t verbose --fix", "git add"]
-}

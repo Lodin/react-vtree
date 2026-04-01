@@ -1,30 +1,44 @@
 {
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "baseUrl": "./",
-    "declaration": true,
-    "jsx": "react",
-    "lib": ["dom", "esnext"],
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "sourceMap": true,
-    "sourceRoot": "./src",
-    "strict": true,
     "target": "esnext",
-    "typeRoots": ["node_modules/@types"]
+    "module": "esnext",
+    "lib": ["esnext", "dom", "dom.iterable", "dom.asynciterable"],
+    "types": ["vitest/importMeta", "vite/client"],
+    "skipLibCheck": true,
+    "useDefineForClassFields": true,
+
+    "declaration": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "isolatedModules": true,
+    "isolatedDeclarations": true,
+
+    "allowArbitraryExtensions": true,
+    "strict": true,
+    "strictBindCallApply": true,
+    "sourceMap": true,
+    "inlineSources": true,
+    "rewriteRelativeImportExtensions": true,
+    "erasableSyntaxOnly": true,
+    "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitOverride": true,
+    "noImplicitAny": true,
+    "useUnknownInCatchVariables": true
   },
   "include": [
-    ".storybook",
-    "__stories__/**/*",
-    "__tests__/**/*",
-    "config",
-    "jest.config.js",
-    "src/**/*",
-    "src2/**/*"
-  ],
-  "exclude": ["node_modules"]
+    "./src",
+    "./__tests__",
+    "./__stories__",
+    "./.storybook/**/*",
+    "./config",
+    "./eslint.config.ts",
+    "./tsdown.config.ts",
+    "./vitest.config.ts"
+  ]
 }

@@ -1,19 +1,18 @@
-import React, {ReactNode} from 'react';
-import {FixedSizeList, FixedSizeListProps} from 'react-window';
+import type { ReactNode } from 'react';
+import { FixedSizeList, type FixedSizeListProps } from 'react-window';
 import Tree, {
   createTreeComputer,
-  NodeData,
-  NodePublicState,
-  TreeProps,
-  TreeState,
-} from './Tree';
-import {createBasicRecord, getIdByIndex} from './utils';
+  type NodeData,
+  type NodePublicState,
+  type TreeProps,
+  type TreeState,
+} from './Tree.tsx';
+import { createBasicRecord, getIdByIndex } from './utils.ts';
 
 export type FixedSizeNodeData = NodeData;
 
-export type FixedSizeNodePublicState<
-  TData extends FixedSizeNodeData
-> = NodePublicState<TData>;
+export type FixedSizeNodePublicState<TData extends FixedSizeNodeData> =
+  NodePublicState<TData>;
 
 export type FixedSizeTreeProps<TData extends FixedSizeNodeData> = TreeProps<
   TData,
@@ -34,15 +33,15 @@ const computeTree = createTreeComputer<
   FixedSizeTreeProps<FixedSizeNodeData>,
   FixedSizeTreeState<FixedSizeNodeData>
 >({
-  createRecord: (data, {recomputeTree}, parent, previousRecord) =>
+  createRecord: (data, { recomputeTree }, parent, previousRecord) =>
     createBasicRecord(
       {
         data,
         isOpen: previousRecord
           ? previousRecord.public.isOpen
           : data.isOpenByDefault,
-        setOpen: (state): Promise<void> =>
-          recomputeTree({
+        setOpen: async (state): Promise<void> =>
+          await recomputeTree({
             [data.id]: state,
           }),
       },
@@ -51,7 +50,7 @@ const computeTree = createTreeComputer<
 });
 
 export class FixedSizeTree<
-  TData extends FixedSizeNodeData = FixedSizeNodeData
+  TData extends FixedSizeNodeData = FixedSizeNodeData,
 > extends Tree<
   TData,
   FixedSizeNodePublicState<TData>,
@@ -59,7 +58,7 @@ export class FixedSizeTree<
   FixedSizeTreeState<TData>,
   FixedSizeList
 > {
-  public constructor(props: FixedSizeTreeProps<TData>, context: any) {
+  constructor(props: FixedSizeTreeProps<TData>, context: any) {
     super(props, context);
 
     this.state = {
@@ -68,17 +67,17 @@ export class FixedSizeTree<
     };
   }
 
-  public render(): ReactNode {
+  override render(): ReactNode {
     const {
-      children,
-      listRef,
+      children: _c,
+      listRef: _l,
       placeholder,
-      treeWalker,
+      treeWalker: _t,
       rowComponent,
       ...rest
     } = this.props;
 
-    const {attachRefs, order} = this.state;
+    const { attachRefs, order } = this.state;
 
     return placeholder && order!.length === 0 ? (
       placeholder
@@ -87,9 +86,9 @@ export class FixedSizeTree<
         {...rest}
         itemCount={order!.length}
         itemData={this.getItemData()}
-        // eslint-disable-next-line @typescript-eslint/unbound-method
+         
         itemKey={getIdByIndex}
-        // eslint-disable-next-line @typescript-eslint/unbound-method
+         
         ref={attachRefs}
       >
         {rowComponent!}
