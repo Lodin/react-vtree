@@ -11,6 +11,7 @@ const config: UserConfig = defineConfig({
       provider: 'v8',
       reportsDirectory: '.coverage',
       clean: true,
+      include: ['src/**'],
       reporter: isCI ? ['lcov'] : ['html'],
     },
     environment: 'jsdom',
