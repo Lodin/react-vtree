@@ -1,6 +1,6 @@
 {
   "name": "react-vtree",
-  "version": "3.0.0-beta.3",
+  "version": "3.0.0",
   "description": "React component for efficiently rendering large tree structures",
   "type": "module",
   "types": "./dist/index.d.ts",
