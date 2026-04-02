@@ -86,9 +86,7 @@ export class FixedSizeTree<
         {...rest}
         itemCount={order!.length}
         itemData={this.getItemData()}
-         
         itemKey={getIdByIndex}
-         
         ref={attachRefs}
       >
         {rowComponent!}

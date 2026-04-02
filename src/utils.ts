@@ -37,7 +37,6 @@ export type DefaultTreeCreatorOptions = TreeCreatorOptions<
   DefaultTreeState
 >;
 
- 
 export const noop = (): void => {};
 
 export const identity = <T>(value: T): T => value;

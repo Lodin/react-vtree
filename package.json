@@ -2,6 +2,29 @@
   "name": "react-vtree",
   "version": "3.0.0",
   "description": "React component for efficiently rendering large tree structures",
+  "keywords": [
+    "infinite",
+    "react",
+    "react-component",
+    "react-virtualized",
+    "reactjs",
+    "tree",
+    "virtual",
+    "virtualized"
+  ],
+  "homepage": "https://github.com/Lodin/react-vtree#readme",
+  "bugs": {
+    "url": "https://github.com/Lodin/react-vtree/issues"
+  },
+  "license": "MIT",
+  "author": "Vlad Rindevich <rindevich.vs@gmail.com> (https://github.com/Lodin)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lodin/react-vtree.git"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -11,9 +34,6 @@
     },
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsdown",
     "build:watch": "tsdown --watch",
@@ -21,13 +41,14 @@
     "clean": "rimraf coverage dist storybook-static",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "full-prepare": "npm run clean && concurrently --kill-others-on-fail --group --names format,lint,oxlint,typecheck,test,build npm:format:check npm:lint npm:oxlint npm:typecheck npm:test npm:build",
+    "full-prepare": "npm run clean && concurrently --group --names format,lint,typecheck,test,build npm:format:check npm:lint npm:typecheck npm:test npm:build",
     "lint": "concurrently npm:eslint npm:oxlint",
     "lint:fix": "npm run oxlint:fix && npm run eslint:fix",
     "eslint": "eslint . --flag unstable_native_nodejs_ts_config",
     "eslint:fix": "npm run eslint -- --fix",
     "oxlint": "oxlint -c .oxlintrc.json",
     "oxlint:fix": "npm run oxlint -- --fix",
+    "prepublishOnly": "npm run full-prepare",
     "release": "semantic-release -c release.config.ts",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
@@ -36,26 +57,9 @@
     "test:watch": "vitest",
     "typecheck": "tsgo -p tsconfig.json --noEmit"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Lodin/react-vtree.git"
+  "dependencies": {
+    "react-merge-refs": "3.0.2"
   },
-  "keywords": [
-    "infinite",
-    "react",
-    "reactjs",
-    "react-component",
-    "react-virtualized",
-    "tree",
-    "virtual",
-    "virtualized"
-  ],
-  "author": "Vlad Rindevich <rindevich.vs@gmail.com> (https://github.com/Lodin)",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/Lodin/react-vtree/issues"
-  },
-  "homepage": "https://github.com/Lodin/react-vtree#readme",
   "devDependencies": {
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/git": "10.0.1",
@@ -98,9 +102,6 @@
     "react": ">=18",
     "react-dom": ">=18",
     "react-window": ">= 1.8.5"
-  },
-  "dependencies": {
-    "react-merge-refs": "3.0.2"
   },
   "overrides": {
     "vite": "$vite"

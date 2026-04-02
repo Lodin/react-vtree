@@ -1,11 +1,7 @@
- 
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { type FC, useCallback, useRef } from 'react';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
-import type {
-  TreeWalker,
-  TreeWalkerValue,
-} from '../src/Tree.tsx';
+import type { TreeWalker, TreeWalkerValue } from '../src/Tree.tsx';
 import type { NodeComponentProps } from '../src/Tree.tsx';
 import {
   type VariableSizeNodeData,

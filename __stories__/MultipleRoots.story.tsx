@@ -1,4 +1,3 @@
- 
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { FC } from 'react';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
@@ -7,10 +6,7 @@ import {
   type FixedSizeNodePublicState,
   FixedSizeTree,
 } from '../src/FixedSizeTree.tsx';
-import type {
-  TreeWalker,
-  TreeWalkerValue,
-} from '../src/Tree.tsx';
+import type { TreeWalker, TreeWalkerValue } from '../src/Tree.tsx';
 import type { NodeComponentProps } from '../src/Tree.tsx';
 
 type TreeNode = Readonly<{
